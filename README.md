@@ -1,31 +1,27 @@
-# Namdhari Seva & Community — mobile demo
+# Namdhari Seva & Community — member prototype
 
-A clickable, installable PWA demo of the Namdhari Seva & Community app (spec v1.0, Oct 2026).
+Clickable, installable PWA prototype of the **Member** experience, following the *Product Experience Redesign V2.0* brief.
 No backend: all data is sample data stored on your own device.
 
-**Live demo:** https://iiswaranii.github.io/namdhari-seva-demo/
+**Live:** https://iiswaranii.github.io/namdhari-seva-demo/
 
 ## Install on your phone
-- **iPhone:** open the link in Safari → Share → **Add to Home Screen** → Add.
-- **Android:** open in Chrome → ⋮ menu → **Install app** / **Add to Home screen**.
+- **iPhone:** open the link in Safari → Share → **Add to Home Screen**.
+- **Android:** open in Chrome → ⋮ menu → **Install app**.
 
-## What to try
-1. Join the invited group, enter your name (try "Under 18" to see the guardian-approval state).
-2. **Seva tab:** open a seva, join a role, join a waitlist when full, tap *Can't make it* to see auto-offer to the waitlist.
-3. **Calendar / WhatsApp** buttons on any seva or event.
-4. **Community:** Local vs Worldwide stories, three positive reactions (one per post).
-5. **Profile:** Seva Passport stamps, private intention ring, thank-you notes, test a reminder notification (works once installed).
-6. Switch **Demo view as → Team Lead:** needs-attention queue, attendance roster, check-in QR, under-a-minute completion form with auto recap → story drafted and garden grows.
-7. Switch to **Main Admin:** KPIs with region filter, story review queue, CSV export.
+## What's in it
+- **Home** (in this order): header with inbox, share and profile; one **priority card** chosen by a fixed ranking (Happening now → Needs your action → Coming up → Invitation → Your next opportunity); the **My Seva mosaic** (Completed this month · Upcoming next 30 days · Needs action) with the latest verified seva; **Next up**, never repeating the priority card; one **Together this week** community moment.
+- **Seva tab:** Explore (seva and events, NEW badges until opened) · My Seva (Needs action · Upcoming · Ongoing · Completed) · History timeline.
+- **Live seva page:** your role, meeting point, task checklist, check-in, message lead, directions, and progress (Scheduled → In progress → Submitted → Verified). Completed counts only after the lead verifies.
+- **Check-in button** (round button beside the nav): scan the lead's QR, or enter a code.
+- **Events** are separate from seva: RSVP, agenda, linked volunteer roles. They never count as completed seva.
+- **Community:** Local / Worldwide official stories (seva stories, events, important updates), the collective group garden, and three positive reactions. No comments or member posts.
+- **Profile:** private journey stats, appearance (System/Light/Dark plus accent colours), notification settings.
+- **Share cards:** "This month" or a single verified seva as an image (dark, light, transparent) for WhatsApp status or stories.
 
-Use *Profile → Reset demo* to start over.
-
-## New in v2
-- **Personal garden:** every seva unlocks plants and pieces (marigolds → bench → lotus pond → peacock → banyan). Tap *Design* to lay out paths and plants, tap any plant to see it up close, or *Walk in 3D* for a blocky first-person stroll (3D engine loads only when opened).
-- **Home:** seva rings (seva, hours, sangat), happening-now, up next, new-for-you.
-- **Alerts:** urgent = red, changes = amber, new seva = green; NEW badges stay until you open the item.
-- **Community:** only seva successes (green), events (blue) and important alerts (orange), with filters.
-- **Themes:** System / Light / Dark plus Forest, Ocean, Dusk, Earth colour themes.
+## Try the three member states
+Profile → *Prototype: try member states* → **New**, **Active** or **Less active**.
+On a live seva, use *Prototype controls* to end it, then verify it. This shows the "Awaiting verification" step.
 
 ## Stack
-Plain HTML/CSS/JS, no build step. `manifest.webmanifest` + `sw.js` for installability and offline shell.
+Plain HTML/CSS/JS, no build step. `manifest.webmanifest` + `sw.js` provide installability and an offline shell.

@@ -1,5 +1,5 @@
 // Namdhari Seva demo — offline shell service worker
-const CACHE = 'seva-demo-v2';
+const CACHE = 'seva-member-v3';
 const SHELL = [
   './', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
