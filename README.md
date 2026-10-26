@@ -1,34 +1,29 @@
-# Namdhari Seva & Community — member prototype
+# Namdhari Seva & Community — member prototype (v6)
 
-Clickable, installable PWA prototype (v5) of the **Member** experience, following the *Product Experience Redesign V2.0* brief.
-No backend: all data is sample data stored on your own device.
+Live demo: https://iiswaranii.github.io/namdhari-seva-demo/ — open it on your phone and use **Add to Home Screen**.
 
-**Live:** https://iiswaranii.github.io/namdhari-seva-demo/
+This is a clickable prototype for the **Member** role only. There is no backend; the sample data lives on your device.
 
-## Install on your phone
-- **iPhone:** open the link in Safari → Share → **Add to Home Screen**.
-- **Android:** open in Chrome → ⋮ menu → **Install app**.
+## What's inside
+- **Home (Instagram-style)**
+  - **Stories row:** only team leads can post stories, at most 2 per lead per day. Each story appears under the group's name (Delhi, Ludhiana, Sri Bhaini Sahib…), never the lead's. Stories from several leads queue inside one group ring. Tap, hold to pause, or swipe down to close.
+  - **Live seva banner** at the top.
+  - **Official feed:** only the Super Admin posts here, text only. Posts appear as designed cards: Thought of the Day, Satguru Ji's Hukam, Alert, Information, Appreciation, and Event (with RSVP).
+  - **Reactions:** 🙏 Gratitude and 🤝 Support. Double-tap a card to say 🙏.
+- **Seva**
+  - My Sevas / All Opportunities, filtered by Ongoing / Upcoming / Completed.
+  - A coloured date block replaces the image on every card.
+  - Live seva gets a big **LIVE** label, and a LIVE tag appears on the bottom-bar Seva icon.
+  - Calendar view.
+  - **Seva detail:** hero, "You're Participating", and tabs for Overview / Tasks / Team / Updates. It also shows Seva progress, Tasks for You, Mark Task Complete, task picking (unclaimed tasks are highlighted), and Message lead.
+- **Garden**
+  - A scenic animated garden.
+  - Every verified seva is one contribution and +3 points. Each contribution unlocks the next item.
+  - Special items need conditions, e.g. the Cherry blossom needs 2 Langar seva.
+  - Shop with a cart, a confirmation step, points deducted, and the remaining balance shown.
+  - Optional 3D view.
+- **Profile**
+  - Contributions, Unlocked and Points. Seva hours are not shown.
+  - My Seva Journey, My Garden, My Commitments, **My Team** (Delhi Central members, leads, search), Notifications, and App Settings (theme and prototype member state).
 
-## What's in it
-- **Home** (in this order): header with inbox, share and profile; one **priority card** chosen by a fixed ranking (Happening now → Needs your action → Coming up → Invitation → Your next opportunity); the **My Seva mosaic** (Completed this month · Upcoming next 30 days · Needs action) with the latest verified seva; **Next up**, never repeating the priority card; one **Together this week** community moment.
-- **Seva tab:** Explore (seva and events, NEW badges until opened) · My Seva (Needs action · Upcoming · Ongoing · Completed) · History timeline.
-- **Live seva page:** time progress, who is here now / on the way / maybe, your tasks, role coverage, message or call the lead, live updates and details.
-- **Going / Maybe / Can't go** buttons on every seva and event, with who's-coming lists.
-- **My garden (new tab):** private garden that unlocks plants, a bench, lanterns, a pond, a cat and a dog through verified seva. Design it in 2D, or open the 3D view to turn and zoom — grass and trees sway, foliage wiggles when you turn, butterflies fly, pets wander and play. The 3D engine loads only when opened.
-- **Events** are separate from seva: RSVP, agenda, linked volunteer roles. They never count as completed seva.
-- **Community:** Local / Worldwide official stories (seva stories, events, important updates), the collective group garden, and three positive reactions. No comments or member posts.
-- **Profile:** private journey stats, appearance (System/Light/Dark plus accent colours), notification settings.
-- **Share cards:** "This month" or a single verified seva as an image (dark, light, transparent) for WhatsApp status or stories.
-
-## Try the three member states
-Profile → *Prototype: try member states* → **New**, **Active** or **Less active**.
-On a live seva, use *Prototype controls* to end it, then verify it. This shows the "Awaiting verification" step.
-
-## New in v5
-- **Home:** greeting, replies needed, a swipeable **Live now** card for every running seva (with a red alert badge when the lead posts an update), a clickable **calendar** with colour-coded days, and "Can you help?" for points nobody has picked.
-- **Points:** each seva is broken into points (e.g. "Lay carpets in the main hall"). Members join in three steps — Will you come → Pick your points → Reminders. Several people can pick the same point; points with no one are highlighted for everyone.
-- **Live seva:** new updates since you last looked, your points with done-ticks, all points with "I'll help", who is here.
-- **Team Lead / Main Admin:** switch at the bottom of Profile. Leads create seva with points, add or edit points even while live (members get an alert) and see who is doing what. Admin sees coverage across groups.
-
-## Stack
-Plain HTML/CSS/JS, no build step. `manifest.webmanifest` + `sw.js` provide installability and an offline shell.
+Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you open the 3D view.

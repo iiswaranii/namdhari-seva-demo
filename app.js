@@ -1,5 +1,7 @@
-/* Namdhari Seva & Community — prototype v5
-   Calendar-first Home, points (tasks) that members pick, live alerts, Member / Team Lead / Admin views.
+/* Namdhari Seva & Community — member prototype v6
+   Home: Instagram-style stories (team leads, per group) + admin feed cards.
+   Seva: date-block cards, big LIVE, detail with Overview / Tasks / Team / Updates.
+   Garden: scenic garden, unlocks, points, cart. Profile: contributions + My Team.
    No backend: sample data lives on this device. */
 (() => {
 'use strict';
@@ -24,15 +26,16 @@ const relDay = (s) => {
   if (d > 1 && d < 7) return new Date(s).toLocaleDateString(undefined, { weekday: 'long' });
   return fmtLong(s);
 };
-const span = (a, b) => `${relDay(a)} · ${fmtTime(a)} – ${fmtTime(b)}`;
-const dur = (ms) => { const m = Math.max(1, Math.round(ms / MIN)); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}`; };
+const ago = (s) => { const m = Math.round((now() - T(s)) / MIN); if (m < 1) return 'just now'; if (m < 60) return m + 'm'; if (m < 1440) return Math.round(m / 60) + 'h'; return Math.round(m / 1440) + 'd'; };
 const initials = (n) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const first = (n) => n.split(' ')[0];
 const uid = () => Math.random().toString(36).slice(2, 9);
-const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const num = (n) => n.toLocaleString();
 let toastT;
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
 const buzz = () => { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} };
+const AVC = ['#E07A3A', '#2E9A8F', '#7B4FE0', '#D9467A', '#3B7BE0', '#4E9A3E', '#B7791F', '#C2410C', '#0F766E', '#6D28D9'];
+const avColor = (n) => AVC[[...n].reduce((a, c) => a + c.charCodeAt(0), 0) % AVC.length];
 
 // ---------- Icons ----------
 const svg = (p, w = 1.8) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
@@ -40,10 +43,9 @@ const I = {
   home: svg('<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'),
   seva: svg('<path d="M7 11V7a2 2 0 1 1 4 0v4"/><path d="M11 10V5a2 2 0 1 1 4 0v6"/><path d="M15 9a2 2 0 1 1 4 0v5a7 7 0 0 1-7 7h-1a7 7 0 0 1-6-3.4L3 15a2 2 0 0 1 3.4-2l.6 1"/>'),
   garden: svg('<path d="M12 21v-9"/><path d="M12 12c0-4 3-7 8-7 0 5-3 7-8 7z"/><path d="M12 14c0-3-2.5-5.5-7-5.5 0 4 2.5 5.5 7 5.5z"/><path d="M5 21h14"/>'),
-  community: svg('<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>'),
   profile: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
   bell: svg('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
-  share: svg('<path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'),
+  share: svg('<path d="M22 3 11 14"/><path d="M22 3l-7 19-4-8-8-4z"/>'),
   back: svg('<path d="M15 6l-6 6 6 6"/>', 2.2),
   chev: svg('<path d="M9 6l6 6-6 6"/>', 2),
   chevL: svg('<path d="M15 6l-6 6 6 6"/>', 2),
@@ -57,57 +59,61 @@ const I = {
   checkc: svg('<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>', 2),
   help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8 1c0 1.7-2.3 2-2.3 3.5M12 17h.01"/>', 2),
   xc: svg('<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>', 2),
-  alert: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h.01"/>', 2),
-  hourglass: svg('<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/>'),
-  cal: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  alert: svg('<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>', 2),
   info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>', 2),
   sparkle: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'),
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+  khanda: svg('<path d="M12 2v20"/><path d="M12 2l-1.5 3h3z"/><path d="M8 7a6 6 0 0 0 0 10M16 7a6 6 0 0 1 0 10"/><circle cx="12" cy="12" r="3"/>'),
+  heart: svg('<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>', 2.2),
-  edit: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/>'),
-  trash: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
+  cal: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  list: svg('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>', 2),
   megaphone: svg('<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14"/>'),
   wa: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.8-1.2s.2-1.1.1-1.2-.2-.2-.4-.3z"/></svg>',
-  phone: svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>'),
-  download: svg('<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>'),
-  copy: svg('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
+  msg: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'),
   leaf: svg('<path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15z"/><path d="M5 19l8-8"/>'),
   lock: svg('<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   cube: svg('<path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/>'),
-  square: svg('<path d="M12 3 21 8 12 13 3 8z"/><path d="M3 8v8l9 5 9-5V8"/>'),
+  image: svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>'),
   reset: svg('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>'),
-  erase: svg('<path d="M20 20H8l-5-5 10-10 8 8-6 6"/><path d="M6 12l6 6"/>'),
-  shield: svg('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'),
-  flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
-  globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+  bookmark: svg('<path d="M6 3h12v18l-6-4-6 4z"/>'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>', 2),
+  settings: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+  journey: svg('<path d="M4 19c4 0 4-6 8-6s4 6 8 6"/><circle cx="4" cy="19" r="1.5"/><circle cx="20" cy="19" r="1.5"/><path d="M12 13V4l5 2.5L12 9"/>'),
+  handshake: svg('<path d="M11 17l2 2a1.4 1.4 0 0 0 2-2"/><path d="M14 14l2.5 2.5a1.4 1.4 0 0 0 2-2L15 11l-1.5 1.5a2 2 0 0 1-3-3L13 7h3l5 5"/><path d="M3 11l5-5 3 1"/><path d="M3 11l5 5 1.5-1.5"/>'),
+  cart: svg('<path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>'),
   wifi: svg('<path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01"/><path d="M3 3l18 18"/>'),
+  download: svg('<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>'),
+  team: svg('<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 21a5 5 0 0 1 10 0M1.5 19a3.6 3.6 0 0 1 5.5-3M22.5 19a3.6 3.6 0 0 0-5.5-3"/>'),
+  flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
 };
+const SEED = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F6C453"/><circle cx="12" cy="12" r="10" fill="none" stroke="#D99A1E" stroke-width="1.4"/><path d="M12 17.5v-6M12 11.5c0-3 2-5 5-5 0 3-2 5-5 5zM12 13.5c0-2.4-1.7-4-4.2-4 0 2.4 1.7 4 4.2 4z" stroke="#7A4D00" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+const seed = (n) => `<span class="seed">${SEED}${n}</span>`;
 const chev = I.chev.replace('<svg', '<svg class="chev"');
-// Category line icons + colours
 const CAT = {
   langar: { label: 'Langar', ic: svg('<path d="M4 12h16a8 7 0 0 1-16 0z"/><path d="M3 12h18M9 8c0-1.5 1.5-1.5 1.5-3M13 8c0-1.5 1.5-1.5 1.5-3"/>') },
   cleanup: { label: 'Cleaning', ic: svg('<path d="M14 3l-4 9"/><path d="M6 12h8l2 9H4z"/><path d="M8 16v5M12 16v5"/>') },
   tree: { label: 'Tree planting', ic: svg('<path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2.5-5-6-5 0 3.5 2.5 5 6 5z"/><path d="M6 21h12"/>') },
   education: { label: 'Education', ic: svg('<path d="M3 6c3-1.5 6-1.5 9 1 3-2.5 6-2.5 9-1v13c-3-1.5-6-1.5-9 1-3-2.5-6-2.5-9-1z"/><path d="M12 7v13"/>') },
   blanket: { label: 'Relief', ic: svg('<path d="M12 20s-7-4.4-7-9.5A3.5 3.5 0 0 1 12 8a3.5 3.5 0 0 1 7 2.5C19 15.6 12 20 12 20z"/>') },
-  event: { label: 'Event', ic: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13l1 2 2 .3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1L9 15.3l2-.3z"/>') },
+  event: { label: 'Event', ic: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>') },
 };
-const cico = (c, sm) => `<span class="cico cc-${c} ${sm ? 'sm' : ''}">${CAT[c].ic}</span>`;
-const dtile = (s, c) => { const d = new Date(s); return `<span class="dtile cc-${c}"><span><b>${d.getDate()}</b><span>${d.toLocaleDateString(undefined, { month: 'short' })}</span></span></span>`; };
 
 // ---------- People ----------
 const NAMES = ['Harpreet Kaur', 'Gurpreet Singh', 'Simran Kaur', 'Jaspreet Singh', 'Manjit Kaur', 'Balwinder Singh', 'Navneet Kaur', 'Amrit Singh', 'Kiranjit Kaur', 'Ravinder Singh', 'Parminder Kaur', 'Tejinder Singh', 'Sukhwinder Singh', 'Rajinder Kaur', 'Hardeep Singh', 'Gurleen Kaur', 'Mandeep Singh', 'Jasleen Kaur', 'Kuldeep Singh', 'Inderjit Kaur', 'Baljit Singh', 'Prabhjot Kaur', 'Daljit Singh', 'Sandeep Kaur', 'Arjan Singh', 'Mehar Kaur', 'Ishmeet Singh', 'Noor Kaur', 'Taranjit Singh', 'Ekam Kaur'];
+const LEADS = ['Gurpreet Singh', 'Simran Kaur', 'Manjit Kaur', 'Ravinder Singh', 'Harpreet Kaur', 'Balwinder Singh'];
 const crowd = (off, going, maybe, cant, here = 0) => { const o = []; let k = off; for (let i = 0; i < going; i++) o.push({ n: NAMES[k++ % 30], st: i < here ? 'here' : 'going' }); for (let i = 0; i < maybe; i++) o.push({ n: NAMES[k++ % 30], st: 'maybe' }); for (let i = 0; i < cant; i++) o.push({ n: NAMES[k++ % 30], st: 'cant' }); return o; };
-const pts = (off, list) => list.map(([text, need, n, me, extra], i) => ({ id: 't' + uid(), text, need, takers: [...(me ? ['@me'] : []), ...NAMES.slice(off + i * 2, off + i * 2 + n)], at: extra?.at || at(-3, 9), live: !!extra?.live }));
+const pts = (off, list) => list.map(([text, need, n, me, prog, extra], i) => ({ id: 't' + uid(), text, need, prog: prog || 0, takers: [...(me ? ['@me'] : []), ...NAMES.slice(off + i * 2, off + i * 2 + n)], at: extra?.at || at(-3, 9), live: !!extra?.live }));
 
 // ---------- Scenario data ----------
 function baseSeva(kind) {
   const meA = kind === 'active';
   return [
-    { id: 's0', title: 'Gurdwara Hall Cleaning', cat: 'cleanup', start: rel(-25), end: rel(155), place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Main hall entrance', lead: 'Gurpreet Singh', purpose: 'Get the main hall ready for this evening\'s diwan.', instructions: 'Head covered. Brooms, mops and cloths are in the store room.', created: at(-5, 9), people: crowd(2, 9, 1, 1, 7),
-      points: pts(2, [['Lay carpets in the main hall', 4, 3, false], ['Sweep and mop the hall floor', 3, 2, meA], ['Clean windows and ceiling fans', 2, 0, false], ['Arrange the shoe racks', 2, 1, meA], ['Water for sangat at the entrance', 1, 0, false, { at: rel(-8), live: true }]]),
-      updates: [{ id: 'u1', t: 'New point added: Water for sangat at the entrance', d: rel(-8), by: 'Gurpreet Singh', kind: 'new' }, { id: 'u2', t: 'Carpets: start from the stage side, not the door side', d: rel(-14), by: 'Gurpreet Singh', kind: 'edit' }, { id: 'u0', t: 'Seva has started. Please meet at the main hall entrance.', d: rel(-25), by: 'Gurpreet Singh', kind: 'info' }] },
+    { id: 's0', title: 'Gurdwara Hall Cleaning', cat: 'cleanup', start: rel(-45), end: rel(135), place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Main hall entrance', lead: 'Gurpreet Singh', purpose: 'Get the main hall ready for this evening\'s diwan.', instructions: 'Head covered. Brooms, mops and cloths are in the store room.', created: at(-5, 9), people: crowd(2, 9, 1, 1, 7),
+      points: pts(2, [['Lay carpets in the main hall', 4, 3, false, 1], ['Sweep and mop the hall floor', 3, 2, meA, .6], ['Clean windows and ceiling fans', 2, 0, false, 0], ['Arrange the shoe racks', 2, 1, meA, .3], ['Water for sangat at the entrance', 1, 0, false, 0, { at: rel(-8), live: true }]]),
+      updates: [{ id: 'u1', t: 'New task added: Water for sangat at the entrance', d: rel(-8), by: 'Gurpreet Singh', kind: 'new' }, { id: 'u2', t: 'Carpets: start from the stage side, not the door side', d: rel(-14), by: 'Gurpreet Singh', kind: 'edit' }, { id: 'u0', t: 'Seva has started. Please meet at the main hall entrance.', d: rel(-45), by: 'Gurpreet Singh', kind: 'info' }] },
     { id: 's5', title: 'Morning Langar Prep', cat: 'langar', start: rel(-70), end: rel(110), place: 'Langar kitchen, Karol Bagh', meet: 'Kitchen side door', lead: 'Manjit Kaur', purpose: 'Prep for today\'s langar — about 250 sangat.', instructions: 'Aprons and gloves provided.', created: at(-6, 9), people: crowd(12, 7, 1, 0, 6),
-      points: pts(12, [['Chop onions and tomatoes', 3, 2, meA], ['Knead atta for rotis', 2, 2, false], ['Wash dal and rice', 2, 1, false]]),
+      points: pts(12, [['Chop onions and tomatoes', 3, 2, meA, .7], ['Knead atta for rotis', 2, 2, false, .5], ['Wash dal and rice', 2, 1, false, 1]]),
       updates: [{ id: 'u3', t: 'Prep started — 40 extra sangat expected', d: rel(-60), by: 'Manjit Kaur', kind: 'info' }] },
     { id: 's1', title: 'Sunday Langar Seva', cat: 'langar', start: at(1, 9), end: at(1, 13), place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Langar hall, main door', lead: 'Gurpreet Singh', purpose: 'Cook and serve langar for around 300 sangat after the morning diwan.', instructions: 'Arrive 15 minutes early.', created: at(-10, 9), recur: 'Every Sunday', people: crowd(0, 10, 3, 2),
       points: pts(0, [['Cook dal and sabzi', 3, 2, meA], ['Make rotis', 4, 3, false], ['Serve langar in the hall', 6, 4, false], ['Wash utensils after service', 3, 0, false]]), updates: [] },
@@ -124,72 +130,87 @@ function baseSeva(kind) {
 }
 function baseEvents() {
   return [
-    { id: 'e1', title: 'Monthly Satsang', kind: 'Satsang', start: at(6, 18), end: at(6, 20), place: 'Namdhari Gurdwara, Karol Bagh', organizer: 'Delhi Central', audience: 'Delhi Central members', agenda: ['Kirtan', 'Katha', 'Ardas', 'Langar'], going: 86, maybe: 21, cant: 9, linked: 's1', created: at(-12, 9), sample: 0 },
-    { id: 'e2', title: 'New Volunteer Orientation', kind: 'Online session', start: at(3, 19), end: at(3, 19, 45), place: 'Online — link shared after you RSVP', organizer: 'Delhi Central', audience: 'New and returning volunteers', agenda: ['How seva works', 'Picking points', 'Q&A'], going: 14, maybe: 6, cant: 2, created: rel(-200), sample: 11 },
-    { id: 'e3', title: 'Hola Mohalla Gathering', kind: 'Gathering', start: at(24, 10), end: at(24, 17), place: 'Sri Bhaini Sahib, Punjab', organizer: 'Worldwide sangat', audience: 'All members', agenda: ['Gathering', 'Seva', 'Celebration'], going: 1240, maybe: 310, cant: 45, created: at(-15, 9), sample: 5 },
+    { id: 'e1', title: 'Monthly Satsang', kind: 'Satsang', start: at(6, 18), end: at(6, 20), place: 'Namdhari Gurdwara, Karol Bagh', organizer: 'Delhi Central', agenda: ['Kirtan', 'Katha', 'Ardas', 'Langar'], going: 86, maybe: 21, cant: 9, created: at(-12, 9) },
+    { id: 'e2', title: 'New Volunteer Orientation', kind: 'Online session', start: at(3, 19), end: at(3, 19, 45), place: 'Online — link shared after you RSVP', organizer: 'Delhi Central', agenda: ['How seva works', 'Picking tasks', 'Q&A'], going: 14, maybe: 6, cant: 2, created: rel(-200) },
+    { id: 'e3', title: 'Hola Mohalla Gathering', kind: 'Gathering', start: at(24, 10), end: at(24, 17), place: 'Sri Bhaini Sahib, Punjab', organizer: 'Worldwide sangat', agenda: ['Gathering', 'Seva', 'Celebration'], going: 1240, maybe: 310, cant: 45, created: at(-15, 9) },
   ];
 }
-function basePosts() {
+// Feed: only the Super Admin posts. Text only, rendered as designed cards.
+function baseFeed() {
   return [
-    { id: 'p1', type: 'seva', scope: 'local', cat: 'cleanup', title: 'Karol Bagh street clean-up', city: 'Delhi', date: at(-3, 10), text: '22 volunteers cleared 18 bags of waste from 3 lanes.', r: { g: 31, a: 12, c: 9 } },
-    { id: 'u1', type: 'update', scope: 'local', cat: 'cleanup', title: 'Yamuna clean-up moved to Gate 2', city: 'Delhi', date: rel(-120), text: 'Same time, 7:00 AM Thursday. Gate 1 is closed for repairs.', link: 'seva:s2', r: { g: 3, a: 8, c: 1 } },
-    { id: 'v1', type: 'event', scope: 'local', cat: 'event', title: 'Monthly Satsang this Saturday', city: 'Delhi', date: at(-1, 12), text: 'Kirtan, katha and langar. 86 sangat going so far.', link: 'event:e1', r: { g: 22, a: 14, c: 5 } },
-    { id: 'm1', type: 'milestone', scope: 'local', cat: 'tree', title: 'Delhi garden: lanterns are lit', city: 'Delhi', date: at(-2, 9), text: 'Our 40th verified seva this year lit the garden lanterns.', link: 'ggarden', r: { g: 64, a: 30, c: 41 } },
-    { id: 'p2', type: 'seva', scope: 'world', cat: 'langar', title: 'Langar for 450 at Southall', city: 'London', date: at(-2, 13), text: '16 volunteers served 450 sangat in under 2 hours.', r: { g: 88, a: 40, c: 27 } },
-    { id: 'v2', type: 'event', scope: 'world', cat: 'event', title: 'Hola Mohalla — RSVPs open', city: 'Sri Bhaini Sahib', date: at(-4, 9), text: 'Gathering at Sri Bhaini Sahib in 3 weeks. 1,240 going.', link: 'event:e3', r: { g: 210, a: 96, c: 120 } },
+    { id: 'f1', type: 'thought', d: rel(-50), title: 'Thought of the Day', text: 'Seva done with a quiet heart is never small. Every roti rolled and every step swept is an offering.', r: { g: 1204, s: 312 } },
+    { id: 'f2', type: 'alert', d: rel(-120), title: 'Venue changed', text: 'Yamuna Ghat Clean-up on Thursday now meets at Gate 2. Gate 1 is closed for repairs. Same time, 7:00 AM.', link: 'seva:s2', cta: 'View seva', r: { g: 88, s: 240 } },
+    { id: 'f3', type: 'hukam', d: rel(-300), title: 'Satguru Ji\'s Hukam', text: 'This winter, every jatha is asked to hold one blanket seva for those sleeping in the cold. Plans for Delhi are now open — please give your name to your team lead.', link: 'seva:s6', cta: 'See the plan', r: { g: 2310, s: 1430 } },
+    { id: 'f4', type: 'appreciation', d: at(-1, 19), title: 'Thank you, Delhi Central', text: '22 sevadars cleared 18 bags of waste from 3 lanes in Karol Bagh on Sunday.', stat: '18 bags', r: { g: 642, s: 120 } },
+    { id: 'f5', type: 'event', d: at(-1, 12), title: 'Monthly Satsang', text: 'Kirtan, katha and langar. 86 sangat going so far.', link: 'event:e1', ev: 'e1', cta: 'RSVP', r: { g: 410, s: 96 } },
+    { id: 'f6', type: 'info', d: at(-2, 10), title: 'New in the app', text: 'You can now pick the exact tasks you will do at a seva. Your team lead sees it instantly, and you get a reminder before it starts.', r: { g: 150, s: 77 } },
+    { id: 'f7', type: 'thought', d: at(-3, 7), title: 'Thought of the Day', text: 'The sangat is a garden. It grows when each of us tends one small patch of it.', r: { g: 980, s: 205 } },
   ];
 }
-const PATH_TILES = { '2,0': 'path', '2,1': 'path', '2,2': 'path', '2,3': 'path', '2,4': 'path', '2,5': 'path', '3,3': 'path', '4,3': 'path', '5,3': 'path' };
+// Stories: posted by team leads under their group name (max 2 per lead per day).
+function baseStories() {
+  return [
+    { id: 'g-delhi', name: 'Delhi', code: 'DEL', full: 'Delhi Central', mine: true, hue: ['#F2780C', '#E0263F'], stories: [
+      { id: 'st1', d: rel(-40), kind: 'Live now', title: 'Hall cleaning has started', msg: 'Carpets and shoe racks first. Water seva for sangat still needs one more pair of hands.', theme: 'live', link: 'seva:s0', cta: 'Open live seva' },
+      { id: 'st2', d: rel(-95), kind: 'Langar', title: '40 extra sangat expected today', msg: 'Kitchen side door is open from 7 AM. Aprons and gloves are ready.', theme: 'langar', link: 'seva:s5', cta: 'View seva' },
+      { id: 'st3', d: rel(-200), kind: 'This Thursday', title: 'Yamuna clean-up: meet at Gate 2', msg: 'Bring old clothes and closed shoes.', theme: 'river', link: 'seva:s2', cta: 'View seva' } ] },
+    { id: 'g-ludhiana', name: 'Ludhiana', code: 'LDH', full: 'Ludhiana Jatha', hue: ['#2E9A4B', '#0E9F97'], stories: [
+      { id: 'st4', d: rel(-180), kind: 'Thank you', title: '120 saplings planted', msg: 'Thank you to all 34 sevadars who came out at sunrise.', theme: 'tree' },
+      { id: 'st5', d: rel(-260), kind: 'Next Sunday', title: 'Langar for 500', msg: 'Rotis team needs 6 more volunteers.', theme: 'langar' } ] },
+    { id: 'g-bhaini', name: 'Sri Bhaini Sahib', code: 'SBS', full: 'Sri Bhaini Sahib', hue: ['#E7A93A', '#C2410C'], stories: [
+      { id: 'st6', d: rel(-320), kind: 'Preparations', title: 'Hola Mohalla seva sign-ups open', msg: 'Kitchen, parking, water and cleaning teams are forming now.', theme: 'gold', link: 'event:e3', cta: 'See event' } ] },
+    { id: 'g-london', name: 'London', code: 'LDN', full: 'London Sangat', hue: ['#3B7BE0', '#7B4FE0'], stories: [
+      { id: 'st7', d: rel(-420), kind: 'Southall', title: 'Langar for 450 served', msg: '16 sevadars, under 2 hours. Shukar.', theme: 'night' } ] },
+    { id: 'g-mumbai', name: 'Mumbai', code: 'MUM', full: 'Mumbai Sangat', hue: ['#E0458F', '#B23AC8'], stories: [
+      { id: 'st8', d: rel(-500), kind: 'Reading circle', title: '30 children read Gurmukhi today', msg: 'Volunteers welcome every Saturday.', theme: 'edu' } ] },
+    { id: 'g-jammu', name: 'Jammu', code: 'JMU', full: 'Jammu Sangat', hue: ['#0E9F97', '#3B7BE0'], stories: [
+      { id: 'st9', d: rel(-650), kind: 'Winter relief', title: '200 blankets packed', msg: 'Distribution starts this weekend.', theme: 'river' } ] },
+  ];
+}
 function scenario(kind) {
-  const d = { seva: baseSeva(kind), events: baseEvents(), posts: basePosts(), assign: {}, rsvp: {}, actions: [], history: [], notifs: [], mydone: {}, seenUpd: {}, ggarden: 5, mine: {}, pg: { tiles: {}, items: {} } };
+  const d = { seva: baseSeva(kind), events: baseEvents(), feed: baseFeed(), groups: baseStories(), assign: {}, rsvp: {}, history: [], notifs: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0 };
   if (kind === 'active') {
-    d.assign = { s0: { state: 'going' }, s5: { state: 'going' }, s1: { state: 'going' }, s2: { state: 'going' }, s3: { state: 'invited' } };
+    d.assign = { s0: { state: 'going' }, s5: { state: 'going' }, s1: { state: 'going' }, s2: { state: 'maybe' }, s3: { state: 'invited' } };
     d.rsvp = { e1: 'going' };
-    d.seenUpd = { 'member:s0': T(rel(-30)), 'member:s5': now() };
-    d.actions = [
-      { id: 'a1', kind: 'confirm', ref: 's1', title: 'Are you still coming?', text: 'Sunday Langar Seva · tomorrow 9:00 AM', due: at(0, 21) },
-      { id: 'a3', kind: 'invite', ref: 's3', title: 'Gurpreet invited you', text: 'Tree Planting Drive · ' + fmtLong(at(9, 8)), due: at(6, 21) },
-    ];
+    d.seenUpd = { s0: T(rel(-30)), s5: now() };
     d.history = [
-      { id: 'h1', title: 'Karol Bagh street clean-up', cat: 'cleanup', date: at(-3, 10), hrs: 2.5, role: 'Picked up litter', state: 'verified' },
-      { id: 'h2', title: 'Punjabi Reading Circle', cat: 'education', date: at(-8, 17), hrs: 1.5, role: 'Read with a group', state: 'verified' },
-      { id: 'h3', title: 'Sunday Langar Seva', cat: 'langar', date: at(-13, 9), hrs: 4, role: 'Served langar', state: 'verified' },
-      { id: 'h4', title: 'Sunday Langar Seva', cat: 'langar', date: at(-41, 9), hrs: 4, role: 'Cooked dal', state: 'verified' },
-      { id: 'h5', title: 'Blanket Distribution', cat: 'blanket', date: at(-62, 18), hrs: 2, role: 'Handed out blankets', state: 'verified' },
-      { id: 'h6', title: 'Tree Planting Drive', cat: 'tree', date: at(-70, 8), hrs: 3, role: 'Planted saplings', state: 'verified' },
-      { id: 'h8', title: 'Sunday Langar Seva', cat: 'langar', date: at(-83, 9), hrs: 4, role: 'Served langar', state: 'verified' },
+      { id: 'h1', title: 'Karol Bagh street clean-up', cat: 'cleanup', date: at(-3, 10), role: 'Picked up litter' },
+      { id: 'h2', title: 'Punjabi Reading Circle', cat: 'education', date: at(-8, 17), role: 'Read with a group' },
+      { id: 'h3', title: 'Sunday Langar Seva', cat: 'langar', date: at(-13, 9), role: 'Served langar' },
+      { id: 'h5', title: 'Blanket Distribution', cat: 'blanket', date: at(-41, 18), role: 'Handed out blankets' },
+      { id: 'h6', title: 'Tree Planting Drive', cat: 'tree', date: at(-55, 8), role: 'Planted saplings' },
+      { id: 'h7', title: 'Gurdwara Hall Cleaning', cat: 'cleanup', date: at(-70, 9), role: 'Arranged shoe racks' },
+      { id: 'h8', title: 'Punjabi Reading Circle', cat: 'education', date: at(-83, 17), role: 'Set up the room' },
     ];
+    d.owned = { marigold: 3, sapling: 2, rose: 1, tulips: 2, bench: 1, cat: 1, butterflies: 1 };
+    d.earned = 21; d.pts = 6;
     d.notifs = [
-      { id: 'n1', level: 'live', t: 'New point added to Gurdwara Hall Cleaning: Water for sangat', d: rel(-8), ref: 'seva:s0' },
-      { id: 'n2', level: 'live', t: 'Gurdwara Hall Cleaning has started — your points: Sweep and mop, Shoe racks', d: rel(-25), ref: 'seva:s0' },
+      { id: 'n1', level: 'live', t: 'New task added to Gurdwara Hall Cleaning: Water for sangat', d: rel(-8), ref: 'seva:s0' },
+      { id: 'n2', level: 'live', t: 'Gurdwara Hall Cleaning has started — your tasks: Sweep and mop, Shoe racks', d: rel(-45), ref: 'seva:s0' },
       { id: 'n6', level: 'action', t: 'Reminder: tomorrow 9:00 AM you\'re cooking dal and sabzi', d: rel(-40), ref: 'seva:s1' },
-      { id: 'n3', level: 'action', t: 'Are you still coming to Sunday Langar Seva?', d: rel(-60), ref: 'action:a1' },
-      { id: 'n4', level: 'p', t: 'New seva near you: Blanket Distribution', d: rel(-90), ref: 'seva:s6' },
-      { id: 'n5', level: 'done', t: 'Karol Bagh clean-up verified — thank you', d: at(-3, 18), ref: 'history:h1', read: true },
+      { id: 'n4', level: 'p', t: 'Gurpreet invited you to Tree Planting Drive', d: rel(-90), ref: 'seva:s3' },
+      { id: 'n5', level: 'done', t: 'Karol Bagh clean-up verified — +3 garden points', d: at(-3, 18), ref: 'tab:garden', read: true },
     ];
-    d.pg = { tiles: { ...PATH_TILES }, items: { '0,0': 'mango', '1,0': 'marigold', '4,0': 'rose', '5,1': 'sapling', '0,2': 'sunflower', '3,1': 'lantern', '1,3': 'bench', '0,5': 'cat', '4,5': 'butterflies', '5,5': 'swing', '1,1': 'marigold', '4,2': 'rose' } };
   } else if (kind === 'less') {
     d.history = [
-      { id: 'h4', title: 'Sunday Langar Seva', cat: 'langar', date: at(-68, 9), hrs: 4, role: 'Cooked dal', state: 'verified' },
-      { id: 'h6', title: 'Tree Planting Drive', cat: 'tree', date: at(-96, 8), hrs: 3, role: 'Planted saplings', state: 'verified' },
-      { id: 'h7', title: 'Karol Bagh clean-up', cat: 'cleanup', date: at(-130, 10), hrs: 2, role: 'Picked up litter', state: 'verified' },
+      { id: 'h4', title: 'Sunday Langar Seva', cat: 'langar', date: at(-68, 9), role: 'Cooked dal' },
+      { id: 'h6', title: 'Tree Planting Drive', cat: 'tree', date: at(-96, 8), role: 'Planted saplings' },
     ];
+    d.owned = { marigold: 2, sapling: 1 }; d.earned = 6; d.pts = 3;
     d.notifs = [{ id: 'n4', level: 'p', t: 'New seva near you: Blanket Distribution', d: rel(-90), ref: 'seva:s6' }];
-    d.pg = { tiles: { '2,1': 'path', '2,2': 'path', '2,3': 'path', '2,4': 'path' }, items: { '1,1': 'marigold', '3,2': 'rose', '1,3': 'sapling', '3,4': 'mango', '4,1': 'butterflies' } };
-  } else d.notifs = [{ id: 'n0', level: 'done', t: 'Welcome to Delhi Central 🙏', d: rel(-5), ref: 'tab:seva' }];
+  } else { d.pts = 2; d.earned = 2; d.notifs = [{ id: 'n0', level: 'done', t: 'Welcome to Delhi Central 🙏 Your first 2 garden points are waiting.', d: rel(-5), ref: 'tab:garden' }]; }
   return d;
 }
 
-const KEY = 'namdhari-seva-v5';
+const KEY = 'namdhari-seva-v6';
 let S;
-function fresh(kind = 'active') { return { v: 5, onboarded: false, name: '', minor: false, scenario: kind, role: 'member', mode: 'auto', accent: 'indigo', gview: '2d', seen: {}, calMode: 'mine', ...scenario(kind) }; }
-try { S = JSON.parse(localStorage.getItem(KEY)); if (!S || S.v !== 5) S = fresh(); } catch (e) { S = fresh(); }
+function fresh(kind = 'active') { return { v: 6, onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
+try { S = JSON.parse(localStorage.getItem(KEY)); if (!S || S.v !== 6) S = fresh(); } catch (e) { S = fresh(); }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
-function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, minor: S.minor, mode: S.mode, accent: S.accent, gview: S.gview, role: S.role }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
+function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
 
 // ---------- Derived model ----------
 const ME = () => S.name || 'Member';
-const isLead = () => S.role !== 'member';
 const sv = (id) => S.seva.find((x) => x.id === id);
 const ev = (id) => S.events.find((x) => x.id === id);
 const st = (s) => S.assign[s.id]?.state;
@@ -198,30 +219,24 @@ const isLive = (x) => T(x.start) <= now() && T(x.end) > now();
 const isFuture = (x) => T(x.start) > now();
 const myPoints = (s) => s.points.filter((p) => p.takers.includes('@me'));
 const nameOf = (t) => t === '@me' ? ME() : t;
-const cover = (p) => { const n = p.takers.length; return n === 0 ? { k: 'nobody', label: 'No one yet', cls: 'action' } : n < p.need ? { k: 'short', label: `${p.need - n} more needed`, cls: 'p' } : { k: 'ok', label: 'Covered', cls: 'done' }; };
-const nobodyPts = (s) => s.points.filter((p) => !p.takers.length);
-const openPts = (s) => s.points.filter((p) => p.takers.length < p.need).length;
-const seenKey = (sid) => `${S.role}:${sid}`;
-const seenAt = (sid) => S.seenUpd[seenKey(sid)] ?? (S.role === 'member' ? 0 : T(at(0, 0)));
+const seenAt = (sid) => S.seenUpd[sid] ?? 0;
 const unreadUpd = (s) => s.updates.filter((u) => T(u.d) > seenAt(s.id));
-const openActions = () => S.actions.filter((a) => !a.resolved);
-const liveMine = () => S.seva.filter((s) => isLive(s) && going(s)).sort((a, b) => unreadUpd(b).length - unreadUpd(a).length || T(a.start) - T(b.start));
+const liveMine = () => S.seva.filter((s) => isLive(s) && going(s)).sort((a, b) => T(a.start) - T(b.start));
 const liveAll = () => S.seva.filter(isLive);
-const upcomingMine = () => [...S.seva.filter((s) => isFuture(s) && ['going', 'maybe'].includes(st(s))).map((x) => ({ t: 'seva', x })), ...S.events.filter((e) => isFuture(e) && ['going', 'maybe'].includes(S.rsvp[e.id])).map((x) => ({ t: 'event', x }))].sort((a, b) => T(a.x.start) - T(b.x.start));
-const verified = () => S.history.filter((h) => h.state === 'verified').sort((a, b) => T(b.date) - T(a.date));
-const awaiting = () => S.history.filter((h) => h.state === 'awaiting');
+const contributions = () => S.history.slice().sort((a, b) => T(b.date) - T(a.date));
 const isNew = (x) => !S.seen[x.id] && x.created && now() - T(x.created) < 5 * DAY && isFuture(x);
-const newCount = () => S.seva.filter((s) => isNew(s) && !S.assign[s.id]).length + S.events.filter((e) => isNew(e) && !S.rsvp[e.id]).length;
 const markSeen = (id) => { if (!S.seen[id]) { S.seen[id] = now(); save(); } };
 const unread = () => S.notifs.filter((n) => !n.read).length;
+const progress = (s) => { if (!s.points.length) return 0; return Math.round(s.points.reduce((a, p) => a + (S.mydone[p.id] ? 1 : Math.min(1, p.prog || 0)), 0) / s.points.length * 100); };
+const filled = (s) => { const need = s.points.reduce((a, p) => a + p.need, 0); const got = s.points.reduce((a, p) => a + Math.min(p.need, p.takers.length), 0); return need ? Math.round(got / need * 100) : 0; };
 function peopleOf(s) {
   const list = s.people.map((p) => ({ ...p })); const a = st(s);
   if (a && ['going', 'maybe', 'cant'].includes(a)) list.unshift({ n: ME(), me: true, st: a === 'going' ? (isLive(s) ? 'here' : 'going') : a });
   return list;
 }
-const countSt = (l, k) => l.filter((p) => p.st === k).length;
+const goingCount = (s) => peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here').length;
 
-// ---------- Personal garden ----------
+// ---------- Garden item art (2D) ----------
 const GI = {
   marigold: { name: 'Marigolds', u: { n: 1 }, desc: 'Bright and cheerful — your very first bloom.', d: () => [-8, 0, 8].map((x, i) => `<g class="sway s${i + 1}"><path d="M${x} 0v-${12 + i * 2}" stroke="#4E8460" stroke-width="2"/><circle cx="${x}" cy="-${14 + i * 2}" r="5" fill="#F29A2E"/><circle cx="${x}" cy="-${14 + i * 2}" r="2" fill="#E0701A"/></g>`).join('') },
   rose: { name: 'Rose bush', u: { n: 2 }, desc: 'A small bush that flowers all season.', d: () => `<g class="sway s2"><ellipse cx="0" cy="-8" rx="15" ry="10" fill="#4F8A5D"/><ellipse cx="-5" cy="-12" rx="9" ry="7" fill="#62A06F"/><circle cx="-7" cy="-13" r="3.2" fill="#D9475B"/><circle cx="5" cy="-10" r="3.2" fill="#E25A6C"/><circle cx="0" cy="-17" r="3.2" fill="#D9475B"/><circle cx="9" cy="-15" r="2.6" fill="#F07A8A"/></g>` },
@@ -238,46 +253,41 @@ const GI = {
   butterflies: { name: 'Butterflies', u: { cat: 'cleanup' }, desc: 'They return to clean places. Unlocked by cleaning seva.', d: () => `<ellipse cx="0" cy="-1" rx="10" ry="3" fill="#6BAA74" opacity=".45"/><g><animateTransform attributeName="transform" type="translate" values="0 0; 8 -6; -6 -10; -10 -2; 0 0" dur="6s" repeatCount="indefinite"/><g transform="translate(-6 -24)"><path class="flap" d="M-7 0c-5-6-10-2-6 3 3 3 6 0 6-3zm0 0c5-6 10-2 6 3-3 3-6 0-6-3z" fill="#B48CE0"/></g></g><g><animateTransform attributeName="transform" type="translate" values="0 0; -8 -4; 4 -8; 8 0; 0 0" dur="5s" repeatCount="indefinite"/><g transform="translate(8 -14)"><path class="flap" d="M-5 0c-4-4-8-1-5 2 2 2 5 0 5-2zm0 0c4-4 8-1 5 2-2 2-5 0-5-2z" fill="#F29A2E"/></g></g>` },
   swing: { name: 'Swing', u: { cat: 'education' }, desc: 'For the children. Unlocked by education seva.', d: () => `<path d="M-16 0l4-34M-4 0l-8-34M16 0l-4-34M4 0l8-34M-12 -34h24" stroke="#8C6A43" stroke-width="2.5" fill="none"/><path d="M-4 -34v22M4 -34v22" stroke="#555" stroke-width="1.2"/><rect x="-6" y="-13" width="12" height="3" rx="1" fill="#C0392B"/>` },
 };
-const TILES = { grass: { name: 'Grass', u: { n: 0 } }, path: { name: 'Stone path', u: { n: 0 } } };
-const ITEM_ORDER = ['path', 'grass', 'marigold', 'rose', 'sunflower', 'sapling', 'bench', 'butterflies', 'swing', 'lantern', 'cat', 'mango', 'pond', 'dog', 'banyan', 'peacock'];
-const itemDef = (id) => GI[id] || TILES[id];
-const unlockText = (u) => u.cat ? `Do a ${CAT[u.cat].label.toLowerCase()} seva` : u.n === 0 ? 'Available from the start' : `Complete ${u.n} verified seva`;
-const isUnlocked = (id) => { const u = itemDef(id).u; const v = verified(); return u.cat ? v.some((h) => h.cat === u.cat) : v.length >= u.n; };
-const thumb = (id, cls = 'thumb') => TILES[id] ? `<svg viewBox="-30 -22 60 44" class="${cls}"><path d="M0 -15L26 0L0 15L-26 0Z" fill="${id === 'path' ? '#E2D2B4' : '#9EC29D'}" stroke="${id === 'path' ? '#C9B48E' : '#86AE85'}"/></svg>` : `<svg viewBox="-34 -58 68 66" class="${cls}"><ellipse cx="0" cy="2" rx="18" ry="5" fill="#000" opacity=".08"/>${GI[id].d()}</svg>`;
-const GW = 6;
-const isoP = (gx, gy) => [180 + (gx - gy) * 28, 40 + (gx + gy) * 16];
-const still = (s) => s.replace(/class="[^"]*"/g, '').replace(/<animateTransform[^>]*\/>/g, '');
-function personalSVG() {
-  const g = S.pg; let tiles = ''; const items = [];
-  for (let y = 0; y < GW; y++) for (let x = 0; x < GW; x++) {
-    const [cx, cy] = isoP(x, y); const k = `${x},${y}`; const t = g.tiles[k] || 'grass';
-    tiles += `<path class="tile" data-cell="${k}" d="M${cx} ${cy - 16}L${cx + 28} ${cy}L${cx} ${cy + 16}L${cx - 28} ${cy}Z" fill="${t === 'path' ? '#E2D2B4' : (x + y) % 2 ? '#A6C9A5' : '#9BC19A'}" stroke="${t === 'path' ? '#CDB892' : '#89B288'}" stroke-width=".7"/>`;
-    if (t === 'path') tiles += `<ellipse cx="${cx - 7}" cy="${cy - 2}" rx="5" ry="2.4" fill="#CDB892" pointer-events="none"/><ellipse cx="${cx + 8}" cy="${cy + 3}" rx="4" ry="2" fill="#CDB892" pointer-events="none"/>`;
-    else if (!g.items[k] && (x * 7 + y * 3) % 4 === 0) tiles += `<g pointer-events="none" class="sway s${(x + y) % 3 + 1}"><path d="M${cx - 4} ${cy + 2}l-2 -7M${cx} ${cy + 2}v-9M${cx + 4} ${cy + 2}l2 -7" stroke="#6FA06E" stroke-width="1.6" stroke-linecap="round"/></g>`;
-    const it = g.items[k];
-    if (it && GI[it]) items.push({ d: x + y, s: `<g class="gitem" data-cell="${k}" transform="translate(${cx} ${cy + 3})" style="cursor:pointer"><ellipse cx="0" cy="1" rx="16" ry="5" fill="#000" opacity=".08"/>${GI[it].d()}</g>` });
-  }
-  const [lx, ly] = isoP(0, GW - 1), [rx, ry] = isoP(GW - 1, 0), [bx, by] = isoP(GW - 1, GW - 1);
-  const edge = `<path d="M${lx - 28} ${ly}L${bx} ${by + 16}L${bx} ${by + 26}L${lx - 28} ${ly + 10}Z" fill="#8A6A48"/><path d="M${bx} ${by + 16}L${rx + 28} ${ry}L${rx + 28} ${ry + 10}L${bx} ${by + 26}Z" fill="#6E5236"/>`;
-  items.sort((a, b) => a.d - b.d);
-  return `<svg viewBox="0 -34 360 274" role="img" aria-label="Your personal garden">${edge}${tiles}${items.map((i) => i.s).join('')}</svg>`;
-}
-function groupGardenSVG(level, isStill) {
-  const P = (gx, gy) => [160 + (gx - gy) * 26, 54 + (gx + gy) * 15];
-  let t = '';
-  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) { const [cx, cy] = P(x, y); const path = level >= 2 && (x === 2 || (level >= 4 && y === 2)); t += `<path d="M${cx} ${cy - 15}L${cx + 26} ${cy}L${cx} ${cy + 15}L${cx - 26} ${cy}Z" fill="${path ? '#E6D7BC' : (x + y) % 2 ? '#A9CBA8' : '#9EC29D'}" stroke="#8DB48C" stroke-width=".6"/>`; }
-  const [lx, ly] = P(0, 4), [bx, by] = P(4, 4), [rx, ry] = P(4, 0);
-  const edge = `<path d="M${lx - 26} ${ly}L${bx} ${by + 15}L${bx} ${by + 24}L${lx - 26} ${ly + 9}Z" fill="#8A6A48"/><path d="M${bx} ${by + 15}L${rx + 26} ${ry}L${rx + 26} ${ry + 9}L${bx} ${by + 24}Z" fill="#6E5236"/>`;
-  const put = (id, gx, gy, sc = .8) => { const [x, y] = P(gx, gy); const d = GI[id].d(); return `<g transform="translate(${x} ${y}) scale(${sc})">${isStill ? still(d) : d}</g>`; };
-  const it = [];
-  if (level >= 1) it.push(put('marigold', 0, 1), put('marigold', 1, 0));
-  if (level >= 3) it.push(put('rose', 4, 1), put('sunflower', 3, 4));
-  if (level >= 4) it.push(put('mango', 0, 0, .9));
-  if (level >= 5) it.push(put('lantern', 3, 1), put('lantern', 1, 3));
-  if (level >= 6) it.push(put('banyan', 4, 4));
-  if (level >= 7) it.push(put('pond', 4, 0), put('bench', 3, 3));
-  if (level >= 8) it.push(put('peacock', 1, 4));
-  return `<svg viewBox="0 -14 320 210" role="img" aria-label="Community garden at level ${level} of 8">${edge}${t}${it.join('')}</svg>`;
+GI.tulips = { name: 'Tulips', desc: 'Three tulips in red, gold and pink.', d: () => [-8, 0, 8].map((x, i) => `<g class="sway s${i + 1}"><path d="M${x} 0v-${14 + i * 3}" stroke="#4E8460" stroke-width="2"/><path d="M${x} -4q-6 -3 -7 -10" stroke="#5E9A62" stroke-width="2.2" fill="none"/><path d="M${x - 4.5} -${14 + i * 3}q0 -8 4.5 -9q4.5 1 4.5 9q-4.5 3 -9 0z" fill="${['#E8506A', '#F4B23C', '#E879A8'][i]}"/></g>`).join('') };
+GI.cherry = { name: 'Cherry blossom', desc: 'A rare pink tree that blooms for those who serve langar.', d: () => `<path d="M0 0v-22M0 -14l-9 -9M0 -17l8 -8" stroke="#6B4A33" stroke-width="3.5" stroke-linecap="round"/><g class="sway"><circle cx="-11" cy="-30" r="11" fill="#F5A8C5"/><circle cx="9" cy="-32" r="12" fill="#F7B9D1"/><circle cx="-1" cy="-43" r="13" fill="#F29BBE"/><circle cx="-5" cy="-46" r="4" fill="#fff" opacity=".55"/><circle cx="7" cy="-36" r="3" fill="#fff" opacity=".5"/><circle cx="-12" cy="-32" r="2.5" fill="#fff" opacity=".5"/></g><circle class="petal" cx="6" cy="-24" r="2" fill="#F7B9D1"/><circle class="petal" style="animation-delay:-3s" cx="-8" cy="-22" r="1.8" fill="#F29BBE"/>` };
+GI.rabbit = { name: 'Rabbit', desc: 'A soft white rabbit that hops between the flower beds.', d: () => `<g class="hop"><ellipse cx="0" cy="-7" rx="9" ry="6.5" fill="#F4F1EC"/><circle cx="8" cy="-13" r="5" fill="#F4F1EC"/><ellipse cx="6.5" cy="-23" rx="1.8" ry="6" fill="#F4F1EC"/><ellipse cx="10" cy="-22" rx="1.8" ry="6" fill="#EDE7DF"/><ellipse cx="6.5" cy="-23" rx=".8" ry="4" fill="#F2B8C6"/><circle cx="10" cy="-14" r="1" fill="#333"/><circle cx="-9" cy="-8" r="2.6" fill="#fff"/><ellipse cx="3" cy="-1" rx="3" ry="1.5" fill="#E6E0D7"/></g>` };
+GI.sapling.name = 'Neem tree'; GI.sunflower.desc = 'Tall and bright. Blooms for those who teach and read with children.'; GI.butterflies.desc = 'They return to clean places. Unlocked by cleaning seva.';
+
+// Garden shop: one item unlocks per contribution; specials need conditions.
+const SHOP = {
+  marigold: { cat: 'flower', cost: 1, ord: 0, max: 6 }, sapling: { cat: 'tree', cost: 1, ord: 1, max: 6 }, tulips: { cat: 'flower', cost: 1, ord: 2, max: 6 }, rose: { cat: 'flower', cost: 2, ord: 3, max: 4 },
+  bench: { cat: 'decor', cost: 2, ord: 4, max: 2 }, cat: { cat: 'pet', cost: 4, ord: 5, max: 1 }, lantern: { cat: 'decor', cost: 2, ord: 6, max: 3 }, mango: { cat: 'tree', cost: 3, ord: 7, max: 4 },
+  dog: { cat: 'pet', cost: 4, ord: 8, max: 1 }, swing: { cat: 'decor', cost: 3, ord: 9, max: 1 }, pond: { cat: 'decor', cost: 4, ord: 10, max: 1 }, rabbit: { cat: 'pet', cost: 4, ord: 11, max: 2 }, banyan: { cat: 'tree', cost: 5, ord: 12, max: 2 },
+  cherry: { cat: 'tree', cost: 3, max: 3, sp: { c: 'langar', k: 2, label: 'Complete 2 Langar seva' } },
+  butterflies: { cat: 'decor', cost: 2, max: 2, sp: { c: 'cleanup', k: 1, label: 'Complete 1 Cleaning seva' } },
+  sunflower: { cat: 'flower', cost: 2, max: 4, sp: { c: 'education', k: 1, label: 'Complete 1 Education seva' } },
+  peacock: { cat: 'pet', cost: 6, max: 1, sp: { n: 10, label: 'Reach 10 contributions' } },
+};
+const SHOP_ORDER = ['marigold', 'sapling', 'tulips', 'rose', 'bench', 'cat', 'lantern', 'mango', 'cherry', 'butterflies', 'sunflower', 'dog', 'swing', 'pond', 'rabbit', 'banyan', 'peacock'];
+const KIND = { tree: 'Trees', flower: 'Flowers', decor: 'Decor', pet: 'Pets' };
+const nContrib = () => S.history.length;
+const catCount = (c) => S.history.filter((h) => h.cat === c).length;
+const spProg = (sp) => sp.c ? [Math.min(sp.k, catCount(sp.c)), sp.k] : [Math.min(sp.n, nContrib()), sp.n];
+const isUnlocked = (id) => { const x = SHOP[id]; if (x.sp) { const [a, b] = spProg(x.sp); return a >= b; } return nContrib() >= x.ord; };
+const lockText = (id) => { const x = SHOP[id]; if (x.sp) return x.sp.label; const n = x.ord - nContrib(); return `Unlocks after ${n} more seva`; };
+const unlockedCount = () => SHOP_ORDER.filter(isUnlocked).length;
+const owned = (id) => S.owned[id] || 0;
+const inCart = (id) => S.cart[id] || 0;
+const cartItems = () => Object.keys(S.cart).filter((k) => S.cart[k] > 0);
+const cartQty = () => cartItems().reduce((a, k) => a + S.cart[k], 0);
+const cartTotal = () => cartItems().reduce((a, k) => a + S.cart[k] * SHOP[k].cost, 0);
+const ownedTotal = () => Object.values(S.owned).reduce((a, b) => a + b, 0);
+const art = (id, extra = '') => `<svg viewBox="-34 -60 68 66" ${extra}>${GI[id].d()}</svg>`;
+function nextBloom() {
+  const sp = SHOP_ORDER.filter((id) => SHOP[id].sp && !isUnlocked(id)).map((id) => { const [a, b] = spProg(SHOP[id].sp); return { id, a, b, r: a / b }; }).sort((x, y) => (y.r < 1) - (x.r < 1) || y.r - x.r).slice(0, 2);
+  const seq = SHOP_ORDER.filter((id) => !SHOP[id].sp && !isUnlocked(id)).sort((a, b) => SHOP[a].ord - SHOP[b].ord)[0];
+  const seqO = seq ? { id: seq, a: nContrib(), b: SHOP[seq].ord, r: nContrib() / SHOP[seq].ord, seq: true } : null;
+  return [...sp, seqO].filter(Boolean);
 }
 
 // ---------- Theme ----------
@@ -285,23 +295,22 @@ const mq = window.matchMedia('(prefers-color-scheme: dark)');
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && mq.matches);
 function applyTheme() {
   document.documentElement.dataset.mode = isDark() ? 'dark' : 'light';
-    $$('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', isDark() ? '#0B0B0C' : '#F6F6F7'));
+  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', isDark() ? '#0C0C0D' : '#F7F6F4'));
 }
-mq.addEventListener && mq.addEventListener('change', () => { applyTheme(); remount3D(); });
+mq.addEventListener && mq.addEventListener('change', () => { applyTheme(); if (S.mode === 'auto') rerender(); });
 
 // ---------- Navigation ----------
 let tab = 'home', stack = [];
 const scrollMem = {};
-const smartMyTab = () => liveMine().length ? 'live' : upcomingMine().length ? 'upcoming' : openActions().length ? 'replies' : 'done';
-let sevaSeg = 'explore', exploreFilter = 'all', mySevaTab = 'live', feedScope = 'local', feedType = 'all', peopleFilter = {}, gardenEdit = false, gardenTool = 'marigold';
-let calY = new Date().getFullYear(), calM = new Date().getMonth();
+const smartSevaTab = () => liveMine().length ? 'ongoing' : 'upcoming';
+let sevaSeg = 'mine', sevaChip = null, sevaView = 'list', shopKind = 'all', dtab = 'overview', teamFilter = 'here', teamQ = '';
+let calY = new Date().getFullYear(), calM = new Date().getMonth(), calPop = null;
 const key = () => tab + '/' + stack.map((v) => v.v + (v.id || '')).join('/');
-function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); history.pushState({ d: stack.length }, ''); render(); window.scrollTo(0, 0); }
+function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); history.pushState({ d: stack.length }, ''); if (view.v === 'seva') dtab = 'overview'; render(); window.scrollTo(0, 0); }
 function pop() { if (stack.length) history.back(); }
-window.addEventListener('popstate', () => { if (stack.length) { leaveDetail(); stack.pop(); closeSheet(); render(); window.scrollTo(0, scrollMem[key()] || 0); } });
-function go(t) { closeSheet(); if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; tab = t; gardenEdit = false; render(); window.scrollTo(0, scrollMem[key()] || 0); }
-// mark updates as seen when leaving a seva page
-function leaveDetail() { const top = stack[stack.length - 1]; if (top?.v === 'seva') { S.seenUpd[seenKey(top.id)] = now(); save(); } }
+window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; if (pendingRef) { const r = pendingRef; pendingRef = null; openRef(r); } return; } if ($('.sv')) { closeStory(true); return; } if (stack.length) { leaveDetail(); stack.pop(); closeSheet(); render(); window.scrollTo(0, scrollMem[key()] || 0); } });
+function go(t) { closeSheet(); if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
+function leaveDetail() { const top = stack[stack.length - 1]; if (top?.v === 'seva') { S.seenUpd[top.id] = now(); save(); } }
 
 // ---------- Render ----------
 function render() {
@@ -309,533 +318,484 @@ function render() {
   if (!S.onboarded) return renderOnboarding();
   const top = stack[stack.length - 1];
   if (top) {
-    const V = { seva: SevaDetail, event: EventDetail, ggarden: GroupGarden, inbox: Inbox, history: HistoryDetail };
+    const V = { seva: SevaDetail, event: EventDetail, history: HistoryDetail, inbox: Inbox, team: TeamScreen, journey: JourneyScreen };
     $('#app').innerHTML = `<main class="screen detail">${offline()}${V[top.v](top)}</main>`;
   } else {
-    const screens = { home: Home, seva: SevaTab, garden: GardenTab, community: Community, profile: Profile };
-    $('#app').innerHTML = `<main class="screen">${offline()}${screens[tab]()}</main>${tabbar()}`;
+    const screens = { home: Home, seva: SevaTab, garden: GardenTab, profile: Profile };
+    const flush = tab === 'garden';
+    $('#app').innerHTML = `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${screens[tab]()}</main>${tab === 'garden' && cartQty() ? cartBar() : ''}${tabbar()}`;
   }
   if (!stack.length && tab === 'garden' && S.gview === '3d') mount3D();
 }
 function rerender() { const y = window.scrollY; render(); window.scrollTo(0, y); }
 function tabbar() {
-  const n = newCount() + liveMine().reduce((a, s) => a + unreadUpd(s).length, 0);
-  const items = [['home', 'Home', I.home, 0], ['seva', 'Seva', I.seva, n], ['garden', 'Garden', I.garden, 0], ['community', 'Community', I.community, 0], ['profile', 'Profile', I.profile, 0]];
-  return `<div class="tabbar"><nav aria-label="Main">${items.map(([id, l, ic, b]) => `<button data-tab="${id}" ${tab === id ? 'aria-current="page"' : ''} aria-label="${l}${b ? `, ${b} new` : ''}"><span class="tb">${ic}${b ? `<span class="nb">${b}</span>` : ''}</span>${l}</button>`).join('')}</nav></div>`;
+  const live = liveMine().length; const upd = liveMine().reduce((a, s) => a + unreadUpd(s).length, 0);
+  const items = [['home', 'Home', I.home, ''], ['seva', 'Seva', I.seva, live ? `<span class="livetag">LIVE</span>` : ''], ['garden', 'Garden', I.garden, S.pts >= 1 && isUnlocked('marigold') && !ownedTotal() ? '<span class="nb">!</span>' : ''], ['profile', 'Profile', I.profile, '']];
+  return `<div class="tabbar"><nav aria-label="Main">${items.map(([id, l, ic, b]) => `<button data-tab="${id}" ${tab === id ? 'aria-current="page"' : ''} aria-label="${l}${id === 'seva' && live ? ', seva live now' + (upd ? `, ${upd} new updates` : '') : ''}"><span class="ic">${ic}${b}</span>${l}</button>`).join('')}</nav></div>`;
 }
-const offline = () => navigator.onLine ? '' : `<div class="banner">${I.wifi}<span>Offline — showing saved information.</span></div>`;
-const backHead = (title, right = '') => `<div class="dhead"><button class="iconbtn" data-act="back" aria-label="Back">${I.back}</button><span class="t">${title}</span>${right || '<span style="width:44px"></span>'}</div>`;
-const faces = (names, max = 4) => `<span class="faces">${names.slice(0, max).map((t) => `<span class="avatar ${t === '@me' || t === ME() ? 'me' : ''}" title="${esc(nameOf(t))}">${initials(nameOf(t))}</span>`).join('')}${names.length > max ? `<span class="avatar">+${names.length - max}</span>` : ''}</span>`;
+const offline = () => navigator.onLine ? '' : `<div class="banner" style="margin:8px 0">${I.wifi}<span>Offline — showing saved information.</span></div>`;
+const LOGO = `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6A5AE0"/><stop offset="1" stop-color="#3F2F99"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#lg1)"/><path d="M20 31v-10" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M20 21c0-5 3.5-8.5 9-8.5 0 5.5-3.5 8.5-9 8.5z" fill="#9AE6B4"/><path d="M20 23.5c0-4-2.8-6.8-7.5-6.8 0 4.4 2.8 6.8 7.5 6.8z" fill="#fff"/></svg>`;
+const bellBtn = () => `<button class="iconbtn" data-act="inbox" aria-label="Notifications, ${unread()} unread">${I.bell}${unread() ? `<span class="nb">${unread()}</span>` : ''}</button>`;
+const faceRow = (names, total, max = 4) => `<span class="faces">${names.slice(0, max).map((n) => `<span class="fa" style="background:${n === ME() ? 'var(--p)' : avColor(n)}" title="${esc(n)}">${initials(n)}</span>`).join('')}${total > max ? `<span class="fa plus">+${total - max}</span>` : ''}</span>`;
+const dtop = (title, right = '') => `<div class="dtop"><button class="iconbtn" data-act="back" aria-label="Back">${I.back}</button><span class="t">${title}</span>${right || '<span style="width:42px"></span>'}</div>`;
 const emptyState = (t, d, cta = '') => `<div class="empty"><div class="ill">${I.leaf}</div><b>${t}</b><p class="muted small" style="margin-top:4px">${d}</p>${cta}</div>`;
-const brand = () => `<span class="brand"><i>${'<b></b>'.repeat(9)}</i>Seva</span>`;
-const headerBtns = () => `<div class="hbtns"><button class="iconbtn" data-act="inbox" aria-label="Inbox, ${unread()} unread">${I.bell}${unread() ? `<span class="nb">${unread()}</span>` : ''}</button><button class="avatar" style="width:44px;height:44px" data-tab="profile" aria-label="Profile">${initials(ME())}</button></div>`;
+const sheetHead = (t, sub = '') => `<div class="sheet-h"><div><h2>${t}</h2>${sub ? `<p class="small muted">${sub}</p>` : ''}</div><button class="iconbtn solid" data-act="close-sheet" aria-label="Close">${I.close}</button></div>`;
 
-// ----- Onboarding -----
-let onb = 0;
-function renderOnboarding() {
-  $('#app').innerHTML = onb === 0 ? `<div class="onb"><div>${brand()}
-      <h1 style="margin-top:28px">Seva together,<br><span class="grad">never miss a moment.</span></h1>
-      <p class="muted" style="margin-top:12px">Langar, cleaning, tree planting, satsang — see what's coming, pick what you'll do, and grow your garden.</p>
-      <div class="garden-wrap" style="margin:24px 0">${groupGardenSVG(5, true)}</div>
-      <p class="small muted">You've been invited to <b style="color:var(--ink)">Delhi Central</b></p>
-    </div><div style="margin-top:20px"><button class="btn block" data-act="onb-next">Join Delhi Central ${I.arrow}</button><p class="faint xs" style="text-align:center;margin-top:12px">Prototype — nothing leaves this phone.</p></div></div>`
-  : `<div class="onb"><div>${brand()}<h1 style="margin-top:28px">A little about you</h1>
-      <label class="f" for="onb-name">Your name</label><input class="in" id="onb-name" autocomplete="name" placeholder="e.g. Harjeet Kaur" value="${esc(S.name)}">
-      <label class="f" for="onb-age">Age group</label><select class="in" id="onb-age"><option value="adult">18 or older</option><option value="minor">Under 18</option></select>
-      <p class="muted xs" style="margin-top:8px">Under-18 members need a guardian's approval before joining seva.</p>
-    </div><button class="btn block" data-act="onb-finish" style="margin-top:24px">Continue ${I.arrow}</button></div>`;
+// =================== HOME ===================
+function groupAv(g) { return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ga-${g.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${g.hue[0]}"/><stop offset="1" stop-color="${g.hue[1]}"/></linearGradient></defs><rect width="64" height="64" fill="url(#ga-${g.id})"/><path d="M0 48 Q16 38 32 46 T64 42 V64 H0Z" fill="#fff" opacity=".18"/><text x="32" y="38" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="800" font-size="17" letter-spacing="1" fill="#fff">${g.code}</text></svg>`; }
+const groupSeen = (g) => g.stories.every((s) => S.storySeen[s.id]);
+function storiesRow() {
+  const gs = S.groups.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || groupSeen(a) - groupSeen(b));
+  return `<div class="stories" role="list" aria-label="Stories from team leads">${gs.map((g) => `<button class="story ${groupSeen(g) ? 'seen' : ''}" role="listitem" data-story="${g.id}" aria-label="${esc(g.full)} stories${groupSeen(g) ? ', seen' : ''}"><span class="ring"><span>${groupAv(g)}</span></span><b>${esc(g.name)}</b></button>`).join('')}</div>`;
 }
-
-// ----- Calendar -----
-function calItems(mode) {
-  const out = [];
-  S.seva.forEach((s) => { const a = st(s); const mine = ['going', 'maybe', 'invited'].includes(a); if (mode === 'mine' ? mine : true) out.push({ t: 'seva', x: s, c: s.cat, mine }); });
-  S.events.forEach((e) => { const mine = ['going', 'maybe'].includes(S.rsvp[e.id]); if (mode === 'mine' ? mine : true) out.push({ t: 'event', x: e, c: 'event', mine }); });
-  S.history.forEach((h) => { if (mode === 'mine') out.push({ t: 'history', x: { ...h, start: h.date, end: h.date }, c: h.cat, mine: true, past: true }); });
-  return out;
+function liveBanner(s) {
+  const n = unreadUpd(s).length; const mine = myPoints(s).filter((p) => !S.mydone[p.id]).length;
+  return `<button class="livebanner tap" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc)">${CAT[s.cat].ic}</span><div class="grow"><span class="livepill"><i></i>LIVE NOW</span><h3 class="ellipsis">${esc(s.title)}</h3><p class="m ellipsis">${mine ? `${mine} task${mine > 1 ? 's' : ''} for you` : 'You\'re here'} · ${progress(s)}% done · ends ${fmtTime(s.end)}</p></div>${n ? `<span class="newbadge">${I.bell}${n} new</span>` : ''}${chev}</button>`;
 }
-let calPop = null, calDir = 0;
-function calendar() {
-  const items = calItems(S.calMode);
-  const byDay = {}; items.forEach((i) => { const k = ymd(i.x.start); (byDay[k] = byDay[k] || []).push(i); });
-  const firstD = new Date(calY, calM, 1); const startW = (firstD.getDay() + 6) % 7; const days = new Date(calY, calM + 1, 0).getDate();
-  const today = ymd(now());
-  const mineCount = items.filter((i) => { const d = new Date(i.x.start); return i.mine && !i.past && d.getFullYear() === calY && d.getMonth() === calM; }).length;
-  const allOpen = calItems('all').filter((i) => { const d = new Date(i.x.start); return !i.mine && !i.past && T(i.x.start) > now() && d.getFullYear() === calY && d.getMonth() === calM; }).length;
-  let cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => `<span class="wd">${d}</span>`).join('');
-  for (let i = 0; i < startW; i++) cells += '<span></span>';
-  let col = startW;
-  for (let d = 1; d <= days; d++) {
-    const k = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const its = (byDay[k] || []).filter((i) => !i.past || S.calMode === 'mine').sort((a, b) => b.mine - a.mine || T(a.x.start) - T(b.x.start));
-    const top = its[0]; const anyLive = its.some((i) => i.t === 'seva' && isLive(i.x));
-    const cls = ['day', its.length ? 'has' : '', top?.mine ? 'mine' : (its.length ? 'open' : ''), k === today ? 'today' : '', k === calPop ? 'sel' : '', k < today ? 'past' : ''].join(' ');
-    cells += `<button class="${cls}" data-day="${k}" style="${top ? `--dc:var(--c-${top.c})` : ''}" aria-label="${new Date(k + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}${its.length ? `, ${its.length} item${its.length > 1 ? 's' : ''}` : ''}" aria-expanded="${k === calPop}"><span class="n">${d}</span>${its.length > 1 ? `<span class="more">${its.length}</span>` : ''}${anyLive ? '<span class="lv"></span>' : ''}</button>`;
-    col++;
-    // inline pop-over after the week that contains the selected day
-    const endOfWeek = col % 7 === 0 || d === days;
-    if (endOfWeek && calPop) {
-      const pd = new Date(calPop + 'T12:00:00');
-      if (pd.getFullYear() === calY && pd.getMonth() === calM) {
-        const pDay = pd.getDate(); const weekStart = d - ((col - 1) % 7);
-        if (pDay >= weekStart && pDay <= d) {
-          const pcol = (startW + pDay - 1) % 7; const list = (byDay[calPop] || []).sort((a, b) => T(a.x.start) - T(b.x.start));
-          cells += `<div class="pop" style="--ax:${((pcol + .5) / 7) * 100}%" role="dialog" aria-label="Seva on ${pd.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}">
-            <div class="ph"><span>${(() => { const r = relDay(calPop + 'T12:00:00'); const full = pd.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }); return ['Today', 'Tomorrow', 'Yesterday'].includes(r) ? `${r} · ${full}` : full; })()}</span><button data-act="cal-close" aria-label="Close">${I.close}</button></div>
-            ${list.length ? list.map(popRow).join('') : `<p class="none">Nothing on this day.${S.calMode === 'mine' ? ' <button class="link" data-calmode="all" style="min-height:0;padding:0">See everything</button>' : ''}</p>`}
-          </div>`;
-        }
-      }
-    }
-  }
-  return `<div class="card cal" id="cal">
-      <div class="cal-h"><h3>${firstD.toLocaleDateString(undefined, { month: 'long' })}</h3><span class="sub">${calY}</span>
-        <span class="nav">${calY !== new Date().getFullYear() || calM !== new Date().getMonth() ? '<button data-act="cal-today">Today</button>' : ''}<button data-act="cal-prev" aria-label="Previous month">${I.chevL}</button><button data-act="cal-next" aria-label="Next month">${I.chev}</button></span></div>
-      <div class="seg" style="margin:10px 2px 0" role="group" aria-label="Which calendar"><button data-calmode="mine" aria-pressed="${S.calMode === 'mine'}">${I.user} My calendar</button><button data-calmode="all" aria-pressed="${S.calMode === 'all'}">${I.users} All activities${allOpen ? ` <span class="count">${allOpen}</span>` : ''}</button></div>
-      <p class="xs muted" style="padding:8px 4px 0">${S.calMode === 'mine' ? 'Seva and events you\'ve joined.' : 'Everything in Delhi. Dashed dates are seva or events you haven\'t joined yet.'}</p>
-      <div class="cal-grid ${calDir ? 'anim' : ''}" style="--dir:${calDir * 14}px">${cells}</div>
-      <div class="cal-foot"><span><i style="background:var(--c-langar)"></i>Langar</span><span><i style="background:var(--c-cleanup)"></i>Cleaning</span><span><i style="background:var(--c-event)"></i>Event</span><span><i style="background:var(--live)"></i>Live</span><span style="margin-left:auto">Tap a date</span></div>
-    </div>`;
-}
-function popRow(i) {
-  const x = i.x; const live = i.t === 'seva' && isLive(x);
-  const ref = i.t === 'history' ? `history:${x.id}` : `${i.t}:${x.id}`;
-  let tag = '';
-  if (live) tag = '<span class="livebadge"><i></i>LIVE</span>';
-  else if (i.t === 'history') tag = `<span class="chip ${x.state === 'verified' ? 'done' : 'action'}">${x.state === 'verified' ? 'Done' : 'Awaiting'}</span>`;
-  else if (i.t === 'seva') { const a = st(x); tag = a === 'going' ? `<span class="chip done">${I.check}Going</span>` : a === 'maybe' ? '<span class="chip action">Maybe</span>' : a === 'invited' ? '<span class="chip event">Invited</span>' : `<span class="chip p">${I.plus}Join</span>`; }
-  else { const r = S.rsvp[x.id]; tag = r === 'going' ? `<span class="chip event">${I.check}Going</span>` : r === 'maybe' ? '<span class="chip action">Maybe</span>' : `<span class="chip p">${I.plus}RSVP</span>`; }
-  const sub = i.t === 'history' ? esc(x.role) : `${fmtTime(x.start)} · ${esc(x.place.split(',')[0])}${!i.mine && i.t === 'seva' ? ` · ${openPts(x)} point${openPts(x) === 1 ? '' : 's'} open` : !i.mine ? ' · not joined' : ''}`;
-  return `<button class="prow cc-${i.c}" data-open="${ref}"><span class="bar3"></span>${cico(i.c, true)}<span class="grow"><b>${esc(x.title)}</b><span class="m">${sub}</span></span>${tag}${chev}</button>`;
-}
-function itemRow(i) {
-  if (i.t === 'history') { const h = i.x; return `<button class="item tap cc-${h.cat}" data-open="history:${h.id}">${dtile(h.date, h.cat)}<span class="grow"><h3>${esc(h.title)}</h3><span class="l2">${esc(h.role)} · ${h.hrs} h</span><span class="l3"><span class="chip ${h.state === 'verified' ? 'done' : 'action'}">${h.state === 'verified' ? I.checkc + 'Verified' : I.hourglass + 'Awaiting'}</span></span></span>${chev}</button>`; }
-  return i.t === 'seva' ? sevaRow(i.x) : eventRow(i.x);
-}
-function sevaRow(s, opts = {}) {
-  const a = st(s); const mp = myPoints(s); const live = isLive(s); const nw = isNew(s) && !a; const un = unreadUpd(s).length;
-  let chipH = '';
-  if (live) chipH = `<span class="livebadge"><i></i>LIVE</span>`;
-  else if (a === 'going') chipH = `<span class="chip done">${I.checkc}Going</span>`;
-  else if (a === 'maybe') chipH = `<span class="chip action">${I.help}Maybe</span>`;
-  else if (a === 'invited') chipH = `<span class="chip event">${I.sparkle}Invited</span>`;
-  else { const o = openPts(s); chipH = o ? `<span class="chip p">${I.users}${o} point${o > 1 ? 's' : ''} open</span>` : `<span class="chip done">${I.check}All covered</span>`; }
-  return `<button class="item tap cc-${s.cat}" data-open="seva:${s.id}">${dtile(s.start, s.cat)}<span class="grow"><span class="row" style="gap:8px;align-items:flex-start"><h3 class="grow">${esc(s.title)}</h3>${nw ? '<span class="newtag">NEW</span>' : ''}${un && live ? `<span class="chip live">${I.bell}${un}</span>` : ''}</span>
-    <span class="l2 ellipsis" style="display:block">${fmtTime(s.start)} · ${esc(s.place)}</span>
-    <span class="l3">${chipH}${mp.length && a === 'going' ? `<span class="xs muted">You: ${esc(mp.map((p) => p.text.split(' ').slice(0, 3).join(' ')).join(', '))}</span>` : ''}</span></span>${chev}</button>`;
-}
-function eventRow(e) {
-  const r = S.rsvp[e.id]; const nw = isNew(e) && !r;
-  const c = r === 'going' ? `<span class="chip event">${I.checkc}Going</span>` : r === 'maybe' ? `<span class="chip action">${I.help}Maybe</span>` : `<span class="chip event">${I.cal}${esc(e.kind)}</span>`;
-  return `<button class="item tap cc-event" data-open="event:${e.id}">${dtile(e.start, 'event')}<span class="grow"><span class="row" style="gap:8px;align-items:flex-start"><h3 class="grow">${esc(e.title)}</h3>${nw ? '<span class="newtag">NEW</span>' : ''}</span><span class="l2 ellipsis" style="display:block">${fmtTime(e.start)} · ${esc(e.place)}</span><span class="l3">${c}<span class="xs muted">${e.going.toLocaleString()} going</span></span></span>${chev}</button>`;
-}
-
-// ----- Home -----
 function Home() {
-  if (S.role === 'lead') return LeadHome();
-  if (S.role === 'admin') return AdminHome();
-  const h = new Date().getHours(); const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  const live = liveMine(); const up = upcomingMine(); const acts = openActions();
-  const sub = [live.length ? `${live.length} seva live now` : '', up.length ? `${up.length} coming up` : ''].filter(Boolean).join(' · ') || 'Find a seva that fits your week';
-  const help = S.seva.filter((s) => isFuture(s) && nobodyPts(s).length).slice(0, 2);
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <h1 class="hero-title">${greet},<br><span class="grad">${esc(first(ME()))}</span></h1><p class="hero-sub">${sub}</p>
-    ${S.minor ? `<div class="banner" style="margin-top:14px">${I.info}<span><b>Waiting for guardian approval.</b> You can browse; joining opens once approved.</span></div>` : ''}
-    ${acts.length ? `<button class="reply" data-act="action" data-id="${acts[0].id}"><span class="ic">${I.alert}</span><span class="grow"><b class="small" style="display:block">${acts.length} ${acts.length > 1 ? 'replies' : 'reply'} needed</b><span class="xs muted">${esc(acts[0].title)} · ${esc(acts[0].text)}</span></span>${chev}</button>` : ''}
-    ${live.length ? `<div class="section"><div class="section-h"><h2><span class="livebadge"><i></i>LIVE</span> Happening now</h2>${live.length > 1 ? `<span class="xs muted">${live.length} seva · swipe</span>` : ''}</div><div class="lstrip">${live.map((s) => liveCard(s, live.length === 1)).join('')}</div></div>` : ''}
-    <div class="section">${calendar()}</div>
-    ${help.length ? `<div class="section"><div class="section-h"><h2>Can you help?</h2></div><div class="stack">${help.map((s) => { const p = nobodyPts(s)[0]; return `<button class="item tap cc-${s.cat}" data-open="seva:${s.id}">${cico(s.cat)}<span class="grow"><span class="kicker" style="color:var(--action)">No one has picked this yet</span><h3>${esc(p.text)}</h3><span class="l2">${esc(s.title)} · ${relDay(s.start)}</span></span>${chev}</button>`; }).join('')}</div></div>` : ''}
-    ${installRow()}`;
+  const live = liveMine();
+  const next = !live.length ? S.seva.filter((s) => isFuture(s) && going(s)).sort((a, b) => T(a.start) - T(b.start))[0] : null;
+  return `<header class="apphdr">${LOGO}<h1>Namdhari Seva</h1><span class="sp"></span>${bellBtn()}</header>
+    ${storiesRow()}
+    ${live.map(liveBanner).join('')}
+    ${next ? `<button class="livebanner tap" style="background:var(--surface);border-color:var(--border)" data-open="seva:${next.id}"><span class="art cc-${next.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[next.cat].ic}</span><div class="grow"><span class="status st-up">${I.clock}Your next seva</span><h3 class="ellipsis">${esc(next.title)}</h3><p class="m ellipsis">${relDay(next.start)} · ${fmtTime(next.start)}</p></div>${chev}</button>` : ''}
+    <div style="margin-top:18px">${S.feed.map(postCard).join('')}</div>
+    <p class="xs faint" style="text-align:center;margin:20px 0 4px">You're all caught up 🙏</p>`;
 }
-function liveCard(s, solo) {
-  const mp = myPoints(s); const done = mp.filter((p) => S.mydone[p.id]).length; const un = unreadUpd(s);
-  const pct = Math.min(100, Math.max(0, (now() - T(s.start)) / (T(s.end) - T(s.start)) * 100));
-  const here = peopleOf(s).filter((p) => p.st === 'here');
-  const C = 2 * Math.PI * 14; const frac = mp.length ? done / mp.length : 0;
-  return `<button class="lcard tap ${solo ? 'solo' : ''}" data-open="seva:${s.id}">
-    ${un.length ? `<span class="alertpin">${I.bell}${un.length} new</span>` : ''}
-    <span class="livebadge"><i></i>LIVE</span>
-    <h3>${esc(s.title)}</h3><p class="meta">${dur(T(s.end) - now())} left · ${esc(s.meet)}</p>
-    <div class="tbar"><i style="width:${pct}%"></i></div>
-    <div class="mypts"><svg class="ring2" viewBox="0 0 34 34"><circle cx="17" cy="17" r="14" fill="none" stroke="var(--surface2)" stroke-width="4"/><circle cx="17" cy="17" r="14" fill="none" stroke="var(--done-c)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}" transform="rotate(-90 17 17)"/></svg>
-      <span class="grow">${mp.length ? `<b>Your points ${done}/${mp.length}</b><span class="xs muted ellipsis" style="display:block">${esc(mp.map((p) => p.text).join(' · '))}</span>` : `<b>No points picked</b><span class="xs muted" style="display:block">Tap to pick what you'll do</span>`}</span>${faces(here.map((p) => p.me ? '@me' : p.n), 3)}</div>
-    ${un.length ? `<p class="xs" style="margin-top:10px;color:var(--live);font-weight:650">${I.megaphone.replace('<svg', '<svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"')}${esc(un[0].t)}</p>` : ''}
-  </button>`;
+const PK = {
+  thought: { label: 'Thought of the Day', ic: I.sun, cls: '', grad: ['#FFE9C9', '#FFC9A6', '#F9A9BC'] },
+  hukam: { label: 'Satguru Ji\'s Hukam', ic: I.sparkle, cls: 'light', grad: ['#F7A428', '#D9480F', '#8A1C3B'] },
+  alert: { label: 'Important alert', ic: I.alert, cls: '', grad: ['#FFE4E0', '#FFC2B8', '#FF9C8F'] },
+  appreciation: { label: 'Appreciation', ic: I.heart, cls: '', grad: ['#E3F9C6', '#A7F0C2', '#7DE3D6'] },
+  event: { label: 'Upcoming event', ic: I.cal, cls: 'light', grad: ['#7C4DFF', '#9C3FD8', '#C2389E'] },
+  info: { label: 'Information', ic: I.info, cls: '', grad: ['#E0ECFF', '#CBD8FF', '#D9CCFF'] },
+};
+function postArt(p) {
+  const k = PK[p.type]; const g = `pg-${p.id}`;
+  const deco = {
+    thought: `<circle cx="330" cy="330" r="120" fill="#FFF3D6" opacity=".7"/><circle cx="330" cy="330" r="80" fill="#FFE0A3" opacity=".8"/><circle cx="60" cy="40" r="60" fill="#fff" opacity=".25"/><path d="M0 260 Q100 230 200 260 T400 250 V300 H0Z" fill="#fff" opacity=".22"/>`,
+    hukam: `<g opacity=".18" stroke="#fff" fill="none" stroke-width="1.5" transform="translate(330 70)">${[30, 52, 74, 96].map((r) => `<circle r="${r}"/>`).join('')}${Array.from({ length: 16 }, (_, i) => `<path transform="rotate(${i * 22.5})" d="M0 -30 Q12 -60 0 -96 Q-12 -60 0 -30"/>`).join('')}</g><circle cx="40" cy="280" r="90" fill="#fff" opacity=".07"/>`,
+    alert: `<g opacity=".18">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 34 - 40} 0 l20 0 l-26 26 l-20 0z" fill="#B42318"/>`).join('')}</g><path d="M330 150 L390 260 H270Z" fill="#B42318" opacity=".08"/>`,
+    appreciation: Array.from({ length: 26 }, (_, i) => `<rect x="${(i * 53) % 400}" y="${(i * 37) % 300}" width="8" height="4" rx="1" fill="${['#F59E0B', '#E0458F', '#3B7BE0', '#22C55E'][i % 4]}" opacity=".55" transform="rotate(${i * 29} ${(i * 53) % 400} ${(i * 37) % 300})"/>`).join(''),
+    event: `<circle cx="340" cy="60" r="90" fill="#fff" opacity=".08"/><circle cx="40" cy="270" r="70" fill="#fff" opacity=".08"/>${Array.from({ length: 18 }, (_, i) => `<circle cx="${(i * 71) % 400}" cy="${(i * 43) % 300}" r="${1 + i % 3}" fill="#fff" opacity=".35"/>`).join('')}`,
+    info: Array.from({ length: 12 }, (_, r) => Array.from({ length: 16 }, (_, c) => `<circle cx="${c * 26 + 8}" cy="${r * 26 + 8}" r="1.3" fill="#3B5BDB" opacity=".18"/>`).join('')).join(''),
+  }[p.type];
+  return `<svg class="bgart" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${k.grad[0]}"/><stop offset=".55" stop-color="${k.grad[1]}"/><stop offset="1" stop-color="${k.grad[2]}"/></linearGradient></defs><rect width="400" height="300" fill="url(#${g})"/>${deco}</svg>`;
 }
-function installRow() {
-  if (matchMedia('(display-mode: standalone)').matches || navigator.standalone || sessionStorage.getItem('noinstall')) return '';
-  return `<div class="section"><button class="card tap row" data-act="install"><img src="icons/icon-192.png" width="42" height="42" alt="" style="border-radius:11px"><span class="grow"><b class="small" style="display:block">Add to Home Screen</b><span class="xs muted">Opens full screen and can send reminders</span></span>${chev}</button></div>`;
+const rx = (p) => S.react[p.id] || {};
+function reactBar(p) {
+  const r = rx(p); const g = p.r.g + (r.g ? 1 : 0), s = p.r.s + (r.s ? 1 : 0);
+  return `<div class="pacts"><button class="pact grat" data-react="${p.id}:g" aria-pressed="${!!r.g}" aria-label="Gratitude">${gratIc(r.g)}${num(g)}</button><button class="pact supp" data-react="${p.id}:s" aria-pressed="${!!r.s}" aria-label="Support">${suppIc(r.s)}${num(s)}</button><span class="sp" style="flex:1"></span><button class="iconbtn" data-act="post-share" data-id="${p.id}" aria-label="Share">${I.share}</button><button class="iconbtn" data-act="post-save" data-id="${p.id}" aria-label="Save" style="${S.saved[p.id] ? 'color:var(--p)' : ''}">${S.saved[p.id] ? I.bookmark.replace('fill="none"', 'fill="currentColor"') : I.bookmark}</button></div>`;
 }
-
-// ----- Lead / Admin home -----
-function coverageCard(s) {
-  const tot = s.points.length, cov = s.points.filter((p) => p.takers.length >= p.need).length, nb = nobodyPts(s).length; const live = isLive(s);
-  return `<button class="item tap cc-${s.cat}" data-open="seva:${s.id}">${dtile(s.start, s.cat)}<span class="grow"><span class="row" style="gap:8px"><h3 class="grow">${esc(s.title)}</h3>${live ? '<span class="livebadge"><i></i>LIVE</span>' : ''}</span>
-    <span class="l2">${live ? `${dur(T(s.end) - now())} left` : `${relDay(s.start)} · ${fmtTime(s.start)}`} · ${countSt(peopleOf(s), live ? 'here' : 'going') + (live ? 0 : countSt(peopleOf(s), 'here'))} ${live ? 'here' : 'going'}</span>
-    <span class="l3"><span class="meter"><i style="width:${cov / tot * 100}%;background:var(--done-c)"></i></span><span class="xs muted">${cov}/${tot} points covered</span>${nb ? `<span class="chip action">${I.alert}${nb} with no one</span>` : ''}</span></span>${chev}</button>`;
-}
-function LeadHome() {
-  const mine = S.seva.filter((s) => (isLive(s) || isFuture(s))).sort((a, b) => isLive(b) - isLive(a) || T(a.start) - T(b.start));
-  const nb = []; mine.forEach((s) => nobodyPts(s).forEach((p) => nb.push({ s, p })));
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <div class="rolebanner" style="margin-top:16px">${I.flag}Team Lead view · Delhi Central</div>
-    <h1 class="hero-title" style="margin-top:12px">Your seva,<br><span class="grad">at a glance</span></h1>
-    <div class="kpis" style="margin-top:16px"><div class="kpi" style="--kc:var(--live)"><b>${liveAll().length}</b><span>Live now</span></div><div class="kpi" style="--kc:var(--done)"><b>${liveAll().reduce((n, s) => n + countSt(peopleOf(s), 'here'), 0)}</b><span>Volunteers here</span></div><div class="kpi" style="--kc:var(--action)"><b>${nb.length}</b><span>Points with no one</span></div></div>
-    <button class="btn block" style="margin-top:14px" data-act="create">${I.plus} Create a seva</button>
-    ${nb.length ? `<div class="section"><div class="section-h"><h2>No one has picked these</h2></div><div class="card list">${nb.slice(0, 5).map(({ s, p }) => `<button class="lrow" data-open="seva:${s.id}">${cico(s.cat, true)}<span class="grow"><b class="small" style="display:block">${esc(p.text)}</b><span class="xs muted">${esc(s.title)} · ${isLive(s) ? 'live now' : relDay(s.start)} · needs ${p.need}</span></span><span class="chip action">${I.alert}0/${p.need}</span></button>`).join('')}</div></div>` : ''}
-    <div class="section"><div class="section-h"><h2>Seva you lead</h2></div><div class="stack">${mine.map(coverageCard).join('')}</div></div>
-    <div class="section">${calendar()}</div>`;
-}
-function AdminHome() {
-  const act = S.seva.filter((s) => isLive(s) || isFuture(s));
-  const nbCount = act.reduce((n, s) => n + nobodyPts(s).length, 0);
-  const totPts = act.reduce((n, s) => n + s.points.length, 0), cov = act.reduce((n, s) => n + s.points.filter((p) => p.takers.length >= p.need).length, 0);
-  const groups = [['Delhi Central', 'Delhi', 82, 2], ['Ludhiana Sangat', 'Ludhiana', 74, 1], ['London Sangat', 'London', 91, 0], ['Toronto Sangat', 'Toronto', 66, 1]];
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <div class="rolebanner" style="margin-top:16px">${I.shield}Main Admin view · Worldwide</div>
-    <h1 class="hero-title" style="margin-top:12px">Seva across<br><span class="grad">the sangat</span></h1>
-    <div class="kpis" style="margin-top:16px"><div class="kpi" style="--kc:var(--live)"><b>${liveAll().length}</b><span>Live now</span></div><div class="kpi" style="--kc:var(--done)"><b>${Math.round(cov / totPts * 100)}%</b><span>Points covered</span></div><div class="kpi" style="--kc:var(--action)"><b>${nbCount}</b><span>With no one</span></div></div>
-    <div class="section"><div class="section-h"><h2>Live and upcoming</h2></div><div class="stack">${act.slice(0, 5).map(coverageCard).join('')}</div></div>
-    <div class="section"><div class="section-h"><h2>Groups</h2><span class="xs muted">points covered</span></div><div class="card list">${groups.map(([n, c, p, l]) => `<div class="lrow"><span class="avatar">${initials(c)}</span><span class="grow"><b class="small" style="display:block">${n}</b><span class="xs muted">${l ? `${l} live now` : 'Nothing live'}</span><div class="bar"><i style="width:${p}%;background:${p > 80 ? 'var(--done-c)' : 'var(--action-c)'}"></i></div></span><b class="small">${p}%</b></div>`).join('')}</div></div>
-    <div class="section"><button class="btn ghost block" data-act="csv">${I.download} Download participation CSV</button></div>`;
+const gratIc = (on) => `<span class="em">🙏</span>`;
+const suppIc = (on) => `<span class="em">🤝</span>`;
+function postCard(p) {
+  const k = PK[p.type]; const e = p.ev ? ev(p.ev) : null; const r = rx(p);
+  const body = p.type === 'thought' ? `<p class="msg big">“${esc(p.text)}”</p>`
+    : p.type === 'appreciation' ? `<p class="ttl" style="font-style:normal;font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-.03em">${esc(p.stat)}</p><p class="msg">${esc(p.text)}</p>`
+    : p.type === 'event' && e ? `<div class="row" style="align-items:flex-end;gap:14px"><span class="datebox"><b>${new Date(e.start).getDate()}</b><span>${new Date(e.start).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span><div><p class="ttl" style="margin:0">${esc(e.title)}</p><p class="small" style="opacity:.9;margin-top:4px">${relDay(e.start)} · ${fmtTime(e.start)}</p></div></div><p class="msg" style="font-size:16px">${esc(p.text)}</p>`
+    : `<p class="ttl">${esc(p.title)}</p><p class="msg">${esc(p.text)}</p>`;
+  const rsvp = e && S.rsvp[e.id] === 'going';
+  return `<article class="post" id="post-${p.id}"><div class="ph"><span class="av">${LOGO}</span><div class="grow"><b>Namdhari Seva HQ</b><span class="adminpill">Official</span><p class="xs muted">${k.label} · ${ago(p.d)}</p></div></div>
+    <div class="pcard ${k.cls}" data-dbl="${p.id}">${postArt(p)}<span class="kind">${k.ic}${p.type === 'thought' || p.type === 'appreciation' ? k.label : p.type === 'event' ? 'Upcoming event' : k.label}</span>${body}${p.link ? `<button class="cta" data-open="${p.link}">${rsvp ? `${I.check} You're going` : p.cta}${rsvp ? '' : I.arrow}</button>` : ''}</div>
+    ${reactBar(p)}<div class="pcap"><span class="muted">${r.g ? 'You and ' + num(p.r.g) + ' others said 🙏' : 'Double-tap the card to say 🙏'}</span></div></article>`;
 }
 
-// ----- Seva tab -----
+// ----- Story viewer -----
+const STH = { live: ['#FF5A6E', '#B5122F'], langar: ['#F7A428', '#D9480F'], river: ['#0EA5E9', '#0F766E'], tree: ['#34C76A', '#0F766E'], gold: ['#F6C453', '#C2410C'], night: ['#1E3A8A', '#6D28D9'], edu: ['#EC4899', '#7C3AED'] };
+let SV = null;
+function storyArt(s) { const h = STH[s.theme] || STH.night; return `<svg class="bgart" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sg-${s.id}" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="${h[0]}"/><stop offset="1" stop-color="${h[1]}"/></linearGradient></defs><rect width="400" height="800" fill="url(#sg-${s.id})"/><circle cx="360" cy="120" r="160" fill="#fff" opacity=".08"/><circle cx="40" cy="700" r="200" fill="#fff" opacity=".07"/><circle cx="300" cy="620" r="60" fill="#fff" opacity=".06"/>${s.theme === 'live' ? `<circle cx="200" cy="230" r="70" fill="#fff" opacity=".1"><animate attributeName="r" values="60;90;60" dur="2s" repeatCount="indefinite"/></circle>` : ''}</svg>`; }
+function openStory(gid, idx) {
+  const g = S.groups.find((x) => x.id === gid); if (!g) return;
+  let i = idx ?? g.stories.findIndex((s) => !S.storySeen[s.id]); if (i < 0) i = 0;
+  if (!SV) history.pushState({ story: 1 }, '');
+  SV = { g: gid, i, t: null, start: 0, remain: 5000 };
+  let host = $('#sv-root'); if (!host) { host = document.createElement('div'); host.id = 'sv-root'; document.body.appendChild(host); }
+  drawStory();
+}
+function drawStory() {
+  const g = S.groups.find((x) => x.id === SV.g); const s = g.stories[SV.i];
+  S.storySeen[s.id] = now(); save();
+  $('#sv-root').innerHTML = `<div class="sv" role="dialog" aria-label="${esc(g.full)} story"><div class="frame">
+    <div class="slide">${storyArt(s)}<span class="skind">${esc(s.kind)}</span><h2 class="sttl">${esc(s.title)}</h2><p class="smsg">${esc(s.msg)}</p></div>
+    <div class="bars">${g.stories.map((x, k) => `<i class="${k < SV.i ? 'done' : k === SV.i ? 'cur' : ''}"><b></b></i>`).join('')}</div>
+    <div class="top"><span class="gav">${groupAv(g)}</span><div><b>${esc(g.full)}</b> <span>· ${ago(s.d)}</span></div><button data-act="story-close" aria-label="Close">${I.close}</button></div>
+    <button class="tapl" data-act="story-prev" aria-label="Previous"></button><button class="tapr" data-act="story-next" aria-label="Next"></button>
+    <p class="by">Shared by ${esc(g.full)} team leads</p>
+    ${s.link ? `<button class="sbtn" data-act="story-link" data-ref="${s.link}">${esc(s.cta || 'Open')}${I.arrow}</button>` : ''}
+  </div></div>`;
+  document.body.style.overflow = 'hidden';
+  SV.remain = 5000; storyTimer();
+}
+function storyTimer() { clearTimeout(SV.t); SV.start = now(); SV.t = setTimeout(storyNext, SV.remain); }
+function storyNext() {
+  if (!SV) return; const g = S.groups.find((x) => x.id === SV.g);
+  if (SV.i < g.stories.length - 1) { SV.i++; drawStory(); return; }
+  const order = S.groups.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0)); const gi = order.findIndex((x) => x.id === SV.g);
+  const nx = order.slice(gi + 1).find((x) => !groupSeen(x));
+  if (nx) { SV.g = nx.id; SV.i = nx.stories.findIndex((s) => !S.storySeen[s.id]); if (SV.i < 0) SV.i = 0; drawStory(); } else closeStory();
+}
+function storyPrev() { if (!SV) return; if (SV.i > 0) { SV.i--; drawStory(); } else { SV.remain = 5000; drawStory(); } }
+let ignorePop = false, pendingRef = null;
+function closeStory(fromPop) { if (!SV) return; clearTimeout(SV.t); SV = null; $('#sv-root').innerHTML = ''; document.body.style.overflow = ''; if (!fromPop) { ignorePop = true; history.back(); } if (!stack.length && tab === 'home') rerender(); }
+
+// =================== SEVA ===================
+const dblock = (s, cat, live, endOf) => { const d = new Date(s); return `<span class="dblock cc-${cat}">${live ? `<span><span class="lv"><i></i>LIVE</span><span class="dn" style="font-size:24px;display:block;margin:6px 0 4px">NOW</span><span class="mo" style="font-size:10px;letter-spacing:.04em;opacity:.9">ENDS ${fmtTime(endOf)}</span></span>` : `<span><span class="wd" style="display:block">${d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</span><span class="dn" style="display:block">${d.getDate()}</span><span class="mo" style="display:block">${d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span>`}</span>`; };
+function statusPill(s) {
+  const a = st(s);
+  if (a === 'going') return `<span class="status st-done">${I.check}Going</span>`;
+  if (a === 'maybe') return `<span class="status st-maybe">${I.help}Maybe</span>`;
+  if (a === 'invited') return `<span class="status st-plan">${I.flag}Invited</span>`;
+  if (a === 'cant') return `<span class="status" style="background:var(--surface2);color:var(--muted)">Can't go</span>`;
+  if (isNew(s)) return `<span class="status st-new">NEW</span>`;
+  const open = s.points.reduce((x, p) => x + Math.max(0, p.need - p.takers.length), 0);
+  return open ? `<span class="status st-plan">${open} spots open</span>` : `<span class="status st-up">Join</span>`;
+}
+function sevaCard(s) {
+  const live = isLive(s); const ppl = peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here'); const n = unreadUpd(s).length;
+  return `<button class="scard tap ${live ? 'live' : ''}" data-open="seva:${s.id}">${dblock(s.start, s.cat, live, s.end)}
+    <div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span>
+      <h3>${esc(s.title)}</h3><p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${fmtTime(s.start)} – ${fmtTime(s.end)}`}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(s.place)}</p>
+      <div class="foot">${faceRow(ppl.map((p) => p.n), ppl.length, 3)}${live && going(s) ? `<span class="status st-done">${I.check}You're here</span>` : statusPill(s)}</div></div>
+    ${n && going(s) ? `<span class="newbadge" style="right:10px">${n} new</span>` : ''}</button>`;
+}
+function eventCard(e) {
+  const r = S.rsvp[e.id];
+  return `<button class="scard tap" data-open="event:${e.id}">${dblock(e.start, 'event')}<div class="grow"><span class="chip event">${e.kind}</span><h3>${esc(e.title)}</h3><p class="m ellipsis">${fmtTime(e.start)} – ${fmtTime(e.end)}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(e.place)}</p><div class="foot">${faceRow(NAMES.slice(5, 8), e.going, 3)}${r === 'going' ? `<span class="status st-done">${I.check}Going</span>` : r === 'maybe' ? `<span class="status st-maybe">Maybe</span>` : `<span class="status st-event">RSVP</span>`}</div></div></button>`;
+}
+function doneCard(h) {
+  return `<button class="scard tap" data-open="history:${h.id}">${dblock(h.date, h.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${h.cat}) 13%,transparent);color:var(--c-${h.cat})">${CAT[h.cat].label}</span><h3>${esc(h.title)}</h3><p class="m ellipsis">${esc(h.role)}</p><div class="foot"><span class="status st-done">${I.checkc}Completed</span>${seed('+3')}</div></div></button>`;
+}
+function sevaLists() {
+  const mine = sevaSeg === 'mine';
+  const ongoing = (mine ? liveMine() : liveAll()).map((s) => ({ t: T(s.start), h: sevaCard(s) }));
+  const upS = S.seva.filter((s) => isFuture(s) && (!mine || ['going', 'maybe', 'invited'].includes(st(s))));
+  const upE = S.events.filter((e) => isFuture(e) && (!mine || ['going', 'maybe'].includes(S.rsvp[e.id])));
+  const upcoming = [...upS.map((s) => ({ t: T(s.start), h: sevaCard(s) })), ...upE.map((e) => ({ t: T(e.start), h: eventCard(e) }))].sort((a, b) => a.t - b.t);
+  const done = contributions().map((h) => ({ h: doneCard(h) }));
+  return { ongoing, upcoming, done };
+}
 function SevaTab() {
-  const n = newCount(); let body = '';
-  if (sevaSeg === 'explore') {
-    const show = (f) => exploreFilter === 'all' || exploreFilter === f;
-    const items = [...(show('seva') ? S.seva.filter((s) => isFuture(s) && !['going', 'maybe'].includes(st(s))).map((x) => ({ t: 'seva', x })) : []), ...(show('events') ? S.events.filter((e) => isFuture(e) && S.rsvp[e.id] !== 'going').map((x) => ({ t: 'event', x })) : [])].sort((a, b) => (isNew(b.x) - isNew(a.x)) || T(a.x.start) - T(b.x.start));
-    body = `<div class="fchips" style="margin-top:14px" role="group">${[['all', 'All', null], ['seva', 'Seva', 'var(--c-langar)'], ['events', 'Events', 'var(--c-event)']].map(([v, l, c]) => `<button class="fchip" data-xf="${v}" aria-pressed="${exploreFilter === v}">${c ? `<i class="dotc" style="background:${c}"></i>` : ''}${l}</button>`).join('')}</div>
-      <div class="stack" style="margin-top:12px">${items.map((i) => i.t === 'seva' ? sevaRow(i.x) : eventRow(i.x)).join('') || emptyState('Nothing open right now', 'New seva and events will appear here.')}</div>`;
-  } else if (sevaSeg === 'mine') {
-    const live = liveMine(), up = upcomingMine(), acts = openActions(), done = [...awaiting(), ...verified()];
-    const tabs = [['live', 'Live', live.length], ['upcoming', 'Upcoming', up.length], ['replies', 'Replies', acts.length], ['done', 'Done', done.length]];
-    let list = '';
-    if (mySevaTab === 'live') list = live.length ? live.map((s) => liveCard(s, true)).join('') : emptyState('Nothing live right now', 'When a seva you joined starts, it shows here with your points.');
-    else if (mySevaTab === 'upcoming') list = up.length ? up.map((i) => i.t === 'seva' ? sevaRow(i.x) : eventRow(i.x)).join('') : emptyState('No upcoming seva', 'Join a seva from Explore.');
-    else if (mySevaTab === 'replies') list = acts.length ? acts.map((a) => { const s = sv(a.ref); return `<button class="item tap cc-${s.cat}" data-act="action" data-id="${a.id}">${cico(s.cat)}<span class="grow"><span class="kicker" style="color:${a.kind === 'invite' ? 'var(--event)' : 'var(--action)'}">${a.kind === 'invite' ? 'Invitation' : 'Reply needed'}</span><h3>${esc(a.title)}</h3><span class="l2">${esc(a.text)}</span></span>${chev}</button>`; }).join('') : emptyState('All caught up', 'Invitations and confirmations show here.');
-    else list = done.length ? done.map((h) => itemRow({ t: 'history', x: h })).join('') : emptyState('No completed seva yet', 'A seva counts after your lead verifies attendance.');
-    body = `<div class="fchips" style="margin-top:14px" role="group">${tabs.map(([k, l, c]) => `<button class="fchip" data-mst="${k}" aria-pressed="${mySevaTab === k}">${l}${c ? ` <span class="count">${c}</span>` : ''}</button>`).join('')}</div><div class="stack" style="margin-top:12px">${list}</div>`;
+  const L = sevaLists();
+  if (!sevaChip) sevaChip = L.ongoing.length ? 'ongoing' : 'upcoming';
+  const list = L[sevaChip];
+  const chips = [['ongoing', 'Ongoing', L.ongoing.length], ['upcoming', 'Upcoming', L.upcoming.length], ['done', 'Completed', L.done.length]];
+  return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">Seva</h1><span class="sp"></span><button class="iconbtn solid" data-act="seva-view" aria-label="${sevaView === 'list' ? 'Calendar view' : 'List view'}">${sevaView === 'list' ? I.cal : I.list}</button>${bellBtn()}</header>
+    <div class="seg" style="margin-top:10px" role="group"><button data-seg="mine" aria-pressed="${sevaSeg === 'mine'}">My Sevas</button><button data-seg="all" aria-pressed="${sevaSeg === 'all'}">All Opportunities</button></div>
+    ${sevaView === 'cal' ? calendar() : `<div class="chips fill" style="margin-top:12px">${chips.map(([k, l, n]) => `<button class="chip2" data-chip="${k}" aria-pressed="${sevaChip === k}">${k === 'ongoing' && n ? '<i class="ld"></i>' : ''}${l}<span class="n">${n}</span></button>`).join('')}</div>
+    <div style="margin-top:12px">${list.length ? list.map((x) => x.h).join('') : sevaChip === 'ongoing' ? emptyState('No seva live right now', 'When a seva you joined starts, it appears here with a big LIVE label.', `<button class="btn soft sm" style="margin-top:12px" data-chip="upcoming">See upcoming</button>`) : sevaChip === 'upcoming' ? emptyState('Nothing planned yet', 'Find a seva that suits you in All Opportunities.', `<button class="btn soft sm" style="margin-top:12px" data-seg="all">Browse seva</button>`) : emptyState('Your first seva is waiting', 'Completed seva show up here and grow your garden.')}</div>`}`;
+}
+function calItems() {
+  const mine = sevaSeg === 'mine';
+  return [...S.seva.filter((s) => !mine || ['going', 'maybe', 'invited'].includes(st(s))).map((s) => ({ k: 'seva', x: s, cat: s.cat, me: ['going', 'maybe'].includes(st(s)) })), ...S.events.filter((e) => !mine || S.rsvp[e.id]).map((e) => ({ k: 'event', x: e, cat: 'event', me: !!S.rsvp[e.id] }))];
+}
+function calendar() {
+  const items = calItems(); const byDay = {}; items.forEach((i) => { (byDay[ymd(i.x.start)] = byDay[ymd(i.x.start)] || []).push(i); });
+  const f = new Date(calY, calM, 1); const startDow = (f.getDay() + 6) % 7; const days = new Date(calY, calM + 1, 0).getDate(); const today = ymd(now());
+  const cells = []; for (let i = 0; i < startDow; i++) cells.push('<span></span>');
+  for (let d = 1; d <= days; d++) {
+    const k = ymd(new Date(calY, calM, d)); const its = byDay[k] || []; const has = its.length; const anyMine = its.some((i) => i.me); const live = its.some((i) => isLive(i.x));
+    const c = has ? `var(--c-${(its.find((i) => i.me) || its[0]).cat})` : '';
+    cells.push(`<button class="day ${has ? 'has' : ''} ${has && !anyMine ? 'open' : ''} ${k === today ? 'today' : ''} ${calPop === k ? 'sel' : ''} ${k < today ? 'past' : ''}" data-day="${k}" style="${c ? `--dc:${c}` : ''}" aria-label="${d}${has ? `, ${has} item${has > 1 ? 's' : ''}` : ''}"><span class="n">${d}</span>${has > 1 ? `<span class="more">${has}</span>` : ''}${live ? '<span class="lv"></span>' : ''}</button>`);
   }
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <h1 class="hero-title" style="font-size:28px">Seva</h1><p class="hero-sub">Delhi Central</p>
-    <div class="seg" style="margin-top:16px" role="group"><button data-seg="explore" aria-pressed="${sevaSeg === 'explore'}">Explore${n ? ` <span class="count">${n}</span>` : ''}</button><button data-seg="mine" aria-pressed="${sevaSeg === 'mine'}">My Seva${liveMine().length ? ` <span class="count" style="background:var(--live)">${liveMine().length}</span>` : ''}</button></div>
-    ${isLead() ? `<button class="btn soft block" style="margin-top:12px" data-act="create">${I.plus} Create a seva</button>` : ''}
-    ${body}`;
-}
-
-// ----- Response buttons -----
-function respButtons(kind, id, cur, disabled) {
-  return `<div class="resp" role="group" aria-label="Your response">${[['going', 'Going', I.checkc, 'r-go'], ['maybe', 'Maybe', I.help, 'r-maybe'], ['cant', 'Can\'t go', I.xc, 'r-cant']].map(([v, l, ic, c]) => `<button class="${c}" data-act="respond" data-kind="${kind}" data-id="${id}" data-v="${v}" aria-pressed="${cur === v}" ${disabled ? 'disabled' : ''}>${ic}${l}</button>`).join('')}</div>`;
-}
-function peopleBlock(k, list, live, counts) {
-  const sts = live ? [['here', 'Here now', 's-here'], ['going', 'On the way', 's-way'], ['maybe', 'Maybe', 's-maybe']] : [['going', 'Going', 's-go'], ['maybe', 'Maybe', 's-maybe'], ['cant', 'Can\'t go', 's-cant']];
-  const cnt = counts || Object.fromEntries(sts.map(([s]) => [s, countSt(list, s)]));
-  const f = peopleFilter[k] || sts[0][0]; const shown = list.filter((p) => p.st === f);
-  const L = { here: ['Here', 'done', I.checkc], going: [live ? 'On the way' : 'Going', live ? 'p' : 'done', I.checkc], maybe: ['Maybe', 'action', I.help], cant: ['Can\'t go', 'live', I.xc] };
-  const extra = counts ? cnt[f] - shown.length : 0;
-  return `<div class="stat3">${sts.map(([s, l, c]) => `<button class="${c}" data-pf="${k}:${s}" aria-pressed="${f === s}"><b>${cnt[s].toLocaleString()}</b><span>${l}</span></button>`).join('')}</div>
-    <div class="card list" style="margin-top:10px">${shown.length ? shown.slice(0, 30).map((p, i) => { const [lab, cls, ic] = L[p.st]; return `<div class="lrow ${i ? '' : 'first'}"><span class="avatar ${p.me ? 'me' : ''} ${p.st === 'here' ? 'presence' : ''}" ${p.me ? 'style="background:var(--p);color:#fff"' : ''}>${initials(p.n)}</span><b class="small grow">${p.me ? 'You' : esc(p.n)}</b><span class="chip ${cls}">${ic}${lab}</span></div>`; }).join('') : '<p class="small muted" style="padding:14px 0">No one yet.</p>'}${extra > 0 ? `<p class="xs muted" style="padding:10px 0 12px;border-top:1px solid var(--border)">+ ${extra.toLocaleString()} more</p>` : ''}</div>`;
-}
-
-// ----- Points board -----
-function pointsBoard(s, mode, unreadSince) {
-  // mode: 'join' (pick before), 'live' (help/done), 'lead' (manage)
-  const a = st(s); const canPick = a === 'going' && !S.minor;
-  return `<div class="card" style="padding:12px 16px">${s.points.map((p) => {
-    const c = cover(p); const mine = p.takers.includes('@me'); const isNewPt = unreadSince && T(p.at) > unreadSince;
-    const pickBtn = mode === 'lead' || (mode === 'live' && !mine) ? '' : mode === 'live'
-      ? `<button class="pick done" data-act="ptdone" data-id="${s.id}" data-p="${p.id}" aria-pressed="${!!S.mydone[p.id]}" aria-label="Mark done">${S.mydone[p.id] ? I.check : ''}</button>`
-      : `<button class="pick" data-act="ptpick" data-id="${s.id}" data-p="${p.id}" aria-pressed="${mine}" aria-label="${mine ? 'Remove me from' : 'I\'ll do'} ${esc(p.text)}" ${canPick ? '' : 'disabled style="opacity:.35"'}>${mine ? I.check : ''}</button>`;
-    return `<div class="pt ${c.k === 'nobody' ? 'nobody' : ''} ${isNewPt ? 'isnew' : ''} ${mode === 'live' && mine && S.mydone[p.id] ? 'isdone' : ''}">${pickBtn}
-      <div class="grow"><b class="t">${esc(p.text)}</b>
-        <div class="sub">${isNewPt ? `<span class="chip live">${I.sparkle}New</span>` : ''}${p.takers.length ? faces(p.takers, 4) : ''}<span class="chip ${c.cls}">${c.k === 'nobody' ? I.alert : c.k === 'ok' ? I.check : I.users}${p.takers.length}/${p.need} · ${c.label}</span>${mine ? '<span class="xs" style="color:var(--p);font-weight:700">You</span>' : ''}</div>
-        ${mode === 'lead' && p.takers.length ? `<p class="xs muted" style="margin-top:6px">${p.takers.map((t) => esc(nameOf(t))).join(', ')}</p>` : ''}
-      </div>
-      ${mode === 'lead' ? `<div class="tools"><button data-act="ptedit" data-id="${s.id}" data-p="${p.id}" aria-label="Edit point">${I.edit}</button><button data-act="ptdel" data-id="${s.id}" data-p="${p.id}" aria-label="Remove point">${I.trash}</button></div>` : mode === 'live' && !mine && a === 'going' ? `<button class="btn sm soft" data-act="ptpick" data-id="${s.id}" data-p="${p.id}">I'll help</button>` : ''}
-    </div>`; }).join('')}
-    ${mode === 'lead' ? `<div class="btn-row" style="margin-top:12px"><button class="btn sm soft" data-act="ptadd" data-id="${s.id}">${I.plus} Add point</button><button class="btn sm ghost" data-act="postupd" data-id="${s.id}">${I.megaphone} Post update</button></div>` : ''}
-  </div>`;
+  while (cells.length % 7) cells.push('<span></span>');
+  if (calPop && byDay[calPop] && calPop.startsWith(`${calY}-${String(calM + 1).padStart(2, '0')}`)) {
+    const d = +calPop.slice(8); const idx = startDow + d - 1; const rowEnd = Math.floor(idx / 7) * 7 + 7; const col = idx % 7;
+    const pop = `<div class="pop" style="--ax:${(col + .5) / 7 * 100}%"><div class="phd"><span>${relDay(calPop + 'T12:00')}</span><button data-act="cal-close" aria-label="Close">${I.close}</button></div>${byDay[calPop].map((i) => `<button class="prow cc-${i.cat}" data-open="${i.k}:${i.x.id}"><span class="b3"></span><div class="grow"><b class="ellipsis">${esc(i.x.title)}</b><span class="m">${isLive(i.x) ? '<b style="color:var(--live);display:inline">LIVE · </b>' : ''}${fmtTime(i.x.start)} · ${i.me ? 'You\'re in' : 'Not joined yet'}</span></div>${chev}</button>`).join('')}</div>`;
+    cells.splice(rowEnd, 0, pop);
+  }
+  const mName = f.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  return `<div class="card cal" style="margin-top:12px" id="cal"><div class="cal-h"><div><h3>${mName}</h3><span class="sub">${sevaSeg === 'mine' ? 'Your seva & events' : 'Solid joined · dashed open'}</span></div><div class="nav"><button data-act="cal-prev" aria-label="Previous month">${I.chevL}</button><button data-act="cal-today">Today</button><button data-act="cal-next" aria-label="Next month">${I.chev}</button></div></div>
+    <div class="cal-grid">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((w) => `<span class="wd">${w}</span>`).join('')}${cells.join('')}</div></div><p class="xs faint" style="text-align:center;margin-top:8px">Tap a date · swipe to change month</p>`;
 }
 
 // ----- Seva detail -----
 function SevaDetail({ id }) {
-  const s = sv(id); if (!s) return backHead('Seva') + emptyState('This seva is no longer available', 'It may have been cancelled or moved.');
-  markSeen(id);
-  const live = isLive(s); const a = st(s); const ppl = peopleOf(s); const un = unreadUpd(s); const since = seenAt(id);
-  const lead = isLead();
-  const pct = Math.min(100, Math.max(0, (now() - T(s.start)) / (T(s.end) - T(s.start)) * 100));
-  let h = backHead(live ? 'Live seva' : 'Seva', `<button class="iconbtn" data-act="wa" data-id="${id}" aria-label="Share on WhatsApp">${I.share}</button>`);
-  h += `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''}">
-    <div class="row" style="gap:8px">${live ? '<span class="livebadge"><i></i>LIVE</span>' : `<span class="chip" style="background:color-mix(in srgb,var(--cc) 14%,var(--surface));color:var(--cc)">${CAT[s.cat].ic.replace('<svg', '<svg style="width:13px;height:13px"')}${CAT[s.cat].label}</span>`}${s.recur ? `<span class="chip">${s.recur}</span>` : ''}</div>
-    <h1>${esc(s.title)}</h1><p class="when">${span(s.start, s.end)}</p>
-    ${live ? `<div class="tbar"><i style="width:${pct}%"></i></div><p class="xs muted" style="margin-top:6px">Started ${dur(now() - T(s.start))} ago · ${dur(T(s.end) - now())} left</p>` : ''}
-    <div class="metal"><div>${I.pin}<span>${esc(s.place)} · ${esc(s.meet)}</span></div><div>${I.user}<span>Lead: <b>${esc(s.lead)}</b></span></div></div>
+  const s = sv(id); if (!s) return dtop('Seva') + emptyState('Seva not found', '');
+  markSeen(s.id);
+  const live = isLive(s), past = T(s.end) < now(), a = st(s), g = going(s); const ppl = peopleOf(s); const here = ppl.filter((p) => p.st === 'here' || p.st === 'going');
+  const nU = unreadUpd(s).length;
+  const tabs = [['overview', 'Overview'], ['tasks', 'Tasks'], ['team', 'Team'], ['updates', 'Updates']];
+  const hero = `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''}"><svg class="bgart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice"><circle cx="350" cy="40" r="110" fill="#fff" opacity=".18"/><circle cx="30" cy="250" r="90" fill="#fff" opacity=".12"/></svg>
+    <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}${s.recur ? `<span class="chip" style="background:rgba(255,255,255,.18);color:#fff">${s.recur}</span>` : ''}</div>
+    <h1>${esc(s.title)}</h1>
+    <div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div><div>${I.user}Lead: ${esc(s.lead)}</div></div>
+    <div class="row" style="margin-top:14px">${faceRow(here.map((p) => p.n), here.length, 5)}<span class="small" style="opacity:.95">${here.length} ${live ? 'sevadars here' : 'going'}</span></div>
+    ${live ? `<div class="tbar"><i style="width:${progress(s)}%"></i></div>` : ''}
+    ${a === 'going' ? `<div class="partpill">${I.checkc}You're Participating</div>` : a === 'maybe' ? `<div class="partpill maybe">${I.help}You said maybe</div>` : a === 'invited' ? `<div class="partpill maybe">${I.flag}${first(s.lead)} invited you</div>` : ''}
   </div>`;
-  if (un.length) h += `<div class="upd" role="status"><span class="kicker" style="color:var(--live)">${I.bell.replace('<svg', '<svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"')}${un.length} new update${un.length > 1 ? 's' : ''} since you last looked</span>${un.map((u) => `<div class="u">${u.kind === 'new' ? I.sparkle : u.kind === 'edit' ? I.edit : I.megaphone}<span class="grow"><b>${esc(u.t)}</b><br><span class="xs muted">${fmtTime(u.d)} · ${esc(u.by)}</span></span></div>`).join('')}</div>`;
-
-  if (lead) {
-    const tot = s.points.length, cov = s.points.filter((p) => p.takers.length >= p.need).length, nb = nobodyPts(s).length;
-    h += `<div class="section"><div class="rolebanner">${I.flag}You can edit points${live ? ' while this seva is live — members get an alert' : ''}</div>
-      <div class="kpis" style="margin-top:10px"><div class="kpi" style="--kc:var(--done)"><b>${cov}/${tot}</b><span>Points covered</span></div><div class="kpi" style="--kc:var(--action)"><b>${nb}</b><span>With no one</span></div><div class="kpi" style="--kc:var(--p)"><b>${countSt(ppl, live ? 'here' : 'going')}</b><span>${live ? 'Here now' : 'Going'}</span></div></div></div>
-      <div class="section"><div class="section-h"><h2>Points</h2><span class="xs muted">who is doing what</span></div>${pointsBoard(s, 'lead', since)}</div>`;
-  } else if (live && a === 'going') {
-    const mp = myPoints(s);
-    h += `<div class="section"><div class="section-h"><h2>Your points</h2><span class="xs muted">${mp.filter((p) => S.mydone[p.id]).length}/${mp.length} done</span></div>${mp.length ? pointsBoard({ ...s, points: mp }, 'live', since) : `<div class="card"><p class="small muted">You haven't picked a point yet. Choose one below.</p></div>`}</div>
-      <div class="section"><div class="section-h"><h2>All points</h2>${nobodyPts(s).length ? `<span class="chip action">${I.alert}${nobodyPts(s).length} with no one</span>` : ''}</div>${pointsBoard({ ...s, points: s.points.filter((p) => !p.takers.includes('@me')) }, 'live', since)}</div>`;
-  } else {
-    const cur = a === 'invited' ? null : a; const mp = myPoints(s);
-    const s1 = cur ? 'ok' : 'on', s2 = cur === 'going' ? (mp.length ? 'ok' : 'on') : 'off', s3 = cur === 'going' && mp.length ? 'ok' : 'off';
-    h += `<div class="section"><div class="card stepper">
-      <div class="st ${s1}"><span class="num">${s1 === 'ok' ? I.check : 1}</span><div><h4>${a === 'invited' ? 'You\'re invited — will you come?' : 'Will you come?'}</h4>${respButtons('seva', id, cur, S.minor)}${S.minor ? '<p class="xs muted" style="margin-top:8px">Joining opens after guardian approval.</p>' : ''}</div></div>
-      <div class="st ${s2}"><span class="num">${s2 === 'ok' ? I.check : 2}</span><div><h4>Pick the points you'll do</h4>${cur === 'going' ? `<p class="xs muted" style="margin:-4px 0 10px">Choose one or more. Others can pick the same point too.</p>${pointsBoard(s, 'join', 0)}` : `<p class="xs muted">${cur === 'maybe' ? 'Choose Going to pick points.' : 'After you choose Going, you\'ll pick what you\'ll do.'}</p>`}</div></div>
-      <div class="st ${s3}"><span class="num">${s3 === 'ok' ? I.check : 3}</span><div><h4>${s3 === 'ok' ? 'You\'re all set' : 'Get reminders'}</h4>${s3 === 'ok' ? `<p class="small">You'll do: <b>${esc(mp.map((p) => p.text).join(', '))}</b></p><p class="xs muted" style="margin-top:6px">We'll remind you the evening before and 1 hour before. ${esc(first(s.lead))} can see your points.</p><div class="btn-row" style="margin-top:10px"><button class="btn sm soft" data-act="cal" data-id="${id}">${I.cal} Add to calendar</button></div>` : '<p class="xs muted">Reminders turn on when you pick a point.</p>'}</div></div>
-    </div></div>`;
-    if (cur !== 'going') h += `<div class="section"><div class="section-h"><h2>Points</h2><span class="xs muted">${openPts(s)} still need people</span></div>${pointsBoard(s, 'join', 0)}</div>`;
+  let body = '';
+  if (dtab === 'overview') body = overviewTab(s);
+  else if (dtab === 'tasks') body = tasksTab(s);
+  else if (dtab === 'team') body = teamTab(s);
+  else body = updatesTab(s);
+  // sticky action
+  let act = '';
+  if (!past) {
+    if (g && live) { const left = myPoints(s).filter((p) => !S.mydone[p.id]); act = `<button class="btn block" data-act="mark-complete" data-id="${s.id}" ${left.length ? '' : 'disabled'}>${I.checkc}${left.length ? `Mark Task Complete${left.length > 1 ? ` (${left.length})` : ''}` : 'All your tasks are done 🙏'}</button>`; }
+    else if (g) act = `<div class="btn-row"><button class="btn ghost" data-act="lead-wa" data-id="${s.id}">${I.msg}Message lead</button><button class="btn" data-act="cal" data-id="${s.id}">${I.cal}Add to calendar</button></div>`;
+    else if (live) act = `<button class="btn block" data-act="respond" data-v="going" data-id="${s.id}">${I.plus}Join this seva now</button>`;
+    else act = respButtons(s);
   }
-  h += `<div class="section"><div class="section-h"><h2>${live ? 'Sangat at this seva' : 'Who\'s coming'}</h2></div>${peopleBlock(id, ppl, live)}</div>`;
-  if (!lead) h += `<div class="section"><div class="card"><div class="row"><span class="avatar" style="width:46px;height:46px">${initials(s.lead)}</span><div class="grow"><b>${esc(s.lead)}</b><p class="xs muted">Seva lead</p></div></div><div class="btn-row" style="margin-top:12px"><button class="btn sm" data-act="lead-wa" data-id="${id}">${I.wa} Message lead</button><button class="btn sm ghost" data-act="lead-call" data-id="${id}">${I.phone} Call</button></div></div></div>`;
-  if (s.updates.length) h += `<div class="section"><div class="section-h"><h2>Updates</h2></div><div class="card list">${s.updates.map((u) => `<div class="lrow">${(u.kind === 'new' ? I.sparkle : u.kind === 'edit' ? I.edit : I.megaphone).replace('<svg', '<svg style="width:20px;height:20px;color:var(--muted)"')}<span class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${relDay(u.d)} · ${fmtTime(u.d)} · ${esc(u.by)}</span></span>${T(u.d) > since ? '<span class="newtag">NEW</span>' : ''}</div>`).join('')}</div></div>`;
-  h += `<div class="section"><div class="section-h"><h2>Details</h2></div><div class="card"><div class="kv"><div class="r">${I.info}<div><b>${esc(s.purpose)}</b><span>${esc(s.instructions)}</span></div></div><div class="r">${I.clock}<div><b>${fmtLong(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</b><span>Your local time (${esc(tz)})</span></div></div></div></div></div>`;
-  if (!live) h += `<div class="btn-row" style="margin-top:16px"><button class="btn ghost" data-act="cal" data-id="${id}">${I.cal} Calendar</button><button class="btn ghost" data-act="wa" data-id="${id}">${I.wa} WhatsApp</button></div>`;
-  if (live && !lead && a === 'going') h += `<div class="demo"><p class="h">Prototype controls</p><button class="btn sm ghost" data-act="demo-end" data-id="${id}">End this seva now</button><p class="xs faint" style="margin-top:8px">Shows "Awaiting verification" and then the lead's verification.</p></div>`;
-  return h;
+  return `${dtop(live ? 'Live Seva' : 'Seva Details', `<button class="iconbtn" data-act="wa" data-id="${s.id}" aria-label="Share on WhatsApp">${I.share}</button>`)}${hero}
+    <div class="dtabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" data-dtab="${k}" aria-selected="${dtab === k}">${l}${k === 'updates' && nU ? `<span class="n">${nU}</span>` : ''}</button>`).join('')}</div>
+    <div style="margin-top:16px" class="stack">${body}</div>
+    ${act ? `<div class="stickyact"><div>${act}</div></div>` : ''}`;
 }
-function stepsHTML(cur) { const L = ['Scheduled', 'In progress', 'Submitted', 'Verified']; return `<div class="steps"><span class="bar2" style="width:calc((100% - 24px) * ${Math.min(cur, 3) / 3})"></span>${L.map((l, i) => `<div class="step ${i < cur ? 'done' : i === cur ? 'now' : ''}"><i>${i < cur ? I.check : ''}</i>${l}</div>`).join('')}</div>`; }
-function HistoryDetail({ id }) {
-  const h = S.history.find((x) => x.id === id); if (!h) return backHead('Record') + emptyState('Record not found', '');
-  const ok = h.state === 'verified';
-  return `${backHead('Seva record', ok ? `<button class="iconbtn" data-act="share" data-h="${id}" aria-label="Share">${I.share}</button>` : '')}
-    <div class="dhero cc-${h.cat}"><span class="chip ${ok ? 'done' : 'action'}">${ok ? I.checkc + 'Verified' : I.hourglass + 'Awaiting verification'}</span><h1>${esc(h.title)}</h1><p class="when">${fmtLong(h.date)} · ${h.hrs} hours · ${esc(h.role)}</p></div>
-    <div class="section"><div class="card">${stepsHTML(ok ? 4 : 2)}<p class="xs muted" style="margin-top:14px">${ok ? 'Your lead confirmed your attendance, so it counts toward your journey and garden.' : 'It counts once your lead verifies it.'}</p></div></div>
-    ${ok ? `<button class="btn block" style="margin-top:16px" data-act="share" data-h="${id}">${I.share} Share this seva</button>` : `<div class="demo"><p class="h">Prototype controls</p><button class="btn sm ghost" data-act="demo-verify" data-id="${id}">Lead verifies attendance</button></div>`}`;
+function respButtons(s) {
+  const a = st(s);
+  return `<div class="resp" role="group" aria-label="Your response"><button class="r-go" data-act="respond" data-v="going" data-id="${s.id}" aria-pressed="${a === 'going'}">${I.checkc}Going</button><button class="r-maybe" data-act="respond" data-v="maybe" data-id="${s.id}" aria-pressed="${a === 'maybe'}">${I.help}Maybe</button><button class="r-cant" data-act="respond" data-v="cant" data-id="${s.id}" aria-pressed="${a === 'cant'}">${I.xc}Can't go</button></div>`;
 }
-
-// ----- Event detail -----
+function overviewTab(s) {
+  const live = isLive(s), g = going(s); const mine = myPoints(s);
+  const prog = live ? progress(s) : filled(s);
+  const tasks = g ? `<div class="card"><div class="section-h" style="margin-bottom:4px"><h2 style="font-size:17px">Tasks for You</h2><button class="link" data-dtab="tasks">${mine.length ? 'Change' : 'Pick tasks'}${I.chev}</button></div>
+      ${mine.length ? mine.map((p) => `<button class="task" data-act="${live ? 'ptdone' : 'noop-up'}" data-p="${p.id}" aria-pressed="${!!S.mydone[p.id]}"><span class="box">${S.mydone[p.id] ? I.check : ''}</span><span class="grow tx small" style="font-weight:600">${esc(p.text)}</span><span class="xs muted">${p.takers.length}/${p.need}</span></button>`).join('') : `<p class="small muted" style="padding:6px 0">You haven't picked a task yet. ${openPtsN(s)} task${openPtsN(s) === 1 ? '' : 's'} still need people.</p><button class="btn soft block" style="margin-top:8px" data-dtab="tasks">${I.plus}Pick your tasks</button>`}
+      ${mine.length && !live ? `<p class="xs muted" style="margin-top:8px">You can tick tasks off once the seva starts. We'll remind you the evening before.</p>` : ''}</div>` : '';
+  return `<div class="card"><div class="prog"><span>${live ? 'Seva progress' : 'Spots filled'}</span><span style="color:var(--done)">${prog}%</span></div><div class="pbar"><i style="width:${prog}%"></i></div><p class="xs muted" style="margin-top:8px">${live ? `${s.points.filter((p) => S.mydone[p.id] || p.prog >= 1).length} of ${s.points.length} tasks complete · ends ${fmtTime(s.end)}` : `${s.points.reduce((a, p) => a + Math.min(p.need, p.takers.length), 0)} of ${s.points.reduce((a, p) => a + p.need, 0)} places taken`}</p></div>
+    ${tasks}
+    <div class="card kv"><div class="r">${I.sparkle}<div><b>Why this seva</b><span>${esc(s.purpose)}</span></div></div><div class="r">${I.pin}<div><b>Meeting point</b><span>${esc(s.meet)}</span></div></div><div class="r">${I.info}<div><b>Please note</b><span>${esc(s.instructions)}</span></div></div></div>
+    <div class="card"><div class="row"><span class="av2" style="background:${avColor(s.lead)}">${initials(s.lead)}</span><div class="grow"><b class="small">${esc(s.lead)}</b><p class="xs muted">Team lead</p></div><button class="btn ghost sm" data-act="lead-wa" data-id="${s.id}">${I.wa}Message</button></div></div>`;
+}
+const openPtsN = (s) => s.points.filter((p) => p.takers.length < p.need).length;
+function tasksTab(s) {
+  const g = going(s), live = isLive(s); const since = seenAt(s.id);
+  const nobody = s.points.filter((p) => !p.takers.length).length;
+  return `${!g && !(T(s.end) < now()) ? `<div class="banner">${I.info}<span>Choose <b>Going</b> first, then pick the tasks you'll do.</span></div>` : ''}
+    ${nobody ? `<div class="banner" style="background:var(--action-bg)">${I.alert}<span><b>${nobody} task${nobody > 1 ? 's have' : ' has'} no one yet</b> — highlighted below.</span></div>` : ''}
+    <div class="card">${s.points.map((p) => { const n = p.takers.length; const me = p.takers.includes('@me'); const isN = p.live && T(p.at) > since;
+      return `<div class="pt ${!n ? 'nobody' : ''}"><div class="grow"><b class="t">${esc(p.text)}${isN ? ' <span class="status st-new" style="vertical-align:2px">NEW</span>' : ''}</b><div class="sub">${n ? faceRow(p.takers.map(nameOf), n, 3) : ''}<span class="chip ${!n ? 'action' : n < p.need ? 'p' : 'done'}">${!n ? 'No one yet' : n < p.need ? `${p.need - n} more needed` : 'Covered'}</span><span class="xs muted">${n}/${p.need}</span></div></div>
+        ${g ? `<button class="btn sm ${me ? '' : 'soft'} pick" data-act="ptpick" data-id="${s.id}" data-p="${p.id}" aria-pressed="${me}">${me ? `${I.check}Mine` : `${I.plus}Pick`}</button>` : ''}</div>`; }).join('')}</div>
+    ${g ? `<p class="xs muted" style="text-align:center">Many people can pick the same task. ${first(s.lead)} sees who's doing what${live ? ' live' : ''}.</p>` : ''}`;
+}
+function teamTab(s) {
+  const ppl = peopleOf(s); const live = isLive(s);
+  const groups = live ? [['here', 'Here now', (p) => p.st === 'here'], ['going', 'Coming', (p) => p.st === 'going'], ['maybe', 'Maybe', (p) => p.st === 'maybe']] : [['going', 'Going', (p) => p.st === 'going'], ['maybe', 'Maybe', (p) => p.st === 'maybe'], ['cant', 'Can\'t go', (p) => p.st === 'cant']];
+  if (!groups.find((x) => x[0] === teamFilter)) teamFilter = groups[0][0];
+  const cur = groups.find((x) => x[0] === teamFilter); const list = ppl.filter(cur[2]);
+  const taskOf = (n) => s.points.filter((p) => p.takers.map(nameOf).includes(n)).map((p) => p.text);
+  return `<div class="card"><div class="row"><span class="av2" style="background:${avColor(s.lead)}">${initials(s.lead)}</span><div class="grow"><b class="small">${esc(s.lead)}</b><p class="xs muted">Team lead for this seva</p></div><button class="btn ghost sm" data-act="lead-wa" data-id="${s.id}">${I.wa}Message</button></div></div>
+    <div class="seg">${groups.map(([k, l, f]) => `<button data-tf="${k}" aria-pressed="${teamFilter === k}">${l} · ${ppl.filter(f).length}</button>`).join('')}</div>
+    <div class="card list">${list.length ? list.map((p) => { const t = taskOf(p.n); return `<div class="lrow"><span class="av2 ${p.st === 'here' ? 'here' : ''}" style="background:${p.me ? 'var(--p)' : avColor(p.n)}">${initials(p.n)}</span><div class="grow"><b class="small">${esc(p.n)}${p.me ? ' (you)' : ''}</b><p class="xs muted ellipsis">${t.length ? esc(t.join(' · ')) : 'No task picked yet'}</p></div></div>`; }).join('') : '<p class="small muted" style="padding:14px 0">No one here yet.</p>'}</div>`;
+}
+function updatesTab(s) {
+  const since = seenAt(s.id);
+  return s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd ${T(u.d) > since ? 'new' : ''}"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by)} · ${ago(u.d)} ago${T(u.d) > since ? ' · <b style="color:var(--live)">New</b>' : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', `${first(s.lead)} will post changes and notes here. You'll get an alert.`);
+}
 function EventDetail({ id }) {
-  const e = ev(id); if (!e) return backHead('Event') + emptyState('Event not found', '');
-  markSeen(id); const r = S.rsvp[id]; const linked = e.linked && sv(e.linked);
-  const days = Math.max(0, Math.ceil((T(e.start) - now()) / DAY));
-  const ppl = []; if (r) ppl.push({ n: ME(), me: true, st: r === 'no' ? 'cant' : r });
-  NAMES.slice(e.sample, e.sample + 12).forEach((n, i) => ppl.push({ n, st: i < 8 ? 'going' : i < 11 ? 'maybe' : 'cant' }));
-  return `${backHead('Event', `<button class="iconbtn" data-act="wa-e" data-id="${id}" aria-label="Share">${I.share}</button>`)}
-    <div class="dhero cc-event"><span class="chip event">${I.cal}${esc(e.kind)}</span><h1>${esc(e.title)}</h1><p class="when">${span(e.start, e.end)}</p>
-      <div class="metal"><div>${I.pin}<span>${esc(e.place)}</span></div><div>${I.clock}<span><b>${days} day${days === 1 ? '' : 's'}</b> to go</span></div></div></div>
-    <div class="section"><div class="card"><h4 style="margin:0 0 10px;font-size:15.5px">Will you come?</h4>${respButtons('event', id, r === 'no' ? 'cant' : r)}</div></div>
-    <div class="section"><div class="section-h"><h2>Who's going</h2></div>${peopleBlock(id, ppl, false, { going: e.going, maybe: e.maybe, cant: e.cant })}</div>
-    <div class="section"><div class="section-h"><h2>Agenda</h2></div><div class="card list">${e.agenda.map((x, i) => `<div class="lrow"><span class="avatar" style="width:30px;height:30px;font-size:12px;background:var(--event-bg);color:var(--event)">${i + 1}</span><b class="small">${esc(x)}</b></div>`).join('')}</div></div>
-    ${linked ? `<div class="section"><div class="section-h"><h2>Volunteer at this event</h2></div>${sevaRow(linked)}</div>` : ''}
-    <div class="btn-row" style="margin-top:16px"><button class="btn ghost" data-act="cal-e" data-id="${id}">${I.cal} Calendar</button><button class="btn ghost" data-act="wa-e" data-id="${id}">${I.wa} Share</button></div>`;
+  const e = ev(id); markSeen(e.id); const r = S.rsvp[e.id]; const k = r === 'no' ? 'cant' : r;
+  return `${dtop('Event', `<button class="iconbtn" data-act="wa-e" data-id="${e.id}" aria-label="Share">${I.share}</button>`)}
+    <div class="dhero cc-event"><div class="row" style="gap:14px;align-items:flex-end"><span style="display:inline-grid;place-items:center;background:rgba(255,255,255,.9);color:#4C1D95;border-radius:16px;width:68px;height:74px;line-height:1"><span><b style="font-size:28px;display:block">${new Date(e.start).getDate()}</b><span style="font-size:11px;font-weight:800;letter-spacing:.1em">${new Date(e.start).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span></span><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">${e.kind}</span></div>
+      <h1>${esc(e.title)}</h1><div class="meta"><div>${I.clock}${relDay(e.start)}, ${fmtTime(e.start)} – ${fmtTime(e.end)}</div><div>${I.pin}${esc(e.place)}</div><div>${I.users}${num(e.going)} going · ${esc(e.organizer)}</div></div>
+      ${r === 'going' ? `<div class="partpill">${I.checkc}You're going</div>` : ''}</div>
+    <div class="stack" style="margin-top:16px"><div class="resp" role="group"><button class="r-go" data-act="rsvp" data-v="going" data-id="${e.id}" aria-pressed="${k === 'going'}">${I.checkc}Going</button><button class="r-maybe" data-act="rsvp" data-v="maybe" data-id="${e.id}" aria-pressed="${k === 'maybe'}">${I.help}Maybe</button><button class="r-cant" data-act="rsvp" data-v="cant" data-id="${e.id}" aria-pressed="${k === 'cant'}">${I.xc}Can't go</button></div>
+    <div class="card"><h2 style="font-size:17px;margin-bottom:6px">Programme</h2>${e.agenda.map((a2, i) => `<div class="lrow" style="min-height:44px"><span class="av2" style="width:28px;height:28px;font-size:12px;background:var(--event)">${i + 1}</span><span class="small" style="font-weight:600">${esc(a2)}</span></div>`).join('')}</div>
+    <button class="btn ghost block" data-act="cal-e" data-id="${e.id}">${I.cal}Add to calendar</button></div>`;
+}
+function HistoryDetail({ id }) {
+  const h = S.history.find((x) => x.id === id);
+  return `${dtop('Contribution')}<div class="dhero cc-${h.cat}"><span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[h.cat].label}</span><h1>${esc(h.title)}</h1><div class="meta"><div>${I.cal}${fmtLong(h.date)}</div><div>${I.check}${esc(h.role)}</div></div><div class="partpill">${I.checkc}Verified by your team lead</div></div>
+    <div class="card" style="margin-top:16px;text-align:center"><p class="small muted">This seva added to your garden</p><p style="font-size:34px;font-weight:800;margin-top:4px">${seed('+3')}</p><p class="xs muted">points to spend in the garden shop</p><button class="btn block" style="margin-top:14px" data-tab="garden">${I.garden}Open my garden</button></div>`;
 }
 
-// ----- Garden -----
+// =================== GARDEN ===================
+const SLOTS = {
+  tree: [[46, 176], [96, 168], [146, 174], [258, 170], [22, 206], [120, 202], [232, 196], [376, 214], [68, 238], [188, 184], [292, 224], [18, 264]],
+  flower: [[164, 284], [240, 286], [128, 260], [272, 262], [96, 290], [306, 292], [206, 240], [58, 280], [344, 278], [150, 234], [256, 236], [30, 292], [374, 296], [110, 228]],
+  decor: [[104, 244], [246, 216], [52, 226], [324, 252], [178, 208], [358, 238], [212, 264]],
+  pet: [[150, 268], [244, 252], [90, 276], [300, 246], [194, 292]],
+};
+function placed() {
+  const used = { tree: 0, flower: 0, decor: 0, pet: 0 }; const out = [];
+  SHOP_ORDER.forEach((id) => { const n = owned(id); const c = SHOP[id].cat; for (let k = 0; k < n; k++) { if (id === 'pond') { out.push({ id, x: 330, y: 262, c }); continue; } const sl = SLOTS[c][used[c]++]; if (sl) out.push({ id, x: sl[0], y: sl[1], c, k }); } });
+  return out;
+}
+function gardenScene(opts = {}) {
+  const dk = isDark(); const items = placed().sort((a, b) => a.y - b.y); const fresh = S.justPlanted || [];
+  const sc = (it) => { const base = 0.95 + (it.y - 160) / 140 * 0.8; return base * ({ tree: 1.55, flower: 1.15, decor: 1.2, pet: 1.1 }[it.c]) * (it.id === 'banyan' ? .95 : 1); };
+  const draw = items.map((it, i) => {
+    const inner = `<g transform="scale(${sc(it).toFixed(3)})" ${fresh.includes(it.id) ? 'class="newpop"' : ''}><ellipse cx="0" cy="1" rx="15" ry="4" fill="#000" opacity="${dk ? .25 : .1}"/>${GI[it.id].d()}</g>`;
+    if (it.c === 'pet') { const dx = 36 + (i % 3) * 14, dur = 14 + (i % 4) * 3; return `<g data-gi="${it.id}" transform="translate(${it.x} ${it.y})" style="cursor:pointer"><g><animateTransform attributeName="transform" type="translate" values="0 0;${dx} 0;${dx} 0;0 0;0 0" keyTimes="0;.42;.5;.92;1" dur="${dur}s" repeatCount="indefinite"/><g><animateTransform attributeName="transform" type="scale" values="1 1;-1 1" keyTimes="0;.5" calcMode="discrete" dur="${dur}s" repeatCount="indefinite"/>${inner}</g></g></g>`; }
+    return `<g data-gi="${it.id}" transform="translate(${it.x} ${it.y})" style="cursor:pointer">${inner}</g>`;
+  }).join('');
+  const sky = dk ? ['#141B30', '#2D2A4A', '#4A3B5C'] : ['#A8DBF5', '#D6EEF7', '#F3F6EC'];
+  const stars = dk ? Array.from({ length: 28 }, (_, i) => `<circle cx="${(i * 67) % 400}" cy="${(i * 29) % 120 + 6}" r="${i % 3 ? .8 : 1.3}" fill="#fff" opacity="${.4 + (i % 4) * .15}" ${i % 5 === 0 ? 'class="glow"' : ''}/>`).join('') : '';
+  const flies = dk ? Array.from({ length: 10 }, (_, i) => `<circle cx="${30 + (i * 41) % 340}" cy="${200 + (i * 23) % 90}" r="1.6" fill="#FFE98A" class="glow" style="animation-delay:-${i * .4}s"><animateTransform attributeName="transform" type="translate" values="0 0;${(i % 2 ? 8 : -8)} -6;0 0" dur="${4 + i % 3}s" repeatCount="indefinite"/></circle>`).join('') : '';
+  const empty = !items.length ? `<g transform="translate(198 252)"><path d="M0 0v-26" stroke="#7A5A38" stroke-width="3"/><rect x="-30" y="-44" width="60" height="22" rx="4" fill="#C79A63"/><text x="0" y="-29" text-anchor="middle" font-size="9.5" font-weight="700" fill="#4A2F14" font-family="Inter,system-ui">Plant here!</text></g>` : '';
+  return `<svg class="scene" viewBox="0 0 400 ${opts.h || 310}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Your garden with ${ownedTotal()} items">
+    <defs><linearGradient id="gsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".6" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
+      <linearGradient id="gmead" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dk ? '#24331F' : '#9BD07A'}"/><stop offset="1" stop-color="${dk ? '#16211A' : '#6DB257'}"/></linearGradient>
+      <radialGradient id="gsun"><stop offset="0" stop-color="${dk ? '#FFF6D8' : '#FFF4C2'}"/><stop offset="1" stop-color="${dk ? '#FFF6D8' : '#FFD86B'}" stop-opacity="0"/></radialGradient></defs>
+    <rect width="400" height="320" fill="url(#gsky)"/>${stars}
+    <circle cx="316" cy="${dk ? 56 : 62}" r="44" fill="url(#gsun)" opacity=".8"/><circle cx="316" cy="${dk ? 56 : 62}" r="${dk ? 15 : 19}" fill="${dk ? '#F4EFD9' : '#FFE27A'}"/>${dk ? '<circle cx="322" cy="51" r="13" fill="#2D2A4A"/>' : ''}
+    <g class="drift" opacity="${dk ? .25 : .9}"><path d="M40 70a14 14 0 0 1 26-6 11 11 0 0 1 18 8H32a9 9 0 0 1 8-2z" fill="#fff"/></g><g class="drift d2" opacity="${dk ? .2 : .85}"><path d="M120 44a12 12 0 0 1 22-5 9 9 0 0 1 15 7h-44a8 8 0 0 1 7-2z" fill="#fff"/></g>
+    <path d="M0 150 L50 112 L92 138 L150 96 L214 140 L262 108 L318 146 L370 118 L400 132 V190 H0Z" fill="${dk ? '#2A3048' : '#B7D3E3'}"/>
+    <path d="M150 96 L164 106 L156 108 L150 102 L142 110 L138 105Z" fill="${dk ? '#3C4462' : '#fff'}" opacity=".9"/><path d="M50 112 L60 120 L52 121 L46 116Z" fill="${dk ? '#3C4462' : '#fff'}" opacity=".9"/>
+    <path d="M0 168 Q60 140 130 160 T260 156 T400 160 V200 H0Z" fill="${dk ? '#22322A' : '#A9D58C'}"/>
+    <rect y="172" width="400" height="150" fill="url(#gmead)"/>
+    <g opacity="${dk ? .6 : .9}">${Array.from({ length: 10 }, (_, i) => `<path d="M${8 + i * 12} 186v-12M${8 + i * 12 - 2} 176l2-4 2 4" stroke="${dk ? '#8A7458' : '#F3E6CF'}" stroke-width="2" fill="none"/>`).join('')}<path d="M4 180H124M4 184H124" stroke="${dk ? '#8A7458' : '#F3E6CF'}" stroke-width="1.6"/></g>
+    <path d="M168 320 C182 262 246 236 326 192 L340 192 C272 240 226 262 238 320Z" fill="${dk ? '#5B4D3C' : '#EBDDBE'}"/><path d="M190 300 l8 -3M214 276 l7 -2M246 250 l7 -3M282 226 l6 -3" stroke="${dk ? '#6E5E49' : '#D6C49D'}" stroke-width="4" stroke-linecap="round"/>
+    <g><rect x="304" y="152" width="62" height="40" fill="${dk ? '#8C7C66' : '#F5E6C8'}"/><path d="M296 154 L335 122 L374 154Z" fill="${dk ? '#7A3328' : '#C9573E'}"/><rect x="352" y="126" width="8" height="16" fill="${dk ? '#5C2A22' : '#9C3E2C'}"/><rect x="327" y="168" width="14" height="24" rx="2" fill="#8A5A3B"/><rect x="345" y="162" width="14" height="11" rx="1.5" fill="${dk ? '#FFD27A' : '#A7D8F0'}" ${dk ? 'class="glow"' : ''}/><rect x="310" y="162" width="12" height="11" rx="1.5" fill="${dk ? '#FFD27A' : '#A7D8F0'}"/></g>
+    ${Array.from({ length: 22 }, (_, i) => `<path class="sway s${i % 3 + 1}" d="M${(i * 37) % 400} ${196 + (i * 53) % 120}l-2 -6M${(i * 37) % 400 + 3} ${196 + (i * 53) % 120}v-7M${(i * 37) % 400 + 6} ${196 + (i * 53) % 120}l2 -6" stroke="${dk ? '#3E5A36' : '#5E9E4C'}" stroke-width="1.4" stroke-linecap="round"/>`).join('')}
+    ${empty}${draw}${flies}
+  </svg>`;
+}
+function shopCard(id) {
+  const x = SHOP[id]; const ok = isUnlocked(id); const o = owned(id); const c = inCart(id); const full = o + c >= x.max;
+  return `<div class="sitem ${ok ? '' : 'locked'}"><div class="art">${art(id)}${!ok ? `<div class="lockov"><span>${I.lock}${esc(lockText(id))}</span></div>` : ''}</div>${o ? `<span class="own">×${o} planted</span>` : ''}${x.sp ? '<span class="tag">SPECIAL</span>' : ''}
+    <b>${GI[id].name}</b><div class="meta"><span>${KIND[x.cat].replace(/s$/, '')}</span>${seed(x.cost)}</div>
+    ${!ok ? `<button class="add" style="background:var(--surface2);color:var(--muted)" data-act="why-lock" data-id="${id}">${I.lock}Locked</button>` : c ? `<div class="stepper"><button data-act="cart-dec" data-id="${id}" aria-label="Remove one">−</button><span>${c} in cart</span><button data-act="cart-inc" data-id="${id}" aria-label="Add one" ${full ? 'style="opacity:.4"' : ''}>+</button></div>` : `<button class="add" data-act="cart-inc" data-id="${id}" ${full ? 'style="opacity:.5"' : ''}>${full ? (x.max === 1 ? `${I.check}You have one` : 'Max reached') : `${I.plus}Add`}</button>`}</div>`;
+}
 function GardenTab() {
-  const v = verified().length; const un = ITEM_ORDER.filter(isUnlocked);
-  const nextL = ITEM_ORDER.filter((x) => !isUnlocked(x) && itemDef(x).u.n).sort((a, b) => itemDef(a).u.n - itemDef(b).u.n)[0];
-  const is3 = S.gview === '3d';
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <h1 class="hero-title" style="font-size:28px">My garden</h1><p class="hero-sub">Private · grows with every verified seva</p>
-    <div class="seg" style="margin-top:16px" role="group"><button data-gv="2d" aria-pressed="${!is3}">${I.square} 2D</button><button data-gv="3d" aria-pressed="${is3}">${I.cube} 3D</button></div>
-    <div style="margin-top:12px">${is3 ? `<div class="g3d" id="g3d"><div class="loading">Planting your garden…</div><div class="tools"><button data-act="g3-reset" aria-label="Reset view">${I.reset}</button></div><span class="hint" id="g3hint">Drag to turn · pinch to zoom · tap a plant</span></div>` : `<div class="garden-wrap ${gardenEdit ? 'editing' : ''}" id="pgarden">${personalSVG()}</div>`}</div>
-    ${gardenEdit ? `<p class="small muted" style="margin:12px 2px 6px">Pick something, then tap a square to place it.</p><div class="tray">${ITEM_ORDER.map((id) => { const ok = isUnlocked(id); return `<button class="titem ${ok ? '' : 'locked'}" data-tool="${id}" aria-pressed="${gardenTool === id}">${ok ? '' : I.lock.replace('<svg', '<svg class="lk"')}${thumb(id, '')}${itemDef(id).name.split(' ')[0]}</button>`; }).join('')}<button class="titem" data-tool="erase" aria-pressed="${gardenTool === 'erase'}">${I.erase.replace('<svg', '<svg style="width:40px;height:40px;color:var(--muted)"')}Remove</button></div><button class="btn block" style="margin-top:6px" data-act="garden-done">Done</button>`
-      : `<div class="btn-row" style="margin-top:12px">${is3 ? `<button class="btn ghost" data-gv="2d">${I.edit} Design in 2D</button>` : `<button class="btn" data-act="garden-edit">${I.edit} Design my garden</button>`}</div>`}
-    <div class="section"><div class="section-h"><h2>Unlocks</h2><span class="xs muted">${un.length} of ${ITEM_ORDER.length}</span></div>
-      ${nextL ? `<div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,var(--p-soft),var(--surface) 70%)"><div class="row">${thumb(nextL, '').replace('<svg', '<svg style="width:54px;height:54px"')}<div class="grow"><span class="kicker" style="color:var(--p)">Next unlock</span><b style="display:block">${itemDef(nextL).name}</b><span class="xs muted">${v} of ${itemDef(nextL).u.n} verified seva</span><div class="bar"><i style="width:${Math.min(100, v / itemDef(nextL).u.n * 100)}%"></i></div></div></div></div>` : ''}
-      <div class="card list">${ITEM_ORDER.filter((x) => GI[x]).map((id) => { const ok = isUnlocked(id); return `<div class="lrow">${thumb(id)}<div class="grow"><b class="small">${GI[id].name}</b><p class="xs muted">${ok ? 'Unlocked · ' : ''}${unlockText(GI[id].u)}</p></div>${ok ? `<span class="chip done">${I.check}Yours</span>` : `<span class="chip">${I.lock}Locked</span>`}</div>`; }).join('')}</div>
-      <button class="btn soft block" style="margin-top:10px" data-act="sim-seva">Prototype: pretend I finished a seva</button></div>`;
+  const nb = nextBloom(); const is3 = S.gview === '3d';
+  const list = SHOP_ORDER.filter((id) => shopKind === 'all' || SHOP[id].cat === shopKind).sort((a, b) => isUnlocked(b) - isUnlocked(a));
+  return `<div class="gscene" style="margin-top:calc(-8px - var(--safe-t))">${is3 ? `<div class="g3d" id="g3d" style="border-radius:0;height:min(56vh,440px)"><div class="loading">Planting your garden…</div></div>` : `<div id="gscene-svg">${gardenScene()}</div>`}
+      <div class="gt"><h1>My Garden</h1><div class="row" style="gap:8px"><button data-act="gview" aria-label="${is3 ? '2D view' : '3D view'}">${is3 ? I.image : I.cube}</button>${is3 ? `<button data-act="g3-reset" aria-label="Reset view">${I.reset}</button>` : ''}</div></div></div>
+    <div class="gpanel card"><div class="row" style="justify-content:space-between"><h2 style="font-size:16px">My Garden Journey</h2><button class="link" data-act="how-points" style="min-height:30px;padding:0">How it works</button></div>
+      <div class="gstats"><div><b>${nContrib()}</b><span>Contributions</span></div><div><b>${unlockedCount()}</b><span>Unlocked</span></div><div class="pts"><b>${S.pts}</b><span>Points</span></div></div></div>
+    <div style="padding:0 16px">
+      ${nb.length ? `<div class="section"><div class="section-h"><h2>Next in Bloom</h2></div><div class="stack">${nb.map((n) => `<div class="card nib">${'<span class="art">' + art(n.id) + '</span>'}<div class="grow"><b>${GI[n.id].name}</b>${SHOP[n.id].sp ? ' <span class="status st-plan" style="font-size:10.5px">SPECIAL</span>' : ''}<p class="xs muted">${n.seq ? `Unlocks at ${n.b} contribution${n.b > 1 ? 's' : ''}` : esc(SHOP[n.id].sp.label)}</p><div class="bar"><i style="width:${Math.min(100, n.r * 100)}%"></i></div></div><b style="font-size:15px">${n.a}/${n.b}</b></div>`).join('')}</div></div>` : ''}
+      <div class="section"><div class="section-h"><h2>Garden Shop</h2><span class="small muted">You have ${seed(S.pts)}</span></div>
+        <div class="chips">${[['all', 'All'], ...Object.entries(KIND)].map(([k, l]) => `<button class="chip2" data-kind="${k}" aria-pressed="${shopKind === k}">${l}</button>`).join('')}</div>
+        <div class="shop" style="margin-top:12px">${list.map(shopCard).join('')}</div></div>
+      <div class="card section" style="background:linear-gradient(135deg,#FFF7E3,var(--surface) 70%)"><div class="row">${SEED.replace('<svg', '<svg style="width:40px;height:40px"')}<div class="grow"><b class="small">Every verified seva = 3 points</b><p class="xs muted">Spend them now on small things, or save up for a pet or a banyan tree. Points never expire.</p></div></div></div>
+      <div class="demo"><p class="h">Prototype</p><button class="btn soft block" data-act="sim-seva">Pretend I finished a seva (+3 points)</button></div>
+      ${cartQty() ? '<div style="height:70px"></div>' : ''}
+    </div>`;
 }
-function itemSheet(cell) {
-  const id = S.pg.items[cell]; if (!id) return; const d = GI[id];
-  openSheet(`${sheetHead(d.name, 'My garden')}<div class="item-hero"><svg viewBox="-36 -62 72 70">${d.d()}</svg></div><p class="small" style="margin-top:14px">${esc(d.desc)}</p><div class="card" style="margin-top:12px"><p class="xs muted">How you unlocked it</p><b class="small">${unlockText(d.u)}</b></div>
-    <div class="btn-row" style="margin-top:16px"><button class="btn ghost" data-act="garden-edit-from-sheet">${I.edit} Move or change</button>${S.gview === '3d' ? '' : `<button class="btn" data-act="see3d" data-cell="${cell}">${I.cube} See in 3D</button>`}</div>`);
+function cartBar() { return `<div class="cartbar"><button data-act="cart-open"><span class="cnt">${cartQty()}</span><div><b>View cart · ${cartTotal()} points</b><br><span>You have ${S.pts} points${cartTotal() > S.pts ? ` · need ${cartTotal() - S.pts} more` : ''}</span></div><span class="go">Review${I.chev}</span></button></div>`; }
+function cartSheet() {
+  const items = cartItems(); if (!items.length) { closeSheet(); rerender(); return; }
+  const tot = cartTotal(); const left = S.pts - tot;
+  openSheet(`${sheetHead('Your cart', `${cartQty()} item${cartQty() > 1 ? 's' : ''} for your garden`)}
+    <div class="card">${items.map((id) => `<div class="cline"><span class="art">${art(id)}</span><div class="grow"><b class="small">${GI[id].name}</b><p class="xs muted">${seed(SHOP[id].cost)} each</p></div><div class="qty"><button data-act="cart-dec" data-id="${id}" data-sheet="1" aria-label="Remove one">−</button><span>${S.cart[id]}</span><button data-act="cart-inc" data-id="${id}" data-sheet="1" aria-label="Add one">+</button></div></div>`).join('')}</div>
+    <div class="card" style="margin-top:12px"><div class="sumrow"><span class="muted">Your points</span><b>${S.pts}</b></div><div class="sumrow"><span class="muted">Cart total</span><b>− ${tot}</b></div><div class="sumrow tot"><span>Remaining after planting</span><span style="color:${left < 0 ? 'var(--live)' : 'var(--done)'}">${left}</span></div></div>
+    ${left < 0 ? `<div class="banner" style="margin-top:12px">${I.info}<span>You need ${-left} more point${-left > 1 ? 's' : ''}. Remove something, or join a seva to earn more.</span></div>` : ''}
+    <button class="btn block" style="margin-top:14px" data-act="cart-confirm" ${left < 0 ? 'disabled' : ''}>${I.leaf}Plant all · ${tot} points</button>
+    <button class="btn ghost block" style="margin-top:8px" data-act="cart-clear">Empty cart</button>`);
 }
-let g3 = null, g3focus = null;
+function confirmSheet() {
+  const items = cartItems(); const tot = cartTotal();
+  openSheet(`<div style="text-align:center;padding:4px 4px 0"><div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin:6px 0 10px">${items.slice(0, 5).map((id) => art(id, 'style="width:56px;height:56px"')).join('')}</div>
+    <h2 style="font-size:22px;letter-spacing:-.02em">Plant all of this?</h2><p class="small muted" style="margin-top:6px">${items.map((id) => `${S.cart[id]} × ${GI[id].name}`).join(', ')}</p>
+    <div class="card" style="margin-top:14px;text-align:left"><div class="sumrow"><span class="muted">Points used</span><b>${tot}</b></div><div class="sumrow tot"><span>Points left</span><span style="color:var(--done)">${S.pts - tot}</span></div></div>
+    <div class="btn-row" style="margin-top:16px"><button class="btn ghost" data-act="cart-open">Go back</button><button class="btn" data-act="cart-buy">${I.check}Plant now</button></div></div>`);
+}
+function itemSheet(id) {
+  const x = SHOP[id]; const ok = isUnlocked(id);
+  openSheet(`${sheetHead(GI[id].name, KIND[x.cat].replace(/s$/, '') + (x.sp ? ' · Special' : ''))}<div style="height:150px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(#EAF5E4,#F8F3E7)">${art(id, 'style="width:140px;height:140px"')}</div>
+    <p class="small" style="margin-top:14px">${esc(GI[id].desc)}</p>
+    <div class="card kv" style="margin-top:12px"><div class="r">${I.leaf}<div><b>In your garden</b><span>${owned(id)} planted · room for ${x.max}</span></div></div><div class="r">${I.lock}<div><b>${ok ? 'Unlocked' : 'How to unlock'}</b><span>${ok ? (x.sp ? x.sp.label + ' ✓' : `Unlocked at ${x.ord} contributions`) : esc(lockText(id))}</span></div></div><div class="r">${SEED.replace('<svg', '<svg style="width:20px;height:20px"')}<div><b>Cost</b><span>${x.cost} point${x.cost > 1 ? 's' : ''} each</span></div></div></div>
+    ${ok && owned(id) + inCart(id) < x.max ? `<button class="btn block" style="margin-top:14px" data-act="cart-inc" data-id="${id}" data-close="1">${I.cart}Add another to cart</button>` : ''}`);
+}
+let g3 = null;
 function loadScript(src) { return new Promise((res, rej) => { if ([...document.scripts].some((s) => s.src.endsWith(src))) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+const MAP3D = { tulips: 'marigold', cherry: 'mango', rabbit: 'cat' };
+function layout3D() {
+  const tiles = { '2,0': 'path', '2,1': 'path', '2,2': 'path', '2,3': 'path', '2,4': 'path', '2,5': 'path', '3,3': 'path', '4,3': 'path', '5,3': 'path' };
+  const free = []; for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) if (!tiles[`${x},${y}`]) free.push(`${x},${y}`);
+  const items = {}; const order = free.map((c, i) => free[(i * 7) % free.length]).filter((c, i, a) => a.indexOf(c) === i).concat(free); const seen = {}; let k = 0;
+  SHOP_ORDER.forEach((id) => { for (let n = 0; n < Math.min(owned(id), 2); n++) { const m = MAP3D[id] || id; if ((m === 'cat' || m === 'dog') && seen[m]) continue; seen[m] = 1; while (k < order.length && items[order[k]]) k++; if (k >= order.length) return; items[order[k]] = m; k++; } });
+  return { tiles, items };
+}
 async function mount3D() {
   const host = $('#g3d'); if (!host) return;
   try { if (!window.THREE) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'); if (!window.Garden3D) await loadScript('garden3d.js'); }
   catch (e) { const l = host.querySelector('.loading'); if (l) l.textContent = '3D needs an internet connection the first time.'; return; }
   if (!document.body.contains(host)) return;
-  host.querySelector('.loading')?.remove();
-  g3 = window.Garden3D.mount(host, { size: GW, tiles: S.pg.tiles, items: S.pg.items, dark: isDark(), focus: g3focus, onTap: (c) => itemSheet(c) });
-  g3focus = null; setTimeout(() => { const h = $('#g3hint'); if (h) h.style.opacity = '0'; }, 4000);
+  host.querySelector('.loading')?.remove(); const L = layout3D();
+  g3 = window.Garden3D.mount(host, { size: 6, tiles: L.tiles, items: L.items, dark: isDark(), onTap: (c) => { const m = L.items[c]; const id = owned(m) ? m : Object.keys(MAP3D).find((k) => MAP3D[k] === m && owned(k)) || m; if (SHOP[id]) itemSheet(id); } });
 }
 function unmount3D() { if (g3) { g3.destroy(); g3 = null; } }
-function remount3D() { if (tab === 'garden' && S.gview === '3d' && !stack.length) { unmount3D(); const host = $('#g3d'); if (host) mount3D(); } }
 
-// ----- Community -----
-function Community() {
-  const types = [['all', 'All', null], ['seva', 'Seva stories', 'var(--c-cleanup)'], ['event', 'Events', 'var(--c-event)'], ['update', 'Alerts', 'var(--action-c)']];
-  const posts = S.posts.filter((p) => feedScope === 'local' ? p.scope === 'local' : true).filter((p) => feedType === 'all' || p.type === feedType || (feedType === 'seva' && p.type === 'milestone')).sort((a, b) => (b.type === 'update') - (a.type === 'update') || T(b.date) - T(a.date));
-  return `<div class="hdr">${brand()}${headerBtns()}</div>
-    <h1 class="hero-title" style="font-size:28px">Community</h1><p class="hero-sub">Official stories from seva and events</p>
-    <div class="seg" style="margin-top:16px" role="group"><button data-scope="local" aria-pressed="${feedScope === 'local'}">Delhi</button><button data-scope="world" aria-pressed="${feedScope === 'world'}">${I.globe} Worldwide</button></div>
-    <button class="card tap" style="margin-top:14px;padding:0;overflow:hidden" data-open="ggarden"><div class="garden-wrap" style="border-radius:0">${groupGardenSVG(S.ggarden)}</div><div class="row" style="padding:12px 16px"><div class="grow"><b class="small">Delhi community garden</b><p class="xs muted">Grows with every verified seva by the group · level ${S.ggarden} of 8</p></div>${chev}</div></button>
-    <div class="fchips" style="margin-top:14px">${types.map(([v, l, c]) => `<button class="fchip" data-ft="${v}" aria-pressed="${feedType === v}">${c ? `<i class="dotc" style="background:${c}"></i>` : ''}${l}</button>`).join('')}</div>
-    <div class="stack" style="margin-top:10px">${posts.map(postCard).join('')}</div>
-    <p class="xs faint" style="text-align:center;margin-top:16px">No comments, no member posts, no rankings.</p>`;
-}
-const PT = { seva: ['Seva story', 'done'], event: ['Event', 'event'], update: ['Important alert', 'action'], milestone: ['Garden milestone', 'p'] };
-function postCard(p) {
-  const [lbl, cls] = PT[p.type]; const c = p.type === 'update' ? 'langar' : p.cat;
-  return `<article class="card post cc-${c}" ${p.type === 'update' ? 'style="--cc:var(--action-c);background:linear-gradient(180deg,var(--action-bg),var(--surface) 60%)"' : ''}><div class="head">${cico(p.cat)}<div class="grow"><span class="chip ${cls}">${lbl}</span><p class="xs muted" style="margin-top:4px">${esc(p.city)} · ${relDay(p.date)}</p></div></div>
-    <div class="body"><h3>${esc(p.title)}</h3><p class="small muted" style="margin-top:4px">${esc(p.text)}</p>${p.link ? `<button class="link" data-open="${p.link}">${p.type === 'event' ? 'View event' : p.link === 'ggarden' ? 'Open garden' : 'View details'} ${I.chev}</button>` : ''}${p.type !== 'update' ? reacts(p) : ''}</div></article>`;
-}
-function reacts(p) { const mine = S.mine[p.id]; return `<div class="reacts">${[['g', '🙏', 'Gratitude'], ['a', '💚', 'Appreciate'], ['c', '👏', 'Applause']].map(([k, e, l]) => { const n = p.r[k] + (mine === k ? 1 : 0); return `<button class="react" data-react="${p.id}:${k}" aria-pressed="${mine === k}" aria-label="${l}, ${n}"><span aria-hidden="true">${e}</span>${n}</button>`; }).join('')}</div>`; }
-function GroupGarden() {
-  const L = ['First flowers', 'A garden path', 'Rose beds', 'The mango tree', 'Lanterns lit', 'The banyan', 'Lotus pond and bench', 'Peacocks arrive'];
-  return `${backHead('Delhi garden')}<div class="garden-wrap">${groupGardenSVG(S.ggarden)}</div><p class="small muted" style="margin-top:12px">This garden belongs to everyone in Delhi Central. It grows when the group completes verified seva together. It never wilts, and nobody is ranked.</p>
-    <div class="section"><div class="section-h"><h2>Milestones</h2><span class="xs muted">Level ${S.ggarden} of 8</span></div><div class="card list">${L.map((t, i) => `<div class="lrow">${i < S.ggarden ? `<span class="chip done">${I.check}Reached</span>` : `<span class="chip">Level ${i + 1}</span>`}<span class="small grow">${t}</span></div>`).join('')}</div></div>`;
-}
-
-// ----- Profile -----
+// =================== PROFILE ===================
 function Profile() {
-  const v = verified(); const hrs = v.reduce((n, h) => n + h.hrs, 0); const cats = new Set(v.map((h) => h.cat));
-  return `<div class="hdr">${brand()}<div class="hbtns"><button class="iconbtn" data-act="inbox" aria-label="Inbox">${I.bell}${unread() ? `<span class="nb">${unread()}</span>` : ''}</button></div></div>
-    <div class="row" style="margin:22px 0 18px"><span class="avatar" style="width:64px;height:64px;font-size:22px">${initials(ME())}</span><div><h1 style="font-size:25px;letter-spacing:-.02em">${esc(ME())}</h1><p class="small muted">Delhi Central · ${{ member: 'Member', lead: 'Team Lead', admin: 'Main Admin' }[S.role]}</p></div></div>
-    <div class="card"><div class="row" style="margin-bottom:14px"><b class="grow">My journey</b><span class="chip">${I.lock}Private</span></div>
-      <div class="stats3"><div><b class="grad">${v.length}</b><span>Verified seva</span></div><div><b class="grad">${hrs % 1 ? hrs.toFixed(1) : hrs}</b><span>Hours given</span></div><div><b class="grad">${cats.size}</b><span>Kinds of seva</span></div></div>
-      <div class="legend" style="margin-top:14px">${['langar', 'cleanup', 'tree', 'education', 'blanket'].map((c) => `<span class="lchip cc-${c}" style="${cats.has(c) ? '' : 'opacity:.4'}">${cico(c, true)}<span class="t">${CAT[c].label}</span></span>`).join('')}</div></div>
-    <div class="card list" style="margin-top:12px">
-      <button class="lrow" data-act="goto-mine">${cico('langar', true)}<span class="grow"><b class="small">My Seva</b><p class="xs muted">Live, upcoming, replies, done</p></span>${chev}</button>
-      <button class="lrow" data-tab="garden">${cico('tree', true)}<span class="grow"><b class="small">My garden</b><p class="xs muted">${ITEM_ORDER.filter(isUnlocked).length} of ${ITEM_ORDER.length} unlocked</p></span>${chev}</button>
-      <button class="lrow" data-act="share">${cico('event', true)}<span class="grow"><b class="small">Share my seva</b><p class="xs muted">Image card for WhatsApp status or stories</p></span>${chev}</button></div>
-    <div class="section"><div class="section-h"><h2>Appearance</h2></div><div class="card">
-      <div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
-      </div></div></div>
-    <div class="section"><div class="section-h"><h2>Notifications</h2></div><div class="card list">
-      <div class="lrow"><div class="grow"><b class="small">Seva reminders</b><p class="xs muted">Evening before and 1 hour before, for points you picked</p></div><span class="chip done">${I.check}On</span></div>
-      <div class="lrow"><div class="grow"><b class="small">Live updates</b><p class="xs muted">When a lead adds or changes a point during seva</p></div><span class="chip done">${I.check}On</span></div>
-      <div class="lrow"><div class="grow"><b class="small">Push on this phone</b><p class="xs muted">${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'Available in the installed app' : 'Add to Home Screen first (needed on iPhone)'}</p></div><button class="btn sm soft" data-act="push">Test</button></div></div></div>
-    <div class="section"><div class="section-h"><h2>View the app as</h2><span class="chip">Prototype</span></div><div class="card">
-      <div class="roles3">${[['member', 'Member', I.user], ['lead', 'Team Lead', I.flag], ['admin', 'Main Admin', I.shield]].map(([k, l, ic]) => `<button data-role="${k}" aria-pressed="${S.role === k}">${ic}${l}</button>`).join('')}</div>
-      <p class="xs muted" style="margin-top:10px">Team Lead can create seva, add or edit points (even while live) and see who is doing what. Main Admin sees every group.</p>
-      <p class="small" style="font-weight:650;margin:16px 0 8px">Member state</p>
-      <div class="seg">${[['new', 'New'], ['active', 'Active'], ['less', 'Less active']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div>
-      <button class="btn sm ghost block" style="margin-top:12px" data-act="reset">Reset prototype</button></div></div>
-    <p class="xs faint" style="text-align:center;margin-top:20px">Namdhari Seva &amp; Community · prototype v5</p>`;
+  const up = S.seva.filter((s) => isFuture(s) && ['going', 'maybe'].includes(st(s))).length + S.events.filter((e) => isFuture(e) && S.rsvp[e.id] === 'going').length;
+  const menu = [
+    ['journey', I.journey, 'My Seva Journey', `${nContrib()} contributions`, 'open'],
+    ['garden', I.garden, 'My Garden', `${ownedTotal()} planted`, 'tab'],
+    ['commit', I.cal, 'My Commitments', `${up} upcoming`, 'act'],
+    ['team', I.team, 'My Team', 'Delhi Central · 248', 'open'],
+    ['inbox', I.bell, 'Notifications', unread() ? `${unread()} new` : '', 'open'],
+    ['settings', I.settings, 'App Settings', '', 'act'],
+  ];
+  return `<div class="phead" style="margin-top:calc(-8px - var(--safe-t))">${gardenScene().replace('class="scene"', 'class="scene" style="height:190px;pointer-events:none"')}</div>
+    <div class="pcardp" style="margin:-44px -16px 0;padding-left:16px;padding-right:16px"><div class="bigav">${initials(ME())}</div>
+      <h1>${esc(ME())}</h1><p class="sub">${I.pin}Member · Delhi Central</p>
+      <div class="pstats"><div class="pstat">${I.handshake.replace('<svg', '<svg style="color:var(--done)"')}<b>${nContrib()}</b><span>Contributions</span></div><div class="pstat">${I.leaf.replace('<svg', '<svg style="color:var(--c-tree)"')}<b>${unlockedCount()}</b><span>Unlocked</span></div><div class="pstat">${SEED}<b>${S.pts}</b><span>Points</span></div></div></div>
+    <div class="menu">${menu.map(([k, ic, l, ct, how]) => `<button class="lrow" ${how === 'tab' ? `data-tab="${k}"` : how === 'open' ? `data-open="${k}"` : `data-act="${k}"`}>${ic.replace('<svg', '<svg class="mi"')}<b class="grow">${l}</b><span class="ct">${ct}</span>${chev}</button>`).join('')}</div>
+    <p class="xs faint" style="text-align:center;margin-top:18px">Namdhari Seva · member prototype v6</p>`;
+}
+function TeamScreen() {
+  const members = NAMES.filter((n) => !LEADS.includes(n)); const q = teamQ.trim().toLowerCase();
+  const all = [{ n: ME(), me: true }, ...members.map((n) => ({ n }))].filter((m) => !q || m.n.toLowerCase().includes(q));
+  return `${dtop('My Team')}
+    <div class="dhero" style="--cc:#4C3FA8;background:linear-gradient(140deg,#6A5AE0,#3F2F99)"><svg class="bgart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice"><circle cx="340" cy="30" r="100" fill="#fff" opacity=".15"/></svg><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">${I.pin}Delhi</span><h1>Delhi Central</h1><p style="opacity:.9;margin-top:6px" class="small">Karol Bagh · since 1998</p>
+      <div class="row" style="margin-top:14px">${faceRow(NAMES.slice(0, 6), 248, 6)}<span class="small">248 members</span></div></div>
+    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--p)"><b>248</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>112</b><span>Active this month</span></div><div class="tstat" style="--tc:var(--c-langar)"><b>14</b><span>Seva this month</span></div></div>
+    <div class="section"><div class="section-h"><h2>Team leads</h2><span class="xs muted">${LEADS.length}</span></div><div class="card list">${LEADS.map((n, i) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span><p class="xs muted">${['Langar & kitchen', 'Clean-ups', 'Langar & kitchen', 'Tree planting', 'Education', 'Relief'][i]}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div></div>
+    <div class="section"><div class="section-h"><h2>Members</h2><span class="xs muted">248</span></div>
+      <label class="search">${I.search}<input id="team-q" placeholder="Search members" value="${esc(teamQ)}" autocomplete="off"></label>
+      <div class="card list" style="margin-top:10px" id="team-list">${all.map((m) => `<div class="lrow"><span class="av2" style="background:${m.me ? 'var(--p)' : avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}${m.me ? ' (you)' : ''}</b><p class="xs muted">${m.me ? `${nContrib()} contributions` : `${3 + (m.n.length % 9)} contributions`}</p></div></div>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
+      <p class="xs faint" style="text-align:center;margin-top:10px">Showing ${all.length} of 248 · the full list loads in the real app</p></div>`;
+}
+function JourneyScreen() {
+  const h = contributions(); const by = {}; h.forEach((x) => { by[x.cat] = (by[x.cat] || 0) + 1; });
+  return `${dtop('My Seva Journey')}<div class="card" style="text-align:center;background:linear-gradient(135deg,#EAF7E6,var(--surface) 75%)"><p class="small muted">Contributions so far</p><p style="font-size:44px;font-weight:800;letter-spacing:-.03em">${h.length}</p><div class="chips" style="justify-content:center;flex-wrap:wrap">${Object.entries(by).map(([c, n]) => `<span class="chip" style="background:color-mix(in srgb,var(--c-${c}) 14%,transparent);color:var(--c-${c})">${CAT[c].label} · ${n}</span>`).join('')}</div></div>
+    <div class="section">${h.length ? h.map(doneCard).join('') : emptyState('Your journey starts with one seva', 'Join a seva and it will appear here.', '<button class="btn soft sm" style="margin-top:12px" data-tab="seva">Find seva</button>')}</div>`;
+}
+function Inbox() {
+  const ic = { live: I.bell, action: I.clock, p: I.sparkle, done: I.checkc };
+  const col = { live: 'var(--live)', action: 'var(--action)', p: 'var(--p)', done: 'var(--done)' };
+  return `${dtop('Notifications', S.notifs.some((n) => !n.read) ? `<button class="link" data-act="read-all">Mark all read</button>` : '')}
+    ${S.notifs.length ? `<div class="card list">${S.notifs.map((n) => `<button class="lrow" data-act="notif" data-id="${n.id}"><span class="av2" style="background:color-mix(in srgb,${col[n.level]} 14%,transparent);color:${col[n.level]}">${ic[n.level].replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small" style="font-weight:${n.read ? 500 : 700}">${esc(n.t)}</b><p class="xs muted">${ago(n.d)} ago</p></div>${n.read ? '' : '<span style="width:9px;height:9px;border-radius:50%;background:var(--p)"></span>'}</button>`).join('')}</div>` : emptyState('All quiet', 'Seva alerts and reminders appear here.')}
+    <button class="btn ghost block" style="margin-top:14px" data-act="push">${I.bell}Test a phone notification</button>`;
+}
+function settingsSheet() {
+  openSheet(`${sheetHead('App Settings')}
+    <label class="f">Appearance</label><div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
+    <label class="f">Your name</label><input class="in" id="set-name" value="${esc(S.name)}" placeholder="Your name">
+    <div class="demo"><p class="h">Prototype: member state</p><div class="seg">${[['new', 'New'], ['active', 'Active'], ['less', 'Less active']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
+    <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
+    <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
+}
+function howSheet() {
+  openSheet(`${sheetHead('How your garden grows')}<div class="card kv"><div class="r">${I.handshake}<div><b>Do seva</b><span>Each seva your team lead verifies is one contribution.</span></div></div><div class="r">${I.lock}<div><b>Unlock, one at a time</b><span>Every contribution unlocks the next item. Special trees and pets need special seva, like 2 Langar seva for the cherry blossom.</span></div></div><div class="r">${SEED.replace('<svg', '<svg style="width:20px;height:20px"')}<div><b>Earn 3 points per seva</b><span>Spend on cheap flowers many times, or save for a 4-point pet. Points never expire.</span></div></div><div class="r">${I.cart}<div><b>Add to cart, then plant</b><span>Review your cart, confirm, and watch it appear in your garden.</span></div></div></div><p class="xs muted" style="margin-top:12px;text-align:center">No rankings. Your garden is yours.</p>`);
 }
 
-// ----- Inbox -----
-const NL = { live: ['live', I.bell], action: ['action', I.alert], p: ['p', I.sparkle], done: ['done', I.checkc] };
-function Inbox() {
-  const list = S.notifs.slice(); setTimeout(() => { S.notifs.forEach((n) => n.read = true); save(); }, 0);
-  return `${backHead('Inbox')}<h1 class="hero-title" style="font-size:28px;margin-top:4px">Inbox</h1><p class="hero-sub">Reminders, live updates and replies — even without push.</p>
-    <div class="card list" style="margin-top:16px">${list.map((n) => { const [c, ic] = NL[n.level] || NL.p; return `<button class="lrow" data-open="${n.ref}"><span class="chip ${c}" style="width:40px;height:40px;padding:0;justify-content:center;border-radius:50%">${ic.replace('<svg', '<svg style="width:19px;height:19px"')}</span><span class="grow"><b class="small" style="display:block">${esc(n.t)}</b><span class="xs muted">${relDay(n.d)} · ${fmtTime(n.d)}</span></span>${n.read ? '' : '<span class="newtag">NEW</span>'}</button>`; }).join('')}</div>`;
+// ----- Onboarding -----
+function renderOnboarding() {
+  $('#app').innerHTML = `<div class="onb"><div>${LOGO.replace('class="logo"', 'class="logo" style="width:56px;height:56px"')}
+      <h1 style="margin-top:22px">Seva together.<br><span style="color:var(--p)">Grow together.</span></h1>
+      <p class="muted" style="margin-top:12px">See what the sangat is doing, pick the seva tasks you'll do, and grow your own garden with every contribution.</p>
+      <div style="margin:22px -22px;overflow:hidden">${gardenScene().replace('class="scene"', 'class="scene" style="display:block;width:100%;height:auto"')}</div>
+      <label class="f" for="onb-name">Your name</label><input class="in" id="onb-name" placeholder="e.g. Harpreet Kaur" autocomplete="name">
+      <p class="xs muted" style="margin-top:8px">You've been invited to <b style="color:var(--ink)">Delhi Central</b>.</p></div>
+    <button class="btn block" style="margin-top:20px" data-act="onb-finish">Join Delhi Central</button></div>`;
 }
 
 // ---------- Sheets ----------
 function openSheet(html) { $('#sheet-root').innerHTML = `<div class="scrim" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${html}</div>`; document.body.style.overflow = 'hidden'; }
 function closeSheet() { $('#sheet-root').innerHTML = ''; document.body.style.overflow = ''; }
-const sheetHead = (t, sub) => `<div class="sheet-h"><div>${sub ? `<p class="xs muted">${sub}</p>` : ''}<h2>${t}</h2></div><button class="iconbtn" data-act="close-sheet" aria-label="Close">${I.close}</button></div>`;
-function actionSheet(id) {
-  const a = S.actions.find((x) => x.id === id); if (!a || a.resolved) return; const s = sv(a.ref);
-  openSheet(`${sheetHead(esc(a.title), a.kind === 'invite' ? 'Invitation' : 'Reply needed')}${sevaRow(s)}
-    <p class="small" style="margin:16px 0 10px;font-weight:650">${a.kind === 'invite' ? 'Will you join?' : 'Are you still coming?'}</p>${respButtons('action', id, a.kind === 'invite' ? null : st(s))}
-    <p class="xs muted" style="margin-top:12px">Please reply by ${relDay(a.due).toLowerCase()}, ${fmtTime(a.due)}. ${esc(first(s.lead))} sees your answer straight away.</p>`);
-}
-const TEMPLATES = { cleanup: [['Lay carpets in the main hall', 4], ['Sweep and mop the floor', 3], ['Clean windows and fans', 2], ['Arrange the shoe racks', 2]], langar: [['Cook dal and sabzi', 3], ['Make rotis', 4], ['Serve langar', 6], ['Wash utensils', 3]], tree: [['Dig pits', 6], ['Plant saplings', 6], ['Carry water', 4]], education: [['Read with a small group', 4], ['Set up the room', 1]], blanket: [['Load blankets', 4], ['Hand out blankets', 8], ['Drive a van', 3]] };
-let draft = null;
-function createSheet() {
-  if (!draft) draft = { cat: 'cleanup', title: 'Gurdwara Hall Cleaning', points: TEMPLATES.cleanup.map(([t, n]) => ({ t, n })) };
-  const local = new Date(now() + 3 * DAY - new Date().getTimezoneOffset() * MIN).toISOString().slice(0, 13) + ':00';
-  openSheet(`${sheetHead('Create a seva', 'Team Lead')}
-    <label class="f">Type</label><div class="fchips">${Object.keys(TEMPLATES).map((c) => `<button class="fchip" data-dcat="${c}" aria-pressed="${draft.cat === c}"><i class="dotc" style="background:var(--c-${c})"></i>${CAT[c].label}</button>`).join('')}</div>
-    <label class="f" for="d-title">Title</label><input class="in" id="d-title" value="${esc(draft.title)}">
-    <div class="btn-row"><div style="flex:1"><label class="f" for="d-date">When</label><input class="in" id="d-date" type="datetime-local" value="${local}"></div></div>
-    <label class="f" for="d-place">Where</label><input class="in" id="d-place" value="Namdhari Gurdwara, Karol Bagh">
-    <label class="f">Points — the work to be done</label>
-    <p class="xs muted" style="margin-top:-2px">Members pick the points they'll do. Set how many people each needs.</p>
-    <div id="d-points">${draft.points.map((p, i) => `<div class="ptedit"><input class="in" data-dpt="${i}" value="${esc(p.t)}" aria-label="Point ${i + 1}"><div class="stepnum"><button data-act="dneed" data-i="${i}" data-d="-1" aria-label="Fewer people">−</button><span>${p.n}</span><button data-act="dneed" data-i="${i}" data-d="1" aria-label="More people">+</button></div><button class="iconbtn" style="width:40px;height:40px;box-shadow:none" data-act="ddel" data-i="${i}" aria-label="Remove point">${I.trash.replace('<svg', '<svg style="width:17px;height:17px"')}</button></div>`).join('')}</div>
-    <button class="btn sm soft" style="margin-top:10px" data-act="dadd">${I.plus} Add point</button>
-    <div style="margin-top:20px"><button class="btn block" data-act="publish">Publish to Delhi Central</button><p class="xs muted" style="text-align:center;margin-top:8px">Members see it marked NEW and get a notification.</p></div>`);
-}
-function syncDraft() { $$('[data-dpt]').forEach((el) => { draft.points[+el.dataset.dpt].t = el.value; }); const t = $('#d-title'); if (t) draft.title = t.value; }
-function pointSheet(sid, pid) {
-  const s = sv(sid); const p = pid ? s.points.find((x) => x.id === pid) : { text: '', need: 2 };
-  openSheet(`${sheetHead(pid ? 'Edit point' : 'Add a point', esc(s.title))}
-    <label class="f" for="pt-text">What needs doing?</label><input class="in" id="pt-text" value="${esc(p.text)}" placeholder="e.g. Clean the stage area">
-    <label class="f">People needed</label><div class="stepnum" style="width:max-content"><button data-act="ptneed" data-d="-1">−</button><span id="pt-need">${p.need}</span><button data-act="ptneed" data-d="1">+</button></div>
-    ${isLive(s) ? `<div class="banner" style="margin-top:16px">${I.bell}<span>This seva is live. Everyone at the seva gets an alert about this change.</span></div>` : ''}
-    <button class="btn block" style="margin-top:16px" data-act="ptsave" data-id="${sid}" data-p="${pid || ''}">${pid ? 'Save changes' : 'Add point'}</button>`);
-  setTimeout(() => $('#pt-text')?.focus(), 250);
-}
-function updateSheet(sid) {
-  openSheet(`${sheetHead('Post an update', esc(sv(sid).title))}<label class="f" for="up-text">Message</label><input class="in" id="up-text" placeholder="e.g. Tea break at 11:00 in the courtyard"><button class="btn block" style="margin-top:16px" data-act="updsave" data-id="${sid}">Send to everyone at this seva</button>`);
-}
 function install() {
   if (window.__dp) { window.__dp.prompt(); return; }
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const st2 = ios ? ['Open this page in <b>Safari</b>', 'Tap <b>Share</b> in the toolbar', 'Tap <b>Add to Home Screen</b>, then <b>Add</b>'] : ['Open in <b>Chrome</b>', 'Tap the <b>⋮</b> menu', 'Tap <b>Install app</b> or <b>Add to Home screen</b>'];
-  openSheet(`${sheetHead('Add to Home Screen')}<div class="card list">${st2.map((t, i) => `<div class="lrow"><span class="avatar" style="width:32px;height:32px">${i + 1}</span><span class="small">${t}</span></div>`).join('')}</div><button class="btn ghost block" style="margin-top:12px" data-act="noinstall">Not now</button>`);
-}
-
-// ---------- Share cards ----------
-let shareKind = 'month', shareH = null, shareIdx = 0;
-const STYLES = [['dark', 'Dark'], ['light', 'Light'], ['clear', 'Transparent']];
-function cardSVG(style) {
-  const v = verified(); const m = v.filter((h) => { const d = new Date(h.date); const n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); });
-  const one = shareKind === 'seva' ? ((shareH && S.history.find((x) => x.id === shareH && x.state === 'verified')) || v[0]) : null;
-  const W = 600, H = 750; const dark = style !== 'light';
-  const bg = style === 'dark' ? '#0D0E14' : style === 'light' ? '#F5F5FB' : null;
-  const panel = style === 'clear' ? 'rgba(13,14,20,.82)' : dark ? '#161824' : '#FFFFFF'; const ink = dark ? '#F3F4F8' : '#12121A', mute = dark ? '#A3A7BC' : '#5F6274';
-  const F = 'font-family="Inter,-apple-system,Segoe UI,Roboto,sans-serif"';
-  const COL = { langar: '#F97316', cleanup: '#0EA5A0', tree: '#22A34A', education: '#3B82F6', blanket: '#EC4899', event: '#8B5CF6' };
-  let body;
-  if (one) {
-    const tt = one.title.length > 24 ? one.title.slice(0, 23) + '…' : one.title;
-    body = `<rect x="60" y="140" width="480" height="450" rx="36" fill="${panel}"/><circle cx="300" cy="230" r="50" fill="${COL[one.cat]}" opacity=".18"/><circle cx="300" cy="230" r="22" fill="${COL[one.cat]}"/>
-      <text x="300" y="345" text-anchor="middle" font-size="34" font-weight="800" fill="${ink}" ${F}>${esc(tt)}</text><text x="300" y="386" text-anchor="middle" font-size="20" fill="${mute}" ${F}>${esc(fmtLong(one.date))} • Delhi</text>
-      <rect x="205" y="414" width="190" height="46" rx="23" fill="${dark ? '#12301D' : '#DCFCE7'}"/><text x="300" y="444" text-anchor="middle" font-size="19" font-weight="700" fill="${dark ? '#4ADE80' : '#15803D'}" ${F}>✓ Verified seva</text>
-      <text x="300" y="520" text-anchor="middle" font-size="20" fill="${mute}" ${F}>${esc(one.role)} • ${one.hrs} hours</text>`;
-  } else {
-    const hrs = m.reduce((s, h) => s + h.hrs, 0); const cats = [...new Set(v.map((h) => h.cat))].slice(0, 5);
-    body = `<rect x="60" y="140" width="480" height="450" rx="36" fill="${panel}"/><text x="300" y="205" text-anchor="middle" font-size="24" font-weight="800" fill="${ink}" ${F}>My Seva • ${esc(new Date().toLocaleDateString(undefined, { month: 'long' }))}</text><text x="300" y="240" text-anchor="middle" font-size="18" fill="${mute}" ${F}>Delhi Central</text>
-      <defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#5B5BF0"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
-      <text x="180" y="355" text-anchor="middle" font-size="96" font-weight="800" fill="url(#gg)" ${F}>${m.length}</text><text x="180" y="395" text-anchor="middle" font-size="19" fill="${mute}" ${F}>seva this month</text>
-      <text x="420" y="355" text-anchor="middle" font-size="96" font-weight="800" fill="url(#gg)" ${F}>${hrs % 1 ? hrs.toFixed(1) : hrs}</text><text x="420" y="395" text-anchor="middle" font-size="19" fill="${mute}" ${F}>hours given</text>
-      ${cats.map((c, i) => `<circle cx="${300 - (cats.length - 1) * 28 + i * 56}" cy="465" r="18" fill="${COL[c]}"/>`).join('')}
-      <text x="300" y="545" text-anchor="middle" font-size="18" fill="${mute}" font-weight="600" ${F}>${v.length} verified seva in total</text>`;
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${bg ? `<rect width="${W}" height="${H}" fill="${bg}"/>` : ''}${body}<g transform="translate(300 650)"><rect x="-120" y="-26" width="240" height="52" rx="26" fill="${panel}"/><text x="0" y="7" text-anchor="middle" font-size="19" font-weight="800" letter-spacing="3" fill="${ink}" ${F}>NAMDHARI SEVA</text></g></svg>`;
-}
-function shareSheet(hid) {
-  if (hid) { shareKind = 'seva'; shareH = hid; } if (!verified().length) shareKind = 'month';
-  openSheet(`${sheetHead('Share', 'For WhatsApp status or stories')}<div class="share-tabs"><button data-sk="month" aria-pressed="${shareKind === 'month'}">This month</button>${verified().length ? `<button data-sk="seva" aria-pressed="${shareKind === 'seva'}">${shareH ? 'This seva' : 'Latest seva'}</button>` : ''}</div>
-    <div class="carousel" id="car">${STYLES.map(([k, l]) => `<div class="slide ${k === 'clear' ? 'checker' : ''}"><span class="stl">${l}</span>${cardSVG(k)}</div>`).join('')}</div><div class="dots">${STYLES.map((_, i) => `<i class="${i === shareIdx ? 'on' : ''}"></i>`).join('')}</div>
-    <div class="share-acts"><button data-act="sh-save"><span class="c">${I.download}</span>Save image</button><button data-act="sh-copy"><span class="c">${I.copy}</span>Copy image</button><button data-act="sh-wa"><span class="c">${I.wa}</span>WhatsApp</button><button data-act="sh-share"><span class="c">${I.share}</span>Share</button></div>`);
-  const car = $('#car'); const w = () => car.firstElementChild.offsetWidth + 14; car.scrollLeft = shareIdx * w();
-  car.addEventListener('scroll', () => { const i = Math.round(car.scrollLeft / w()); if (i !== shareIdx) { shareIdx = i; $$('.dots i').forEach((d, j) => d.classList.toggle('on', j === i)); } }, { passive: true });
-}
-function cardPNG() { return new Promise((res, rej) => { const img = new Image(); img.onload = () => { const c = document.createElement('canvas'); c.width = 1200; c.height = 1500; c.getContext('2d').drawImage(img, 0, 0, 1200, 1500); c.toBlob((b) => b ? res(b) : rej(new Error('blob')), 'image/png'); }; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cardSVG(STYLES[shareIdx][0])); }); }
-async function shareImage(mode) {
-  try {
-    const blob = await cardPNG(); const file = new File([blob], 'my-seva.png', { type: 'image/png' });
-    const dl = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'my-seva.png'; document.body.appendChild(a); a.click(); a.remove(); };
-    if (mode === 'save') { dl(); toast('Image saved'); return; }
-    if (mode === 'copy') { if (navigator.clipboard && window.ClipboardItem) { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); toast('Image copied'); } else toast('Copy isn\'t supported here — use Save image'); return; }
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: 'Seva with Delhi Central 🙏' }); return; }
-    if (mode === 'wa') { window.open(`https://wa.me/?text=${encodeURIComponent('Seva with Delhi Central 🙏 ' + location.origin + location.pathname)}`, '_blank', 'noopener'); return; }
-    dl(); toast('Sharing isn\'t supported here — image saved instead');
-  } catch (e) { if (!e || e.name !== 'AbortError') toast('Couldn\'t create the image'); }
+  openSheet(`${sheetHead('Add to Home Screen')}<div class="card list">${st2.map((t, i) => `<div class="lrow"><span class="av2" style="width:32px;height:32px;background:var(--p)">${i + 1}</span><span class="small">${t}</span></div>`).join('')}</div>`);
 }
 
 // ---------- Actions ----------
-function notify(level, t, ref) { S.notifs.unshift({ id: uid(), level, t, d: iso(now()), ref }); }
-function addUpdate(s, t, kind) { s.updates.unshift({ id: uid(), t, d: iso(now() + 1000), by: S.role === 'admin' ? 'Main Admin' : s.lead, kind }); S.seenUpd[seenKey(s.id)] = now() + 2000; }
+function notify(level, t, ref) { S.notifs.unshift({ id: 'n' + uid(), level, t, d: iso(now()), ref }); }
 function setSevaResponse(sid, v) {
   const s = sv(sid); const prev = st(s);
-  if (v === 'cant' && myPoints(s).length && !confirm('Release your points? Your lead is told so someone else can pick them.')) return false;
   S.assign[sid] = { state: v };
   if (v !== 'going') s.points.forEach((p) => { p.takers = p.takers.filter((t) => t !== '@me'); });
-  openActions().filter((a) => a.ref === sid).forEach((a) => a.resolved = true);
-  save(); toast(v === 'going' ? (prev === 'going' ? 'You\'re going' : 'You\'re going — now pick your points') : v === 'maybe' ? 'Marked as maybe' : 'Thanks for letting your lead know');
-  return true;
+  save(); toast(v === 'going' ? (isLive(s) ? 'Welcome! Pick a task to start' : prev === 'going' ? 'You\'re going' : 'You\'re going — now pick your tasks') : v === 'maybe' ? 'Marked as maybe' : 'Thanks for letting your lead know');
+  if (v === 'going') dtab = 'tasks';
 }
-function setEventResponse(eid, v) { const e = ev(eid); const prev = S.rsvp[eid]; const k = (x) => x === 'no' ? 'cant' : x; if (prev) e[k(prev)]--; S.rsvp[eid] = v === 'cant' ? 'no' : v; e[v]++; save(); toast(v === 'going' ? 'RSVP confirmed — added to your calendar' : v === 'maybe' ? 'Marked as maybe' : 'Thanks for letting the organizer know'); }
-function openRef(ref) { const [k, v] = ref.split(':'); if (k === 'seva' || k === 'event' || k === 'history') push({ v: k, id: v }); else if (k === 'ggarden') push({ v: 'ggarden' }); else if (k === 'action') actionSheet(v); else if (k === 'tab') go(v); }
-const shareText = (kind, x) => `${kind === 'seva' ? '🙏 ' : ''}${x.title}\n${relDay(x.start)} · ${fmtTime(x.start)} · ${x.place}\n${location.origin}${location.pathname}#${kind}=${x.id}`;
+function setEventResponse(eid, v) { const e = ev(eid); const prev = S.rsvp[eid]; const k = (x) => x === 'no' ? 'cant' : x; if (prev) e[k(prev)]--; S.rsvp[eid] = v === 'cant' ? 'no' : v; e[v]++; save(); toast(v === 'going' ? 'RSVP confirmed' : v === 'maybe' ? 'Marked as maybe' : 'Thanks for letting the organizer know'); }
+function openRef(ref) { const [k, v] = ref.split(':'); if (k === 'seva' || k === 'event' || k === 'history') push({ v: k, id: v }); else if (['inbox', 'team', 'journey'].includes(k)) push({ v: k }); else if (k === 'tab') go(v); }
+const shareText = (kind, x) => `🙏 ${x.title}\n${relDay(x.start)} · ${fmtTime(x.start)} · ${x.place}\n${location.origin}${location.pathname}#${kind}=${x.id}`;
 function ics(items, name) {
   const z = (d) => iso(T(d)).replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const evs = items.map((i) => `BEGIN:VEVENT\r\nUID:${i.id}-${uid()}@namdhari-seva\r\nDTSTAMP:${z(iso(now()))}\r\nDTSTART:${z(i.start)}\r\nDTEND:${z(i.end)}\r\nSUMMARY:${i.title}\r\nLOCATION:${i.place}\r\nBEGIN:VALARM\r\nTRIGGER:-PT1H\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\nEND:VALARM\r\nEND:VEVENT`).join('\r\n');
@@ -847,131 +807,140 @@ async function pushTest() {
   const reg = await navigator.serviceWorker?.getRegistration(); const body = 'Tomorrow 9:00 AM — you\'re cooking dal and sabzi at Sunday Langar Seva.';
   reg ? reg.showNotification('Seva reminder', { body, icon: 'icons/icon-192.png', tag: 'demo' }) : new Notification('Seva reminder', { body });
 }
-function unlockToast(before) { const f = ITEM_ORDER.filter(isUnlocked).filter((x) => !before.includes(x)); if (f.length) setTimeout(() => toast(`New in your garden: ${f.map((x) => itemDef(x).name).join(', ')} 🌱`), 500); }
+function burst(card) { const b = document.createElement('div'); b.className = 'burst'; b.innerHTML = '<span style="font-size:92px;line-height:110px;display:block;text-align:center;filter:drop-shadow(0 6px 16px rgba(0,0,0,.25))">🙏</span>'; card.appendChild(b); setTimeout(() => b.remove(), 850); }
+function refreshBar(pid) { const p = S.feed.find((x) => x.id === pid); const el = $(`#post-${pid} .pacts`); if (el) el.outerHTML = reactBar(p); }
+function setReact(pid, k, on) {
+  const r = S.react[pid] = S.react[pid] || {}; r[k] = on ?? !r[k]; save(); refreshBar(pid);
+  const b = $(`#post-${pid} .pact.${k === 'g' ? 'grat' : 'supp'}`); if (b && r[k]) b.classList.add('pop');
+}
 
 function handle(el) {
   const act = el.dataset.act, id = el.dataset.id; buzz();
   switch (act) {
-    case 'onb-next': onb = 1; renderOnboarding(); break;
-    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } S.name = n; S.minor = $('#onb-age').value === 'minor'; S.onboarded = true; save(); tab = 'home'; render(); toast(S.minor ? 'Guardian approval link sent' : 'Welcome to Delhi Central'); break; }
+    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
     case 'back': pop(); break;
-    case 'close-sheet': closeSheet(); if (!g3) rerender(); break;
+    case 'close-sheet': closeSheet(); if (S.justPlanted) { rerender(); S.justPlanted = null; } break;
     case 'inbox': push({ v: 'inbox' }); break;
-    case 'share': closeSheet(); shareSheet(el.dataset.h); break;
-    case 'goto-mine': sevaSeg = 'mine'; mySevaTab = smartMyTab(); go('seva'); break;
-    case 'action': actionSheet(id); break;
-    case 'cal-prev': calM--; if (calM < 0) { calM = 11; calY--; } calPop = null; calDir = -1; rerender(); calDir = 0; break;
-    case 'cal-today': calY = new Date().getFullYear(); calM = new Date().getMonth(); calPop = ymd(now()); calDir = 0; rerender(); break;
+    case 'noop-up': toast('You can tick this off once the seva starts'); break;
+    case 'story-close': closeStory(); break;
+    case 'story-next': storyNext(); break;
+    case 'story-prev': storyPrev(); break;
+    case 'story-link': pendingRef = el.dataset.ref; closeStory(); break;
+    case 'post-save': S.saved[id] = !S.saved[id]; save(); refreshBar(id); toast(S.saved[id] ? 'Saved to your collection' : 'Removed from saved'); break;
+    case 'post-share': { const p = S.feed.find((x) => x.id === id); window.open(`https://wa.me/?text=${encodeURIComponent(`${PK[p.type].label}\n\n${p.text}\n\n— Namdhari Seva`)}`, '_blank', 'noopener'); break; }
+    case 'seva-view': sevaView = sevaView === 'list' ? 'cal' : 'list'; calPop = null; rerender(); break;
+    case 'cal-prev': calM--; if (calM < 0) { calM = 11; calY--; } calPop = null; rerender(); break;
+    case 'cal-next': calM++; if (calM > 11) { calM = 0; calY++; } calPop = null; rerender(); break;
+    case 'cal-today': calY = new Date().getFullYear(); calM = new Date().getMonth(); calPop = ymd(now()); rerender(); break;
     case 'cal-close': calPop = null; rerender(); break;
-    case 'cal-next': calM++; if (calM > 11) { calM = 0; calY++; } calPop = null; calDir = 1; rerender(); calDir = 0; break;
-    case 'respond': {
-      const v = el.dataset.v, kind = el.dataset.kind;
-      if (kind === 'event') { setEventResponse(id, v); rerender(); break; }
-      let sid = id; if (kind === 'action') { sid = S.actions.find((x) => x.id === id).ref; }
-      if (setSevaResponse(sid, v)) { closeSheet(); if (kind === 'action' && v === 'going') { push({ v: 'seva', id: sid }); } else rerender(); }
-      break;
-    }
+    case 'respond': setSevaResponse(id, el.dataset.v); rerender(); break;
+    case 'rsvp': setEventResponse(id, el.dataset.v); rerender(); break;
     case 'ptpick': {
       const s = sv(id); const p = s.points.find((x) => x.id === el.dataset.p);
-      if (!going(s)) { toast('Choose Going first, then pick points'); return; }
+      if (!going(s)) { toast('Choose Going first, then pick tasks'); return; }
       const i = p.takers.indexOf('@me');
-      if (i > -1) { p.takers.splice(i, 1); toast('Removed — your lead can see the change'); }
+      if (i > -1) { p.takers.splice(i, 1); delete S.mydone[p.id]; toast('Removed — your lead can see the change'); }
       else { p.takers.unshift('@me'); notify('action', `Reminder set: ${p.text} · ${relDay(s.start)} ${fmtTime(s.start)}`, 'seva:' + s.id); toast(isLive(s) ? `Thanks! ${first(s.lead)} can see you're on it` : 'Picked ✓ We\'ll remind you before the seva'); }
       save(); rerender(); break;
     }
-    case 'ptdone': { S.mydone[el.dataset.p] = !S.mydone[el.dataset.p]; save(); rerender(); if (S.mydone[el.dataset.p]) toast('Marked done 🙏'); break; }
-    case 'ptadd': pointSheet(id); break;
-    case 'ptedit': pointSheet(id, el.dataset.p); break;
-    case 'ptneed': { const n = $('#pt-need'); n.textContent = Math.max(1, Math.min(30, +n.textContent + +el.dataset.d)); break; }
-    case 'ptsave': {
-      const s = sv(id); const text = $('#pt-text').value.trim(); const need = +$('#pt-need').textContent; if (!text) { toast('Please describe the point'); return; }
-      if (el.dataset.p) { const p = s.points.find((x) => x.id === el.dataset.p); const old = p.text; p.text = text; p.need = need; p.at = iso(now() + 1000); addUpdate(s, old === text ? `Point updated: ${text} now needs ${need}` : `Point changed: "${old}" → "${text}"`, 'edit'); }
-      else { s.points.push({ id: 't' + uid(), text, need, takers: [], at: iso(now() + 1000), live: isLive(s) }); addUpdate(s, `New point added: ${text}`, 'new'); }
-      notify('live', `${s.title}: ${s.updates[0].t}`, 'seva:' + s.id);
-      save(); closeSheet(); rerender(); toast(isLive(s) ? 'Saved — everyone at the seva gets an alert' : 'Saved — members will see it'); break;
-    }
-    case 'ptdel': { const s = sv(id); const p = s.points.find((x) => x.id === el.dataset.p); if (!confirm(`Remove "${p.text}"?${p.takers.length ? ' People who picked it are told.' : ''}`)) return; s.points = s.points.filter((x) => x !== p); addUpdate(s, `Point removed: ${p.text}`, 'edit'); save(); rerender(); break; }
-    case 'postupd': updateSheet(id); break;
-    case 'updsave': { const s = sv(id); const t = $('#up-text').value.trim(); if (!t) return; addUpdate(s, t, 'info'); notify('live', `${s.title}: ${t}`, 'seva:' + s.id); save(); closeSheet(); rerender(); toast('Update sent'); break; }
-    case 'create': draft = null; createSheet(); break;
-    case 'dneed': { syncDraft(); const p = draft.points[+el.dataset.i]; p.n = Math.max(1, Math.min(30, p.n + +el.dataset.d)); createSheet(); break; }
-    case 'ddel': syncDraft(); draft.points.splice(+el.dataset.i, 1); createSheet(); break;
-    case 'dadd': syncDraft(); draft.points.push({ t: '', n: 2 }); createSheet(); setTimeout(() => { const ins = $$('[data-dpt]'); ins[ins.length - 1]?.focus(); }, 300); break;
-    case 'publish': {
-      syncDraft(); const when = new Date($('#d-date').value || now() + 3 * DAY).getTime(); const pl = draft.points.filter((p) => p.t.trim());
-      if (!pl.length) { toast('Add at least one point'); return; }
-      const ns = { id: 's' + uid(), title: draft.title || 'New seva', cat: draft.cat, start: iso(when), end: iso(when + 3 * HOUR), place: $('#d-place').value, meet: 'Main entrance', lead: S.role === 'admin' ? 'Gurpreet Singh' : (S.name || 'You'), purpose: 'Created in the prototype.', instructions: 'Head covered.', created: iso(now()), people: [], points: pl.map((p) => ({ id: 't' + uid(), text: p.t.trim(), need: p.n, takers: [], at: iso(now()) })), updates: [] };
-      S.seva.push(ns); notify('p', `New seva: ${ns.title}`, 'seva:' + ns.id); save(); closeSheet(); draft = null; calY = new Date(when).getFullYear(); calM = new Date(when).getMonth(); calPop = ymd(when); push({ v: 'seva', id: ns.id }); toast('Published — members see it marked NEW'); break;
-    }
-    case 'demo-end': { const s = sv(id); s.end = iso(now() - MIN); const hid = 'h' + uid(); S.history.push({ id: hid, title: s.title, cat: s.cat, date: s.start, hrs: Math.max(.5, Math.round((T(s.end) - T(s.start)) / HOUR * 2) / 2), role: myPoints(s).map((p) => p.text).join(', ') || 'Volunteer', state: 'awaiting' }); save(); stack[stack.length - 1] = { v: 'history', id: hid }; render(); window.scrollTo(0, 0); toast('Seva ended — awaiting verification'); break; }
-    case 'demo-verify': { const before = ITEM_ORDER.filter(isUnlocked); const h = S.history.find((x) => x.id === id); h.state = 'verified'; S.ggarden = Math.min(8, S.ggarden + 1); notify('done', `${h.title} verified — thank you`, 'history:' + h.id); save(); rerender(); toast('Verified ✓'); unlockToast(before); break; }
-    case 'cal': { const s = sv(id); ics([s], 'seva'); break; }
+    case 'ptdone': { S.mydone[el.dataset.p] = !S.mydone[el.dataset.p]; save(); rerender(); if (S.mydone[el.dataset.p]) toast('Task complete 🙏'); break; }
+    case 'mark-complete': { const s = sv(id); const left = myPoints(s).filter((p) => !S.mydone[p.id]); left.forEach((p) => { S.mydone[p.id] = true; }); save(); dtab = 'overview'; rerender(); toast(`${left.length} task${left.length > 1 ? 's' : ''} marked complete — ${first(s.lead)} can see it 🙏`); break; }
+    case 'cal': ics([sv(id)], 'seva'); break;
     case 'cal-e': ics([ev(id)], 'event'); break;
     case 'wa': window.open(`https://wa.me/?text=${encodeURIComponent(shareText('seva', sv(id)))}`, '_blank', 'noopener'); break;
     case 'wa-e': window.open(`https://wa.me/?text=${encodeURIComponent(shareText('event', ev(id)))}`, '_blank', 'noopener'); break;
     case 'lead-wa': window.open(`https://wa.me/?text=${encodeURIComponent(`Hi ${first(sv(id).lead)} ji, about ${sv(id).title}: `)}`, '_blank', 'noopener'); break;
-    case 'lead-call': toast(`In the real app this calls ${sv(id).lead}, if they've shared their number`); break;
+    case 'wa-person': window.open(`https://wa.me/?text=${encodeURIComponent(`Hi ${first(el.dataset.n)} ji, `)}`, '_blank', 'noopener'); break;
+    case 'notif': { const n = S.notifs.find((x) => x.id === id); n.read = true; save(); openRef(n.ref); break; }
+    case 'read-all': S.notifs.forEach((n) => { n.read = true; }); save(); rerender(); break;
     case 'push': pushTest(); break;
     case 'install': install(); break;
-    case 'noinstall': sessionStorage.setItem('noinstall', 1); closeSheet(); rerender(); break;
-    case 'reset': if (confirm('Reset the prototype?')) { localStorage.removeItem(KEY); S = fresh(); onb = 0; stack = []; tab = 'home'; render(); } break;
-    case 'garden-edit': gardenEdit = true; rerender(); break;
-    case 'garden-edit-from-sheet': closeSheet(); gardenEdit = true; S.gview = '2d'; save(); rerender(); break;
-    case 'garden-done': gardenEdit = false; rerender(); toast('Garden saved'); break;
-    case 'see3d': g3focus = el.dataset.cell; closeSheet(); S.gview = '3d'; save(); rerender(); break;
+    case 'commit': sevaSeg = 'mine'; sevaChip = 'upcoming'; sevaView = 'list'; go('seva'); break;
+    case 'settings': settingsSheet(); break;
+    case 'save-settings': { const n = ($('#set-name')?.value || '').trim(); if (n) S.name = n; save(); closeSheet(); rerender(); break; }
+    case 'reset': if (confirm('Reset the prototype?')) { localStorage.removeItem(KEY); S = fresh(); stack = []; tab = 'home'; closeSheet(); render(); } break;
+    case 'how-points': howSheet(); break;
+    case 'gview': S.gview = S.gview === '3d' ? '2d' : '3d'; save(); rerender(); break;
     case 'g3-reset': g3 && g3.reset(); break;
-    case 'sim-seva': { const before = ITEM_ORDER.filter(isUnlocked); const cats = ['langar', 'cleanup', 'tree', 'education', 'blanket']; const c = cats[S.history.length % 5]; S.history.push({ id: 'h' + uid(), title: `${CAT[c].label} seva (prototype)`, cat: c, date: iso(now() - HOUR), hrs: 2, role: 'Volunteer', state: 'verified' }); save(); rerender(); unlockToast(before); break; }
-    case 'csv': { const rows = [['seva', 'date', 'point', 'volunteer']]; S.seva.forEach((s) => s.points.forEach((p) => p.takers.forEach((t) => rows.push([s.title, s.start.slice(0, 10), p.text, nameOf(t)])))); const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')); a.download = 'participation.csv'; a.click(); toast('CSV downloaded'); break; }
-    case 'sh-save': shareImage('save'); break; case 'sh-copy': shareImage('copy'); break; case 'sh-wa': shareImage('wa'); break; case 'sh-share': shareImage('share'); break;
+    case 'why-lock': toast(`${GI[id].name}: ${lockText(id)}`); break;
+    case 'cart-inc': {
+      const x = SHOP[id]; if (owned(id) + inCart(id) >= x.max) { toast(`Room for ${x.max} ${GI[id].name.toLowerCase()} in your garden`); return; }
+      S.cart[id] = inCart(id) + 1; save();
+      if (el.dataset.sheet) cartSheet(); else if (el.dataset.close) { closeSheet(); rerender(); toast(`${GI[id].name} added to cart`); } else { rerender(); if (inCart(id) === 1) toast(`${GI[id].name} added to cart`); }
+      break;
+    }
+    case 'cart-dec': S.cart[id] = Math.max(0, inCart(id) - 1); if (!S.cart[id]) delete S.cart[id]; save(); if (el.dataset.sheet) { cartSheet(); if (!cartQty()) rerender(); } else rerender(); break;
+    case 'cart-open': cartSheet(); break;
+    case 'cart-clear': S.cart = {}; save(); closeSheet(); rerender(); break;
+    case 'cart-confirm': confirmSheet(); break;
+    case 'cart-buy': {
+      const tot = cartTotal(); if (tot > S.pts) return; const items = cartItems(); const q = cartQty();
+      items.forEach((k) => { S.owned[k] = owned(k) + S.cart[k]; }); S.pts -= tot; S.cart = {}; save(); rerender(); S.justPlanted = items;
+      openSheet(`<div style="text-align:center;padding:8px 4px 0"><div style="font-size:46px">🌱</div><h2 style="font-size:22px;margin-top:6px">Planted in your garden!</h2><p class="small muted" style="margin-top:6px">${q} new item${q > 1 ? 's' : ''} · ${tot} points used</p>
+        <div class="card" style="margin-top:14px;text-align:left"><div class="sumrow"><span class="muted">Points left</span><b>${seed(S.pts)}</b></div><div class="sumrow"><span class="muted">Your garden now</span><b>${ownedTotal()} items</b></div><div class="sumrow"><span class="muted">Grown from</span><b>${nContrib()} seva contributions</b></div></div>
+        <button class="btn block" style="margin-top:16px" data-act="close-sheet-top">${I.garden}See my garden</button></div>`);
+      break;
+    }
+    case 'close-sheet-top': closeSheet(); window.scrollTo(0, 0); render(); S.justPlanted = null; break;
+    case 'sim-seva': {
+      const before = SHOP_ORDER.filter(isUnlocked); const cats = ['langar', 'cleanup', 'tree', 'education', 'blanket']; const c = cats[S.history.length % 5];
+      S.history.push({ id: 'h' + uid(), title: `${CAT[c].label} seva (prototype)`, cat: c, date: iso(now() - HOUR), role: 'Volunteer' }); S.pts += 3; S.earned += 3;
+      notify('done', `${CAT[c].label} seva verified — +3 garden points`, 'tab:garden'); save(); rerender();
+      const f = SHOP_ORDER.filter(isUnlocked).filter((x) => !before.includes(x));
+      toast(f.length ? `+3 points · Unlocked: ${f.map((x) => GI[x].name).join(', ')} 🌸` : '+3 points added'); break;
+    }
   }
 }
 
 // ---------- Event delegation ----------
+let lastDbl = { id: null, t: 0 };
 document.addEventListener('click', (e) => {
-  const cell = e.target.closest('#pgarden [data-cell]');
-  if (cell) {
-    const k = cell.dataset.cell;
-    if (gardenEdit) { buzz(); if (gardenTool === 'erase') { delete S.pg.items[k]; delete S.pg.tiles[k]; } else if (TILES[gardenTool]) { if (gardenTool === 'grass') delete S.pg.tiles[k]; else { S.pg.tiles[k] = gardenTool; delete S.pg.items[k]; } } else { S.pg.items[k] = gardenTool; delete S.pg.tiles[k]; } save(); $('#pgarden').innerHTML = personalSVG(); }
-    else if (S.pg.items[k]) itemSheet(k); else toast('Tap "Design my garden" to add something here');
-    return;
-  }
-  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-xf],[data-mst],[data-scope],[data-ft],[data-react],[data-setmode],[data-setaccent],[data-scn],[data-sk],[data-pf],[data-gv],[data-tool],[data-day],[data-calmode],[data-role],[data-dcat]');
+  if (e.target.closest('.sv') && !e.target.closest('[data-act]')) return;
+  const gi = e.target.closest('[data-gi]'); if (gi) { buzz(); itemSheet(gi.dataset.gi); return; }
+  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind]');
   if (!t || t.disabled) return;
   if (t.dataset.act) return handle(t);
-  if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open); return; }
-  if (t.dataset.tab) { buzz(); go(t.dataset.tab); return; }
+  if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open.includes(':') ? t.dataset.open : t.dataset.open + ':'); return; }
+  if (t.dataset.tab) { buzz(); closeSheet(); go(t.dataset.tab); return; }
+  if (t.dataset.story) { buzz(); openStory(t.dataset.story); return; }
+  if (t.dataset.react) { const [pid, k] = t.dataset.react.split(':'); buzz(); setReact(pid, k); return; }
+  if (t.dataset.seg) { sevaSeg = t.dataset.seg; sevaChip = null; calPop = null; rerender(); return; }
+  if (t.dataset.chip) { sevaChip = t.dataset.chip; rerender(); return; }
+  if (t.dataset.dtab) { dtab = t.dataset.dtab; if (dtab === 'updates') { const top = stack[stack.length - 1]; rerender(); if (top) { S.seenUpd[top.id] = now(); save(); } } else rerender(); return; }
+  if (t.dataset.tf) { teamFilter = t.dataset.tf; rerender(); return; }
+  if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
-  if (t.dataset.calmode) { S.calMode = t.dataset.calmode; save(); rerender(); return; }
-  if (t.dataset.seg) { if (t.dataset.seg === 'mine' && sevaSeg !== 'mine') mySevaTab = smartMyTab(); sevaSeg = t.dataset.seg; rerender(); return; }
-  if (t.dataset.xf) { exploreFilter = t.dataset.xf; rerender(); return; }
-  if (t.dataset.mst) { mySevaTab = t.dataset.mst; rerender(); return; }
-  if (t.dataset.scope) { feedScope = t.dataset.scope; rerender(); return; }
-  if (t.dataset.ft) { feedType = t.dataset.ft; rerender(); return; }
-  if (t.dataset.pf) { const [k, v] = t.dataset.pf.split(':'); peopleFilter[k] = v; rerender(); return; }
-  if (t.dataset.gv) { S.gview = t.dataset.gv; gardenEdit = false; save(); rerender(); return; }
-  if (t.dataset.tool) { const id = t.dataset.tool; if (id !== 'erase' && !isUnlocked(id)) { toast(`${itemDef(id).name} is locked: ${unlockText(itemDef(id).u).toLowerCase()}`); return; } gardenTool = id; $$('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tool === id)); return; }
-  if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); rerender(); return; }
-    if (t.dataset.role) { S.role = t.dataset.role; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(`Viewing as ${{ member: 'Member', lead: 'Team Lead', admin: 'Main Admin' }[S.role]}`); return; }
-  if (t.dataset.scn) { setScenario(t.dataset.scn); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); return; }
-  if (t.dataset.dcat) { syncDraft(); draft.cat = t.dataset.dcat; draft.title = { cleanup: 'Gurdwara Hall Cleaning', langar: 'Langar Seva', tree: 'Tree Planting Drive', education: 'Reading Circle', blanket: 'Blanket Distribution' }[draft.cat]; draft.points = TEMPLATES[draft.cat].map(([t2, n]) => ({ t: t2, n })); createSheet(); return; }
-  if (t.dataset.sk) { shareKind = t.dataset.sk; if (shareKind === 'month') shareH = null; shareSheet(); return; }
-  if (t.dataset.react) { const [pid, k] = t.dataset.react.split(':'); S.mine[pid] = S.mine[pid] === k ? undefined : k; save(); buzz(); t.closest('.reacts').outerHTML = reacts(S.posts.find((x) => x.id === pid)); }
+  if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); applyTheme(); $$('[data-setmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.setmode === S.mode)); const y = window.scrollY; const sh = $('#sheet-root').innerHTML; render(); $('#sheet-root').innerHTML = sh; window.scrollTo(0, y); return; }
+  if (t.dataset.scn) { setScenario(t.dataset.scn); stack = []; tab = 'home'; sevaChip = null; closeSheet(); render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); }
 });
-// swipe the calendar to change month
+document.addEventListener('input', (e) => { if (e.target.id === 'team-q') { teamQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); window.scrollTo(0, y); const i = $('#team-q'); i.focus(); i.setSelectionRange(pos, pos); } });
+// story: hold to pause, swipe down to close
+let svTouch = null;
+document.addEventListener('pointerdown', (e) => { if (!SV || !e.target.closest('.sv')) return; svTouch = { y: e.clientY, t: Date.now() }; clearTimeout(SV.t); SV.remain = Math.max(300, SV.remain - (Date.now() - SV.start)); $('.sv')?.classList.add('paused'); });
+document.addEventListener('pointerup', (e) => { if (!SV || !svTouch) return; const dy = e.clientY - svTouch.y; svTouch = null; $('.sv')?.classList.remove('paused'); if (dy > 90) { closeStory(); return; } storyTimer(); });
+// swipe calendar
 let sw = null;
 document.addEventListener('touchstart', (e) => { const c = e.target.closest('#cal'); sw = c && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
 document.addEventListener('touchend', (e) => { if (!sw) return; const t = e.changedTouches[0]; const dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) handle({ dataset: { act: dx < 0 ? 'cal-next' : 'cal-prev' } }); }, { passive: true });
 // no pinch / double-tap zoom anywhere (the 3D garden handles its own pinch)
 ['gesturestart', 'gesturechange', 'gestureend'].forEach((ev2) => document.addEventListener(ev2, (e) => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 && !e.target.closest('.g3d')) e.preventDefault(); }, { passive: false });
-let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea,select,.g3d')) e.preventDefault(); lastTap = n; }, { passive: false });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#sheet-root').innerHTML) closeSheet(); else if (stack.length) pop(); } });
+// double-tap a feed card = gratitude (Instagram-style); elsewhere just block double-tap zoom
+let lastTap = 0;
+document.addEventListener('touchend', (e) => {
+  const n = Date.now(); const card = e.target.closest('[data-dbl]');
+  if (card && !e.target.closest('button')) { const pid = card.dataset.dbl; if (lastDbl.id === pid && n - lastDbl.t < 320) { e.preventDefault(); likeCard(card); lastDbl = { id: null, t: 0 }; } else lastDbl = { id: pid, t: n }; lastTap = n; return; }
+  if (n - lastTap < 300 && !e.target.closest('input,textarea,select,button,.g3d')) e.preventDefault(); lastTap = n;
+}, { passive: false });
+document.addEventListener('dblclick', (e) => { const card = e.target.closest('[data-dbl]'); if (card && !e.target.closest('button')) likeCard(card); });
+function likeCard(card) { burst(card); setReact(card.dataset.dbl, 'g', true); buzz(); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (SV) closeStory(); else if ($('#sheet-root').innerHTML) closeSheet(); else if (stack.length) pop(); } if (SV && e.key === 'ArrowRight') storyNext(); if (SV && e.key === 'ArrowLeft') storyPrev(); });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__dp = e; });
 window.addEventListener('online', rerender); window.addEventListener('offline', rerender);
-setInterval(() => { if (!$('#sheet-root').innerHTML && S.onboarded && !document.hidden && !g3 && document.activeElement?.tagName !== 'INPUT' && !gardenEdit) rerender(); }, 60000);
+setInterval(() => { if (!$('#sheet-root').innerHTML && !SV && S.onboarded && !document.hidden && !g3 && document.activeElement?.tagName !== 'INPUT') rerender(); }, 60000);
 function deepLink() { const m = location.hash.match(/^#(seva|event)=(\w+)/); if (m && S.onboarded) { history.replaceState(null, '', location.pathname); openRef(`${m[1]}:${m[2]}`); } }
 applyTheme();
-$('#app').innerHTML = `<main class="screen"><div class="skel" style="height:24px;width:40%;margin-top:14px"></div><div class="skel" style="height:70px;width:75%;margin-top:22px"></div><div class="skel" style="height:200px;margin-top:22px"></div><div class="skel" style="height:320px;margin-top:22px"></div></main>`;
-setTimeout(() => { render(); deepLink(); }, 250);
+$('#app').innerHTML = `<main class="screen"><div class="skel" style="height:34px;width:55%;margin-top:14px"></div><div class="row" style="margin-top:18px">${'<div class="skel" style="width:70px;height:70px;border-radius:50%"></div>'.repeat(4)}</div><div class="skel" style="height:90px;margin-top:18px"></div><div class="skel" style="height:340px;margin-top:18px"></div></main>`;
+setTimeout(() => { render(); deepLink(); }, 200);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
