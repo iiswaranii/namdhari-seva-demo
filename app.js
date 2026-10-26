@@ -285,16 +285,16 @@ const mq = window.matchMedia('(prefers-color-scheme: dark)');
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && mq.matches);
 function applyTheme() {
   document.documentElement.dataset.mode = isDark() ? 'dark' : 'light';
-  document.documentElement.dataset.accent = S.accent;
-  $$('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', isDark() ? '#0D0E14' : '#F5F5FB'));
+    $$('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', isDark() ? '#0B0B0C' : '#F6F6F7'));
 }
 mq.addEventListener && mq.addEventListener('change', () => { applyTheme(); remount3D(); });
 
 // ---------- Navigation ----------
 let tab = 'home', stack = [];
 const scrollMem = {};
+const smartMyTab = () => liveMine().length ? 'live' : upcomingMine().length ? 'upcoming' : openActions().length ? 'replies' : 'done';
 let sevaSeg = 'explore', exploreFilter = 'all', mySevaTab = 'live', feedScope = 'local', feedType = 'all', peopleFilter = {}, gardenEdit = false, gardenTool = 'marigold';
-let calY = new Date().getFullYear(), calM = new Date().getMonth(), calSel = ymd(now());
+let calY = new Date().getFullYear(), calM = new Date().getMonth();
 const key = () => tab + '/' + stack.map((v) => v.v + (v.id || '')).join('/');
 function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); history.pushState({ d: stack.length }, ''); render(); window.scrollTo(0, 0); }
 function pop() { if (stack.length) history.back(); }
@@ -351,35 +351,62 @@ function calItems(mode) {
   const out = [];
   S.seva.forEach((s) => { const a = st(s); const mine = ['going', 'maybe', 'invited'].includes(a); if (mode === 'mine' ? mine : true) out.push({ t: 'seva', x: s, c: s.cat, mine }); });
   S.events.forEach((e) => { const mine = ['going', 'maybe'].includes(S.rsvp[e.id]); if (mode === 'mine' ? mine : true) out.push({ t: 'event', x: e, c: 'event', mine }); });
-  S.history.forEach((h) => { if (mode === 'mine' || true) out.push({ t: 'history', x: { ...h, start: h.date, end: h.date }, c: h.cat, mine: true, past: true }); });
+  S.history.forEach((h) => { if (mode === 'mine') out.push({ t: 'history', x: { ...h, start: h.date, end: h.date }, c: h.cat, mine: true, past: true }); });
   return out;
 }
+let calPop = null, calDir = 0;
 function calendar() {
   const items = calItems(S.calMode);
   const byDay = {}; items.forEach((i) => { const k = ymd(i.x.start); (byDay[k] = byDay[k] || []).push(i); });
-  const first = new Date(calY, calM, 1); const startW = (first.getDay() + 6) % 7; const days = new Date(calY, calM + 1, 0).getDate();
+  const firstD = new Date(calY, calM, 1); const startW = (firstD.getDay() + 6) % 7; const days = new Date(calY, calM + 1, 0).getDate();
   const today = ymd(now());
-  const monthItems = items.filter((i) => { const d = new Date(i.x.start); return d.getFullYear() === calY && d.getMonth() === calM && !i.past; }).sort((a, b) => T(a.x.start) - T(b.x.start));
+  const mineCount = items.filter((i) => { const d = new Date(i.x.start); return i.mine && !i.past && d.getFullYear() === calY && d.getMonth() === calM; }).length;
+  const allOpen = calItems('all').filter((i) => { const d = new Date(i.x.start); return !i.mine && !i.past && T(i.x.start) > now() && d.getFullYear() === calY && d.getMonth() === calM; }).length;
   let cells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => `<span class="wd">${d}</span>`).join('');
-  for (let i = 0; i < startW; i++) cells += '<span class="day out"></span>';
+  for (let i = 0; i < startW; i++) cells += '<span></span>';
+  let col = startW;
   for (let d = 1; d <= days; d++) {
-    const k = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; const its = (byDay[k] || []).filter((i) => !i.past || S.calMode === 'mine');
-    const top = its.find((i) => i.mine) || its[0];
-    const cls = ['day', its.length ? 'has' : '', top && !top.mine ? 'light' : '', k === today ? 'today' : '', k === calSel ? 'sel' : '', k < today ? 'past' : ''].join(' ');
-    const dots = its.length > 1 ? `<span class="dots">${its.slice(1, 4).map((i) => `<i style="--dc2:var(--c-${i.c})"></i>`).join('')}</span>` : '';
-    cells += `<button class="${cls}" data-day="${k}" style="${top ? `--dc:var(--c-${top.c})` : ''}" aria-label="${d}${its.length ? `, ${its.length} item${its.length > 1 ? 's' : ''}` : ''}"><span class="n">${d}</span>${dots}</button>`;
+    const k = `${calY}-${String(calM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const its = (byDay[k] || []).filter((i) => !i.past || S.calMode === 'mine').sort((a, b) => b.mine - a.mine || T(a.x.start) - T(b.x.start));
+    const top = its[0]; const anyLive = its.some((i) => i.t === 'seva' && isLive(i.x));
+    const cls = ['day', its.length ? 'has' : '', top?.mine ? 'mine' : (its.length ? 'open' : ''), k === today ? 'today' : '', k === calPop ? 'sel' : '', k < today ? 'past' : ''].join(' ');
+    cells += `<button class="${cls}" data-day="${k}" style="${top ? `--dc:var(--c-${top.c})` : ''}" aria-label="${new Date(k + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}${its.length ? `, ${its.length} item${its.length > 1 ? 's' : ''}` : ''}" aria-expanded="${k === calPop}"><span class="n">${d}</span>${its.length > 1 ? `<span class="more">${its.length}</span>` : ''}${anyLive ? '<span class="lv"></span>' : ''}</button>`;
+    col++;
+    // inline pop-over after the week that contains the selected day
+    const endOfWeek = col % 7 === 0 || d === days;
+    if (endOfWeek && calPop) {
+      const pd = new Date(calPop + 'T12:00:00');
+      if (pd.getFullYear() === calY && pd.getMonth() === calM) {
+        const pDay = pd.getDate(); const weekStart = d - ((col - 1) % 7);
+        if (pDay >= weekStart && pDay <= d) {
+          const pcol = (startW + pDay - 1) % 7; const list = (byDay[calPop] || []).sort((a, b) => T(a.x.start) - T(b.x.start));
+          cells += `<div class="pop" style="--ax:${((pcol + .5) / 7) * 100}%" role="dialog" aria-label="Seva on ${pd.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}">
+            <div class="ph"><span>${(() => { const r = relDay(calPop + 'T12:00:00'); const full = pd.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }); return ['Today', 'Tomorrow', 'Yesterday'].includes(r) ? `${r} · ${full}` : full; })()}</span><button data-act="cal-close" aria-label="Close">${I.close}</button></div>
+            ${list.length ? list.map(popRow).join('') : `<p class="none">Nothing on this day.${S.calMode === 'mine' ? ' <button class="link" data-calmode="all" style="min-height:0;padding:0">See everything</button>' : ''}</p>`}
+          </div>`;
+        }
+      }
+    }
   }
-  const mine = monthItems.filter((i) => i.mine).length;
-  const selItems = (byDay[calSel] || []).sort((a, b) => T(a.x.start) - T(b.x.start));
-  return `<div class="card cal">
-      <div class="cal-h">${I.cal.replace('<svg', '<svg style="width:20px;height:20px;color:var(--muted)"')}<h3>${first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h3><span class="chip done">${I.check}${mine} planned</span>
-        <span class="nav"><button data-act="cal-prev" aria-label="Previous month">${I.chevL}</button><button data-act="cal-next" aria-label="Next month">${I.chev}</button></span></div>
-      <div class="cal-tog" role="group" aria-label="Show"><button data-calmode="mine" aria-pressed="${S.calMode === 'mine'}">My seva</button><button data-calmode="all" aria-pressed="${S.calMode === 'all'}">Everything in Delhi</button></div>
-      <div class="cal-grid">${cells}</div>
-    </div>
-    ${monthItems.length ? `<div class="legend">${monthItems.slice(0, 6).map((i) => `<button class="lchip cc-${i.c}" data-day="${ymd(i.x.start)}">${cico(i.c, true)}<b>${new Date(i.x.start).getDate()}</b><span class="t">· ${esc(i.x.title)}</span></button>`).join('')}</div>` : ''}
-    <div class="dayhead"><b>${calSel === today ? 'Today' : relDay(calSel + 'T12:00:00')}${calSel === today ? '' : ''}</b><span class="xs muted">${new Date(calSel + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</span></div>
-    <div class="stack">${selItems.length ? selItems.map(itemRow).join('') : `<div class="card" style="text-align:center;padding:18px"><p class="small muted">Nothing on this day.</p>${S.calMode === 'mine' ? '<button class="link" data-calmode="all">See everything in Delhi</button>' : ''}</div>`}</div>`;
+  return `<div class="card cal" id="cal">
+      <div class="cal-h"><h3>${firstD.toLocaleDateString(undefined, { month: 'long' })}</h3><span class="sub">${calY}</span>
+        <span class="nav">${calY !== new Date().getFullYear() || calM !== new Date().getMonth() ? '<button data-act="cal-today">Today</button>' : ''}<button data-act="cal-prev" aria-label="Previous month">${I.chevL}</button><button data-act="cal-next" aria-label="Next month">${I.chev}</button></span></div>
+      <div class="seg" style="margin:10px 2px 0" role="group" aria-label="Which calendar"><button data-calmode="mine" aria-pressed="${S.calMode === 'mine'}">${I.user} My calendar</button><button data-calmode="all" aria-pressed="${S.calMode === 'all'}">${I.users} All activities${allOpen ? ` <span class="count">${allOpen}</span>` : ''}</button></div>
+      <p class="xs muted" style="padding:8px 4px 0">${S.calMode === 'mine' ? 'Seva and events you\'ve joined.' : 'Everything in Delhi. Dashed dates are seva or events you haven\'t joined yet.'}</p>
+      <div class="cal-grid ${calDir ? 'anim' : ''}" style="--dir:${calDir * 14}px">${cells}</div>
+      <div class="cal-foot"><span><i style="background:var(--c-langar)"></i>Langar</span><span><i style="background:var(--c-cleanup)"></i>Cleaning</span><span><i style="background:var(--c-event)"></i>Event</span><span><i style="background:var(--live)"></i>Live</span><span style="margin-left:auto">Tap a date</span></div>
+    </div>`;
+}
+function popRow(i) {
+  const x = i.x; const live = i.t === 'seva' && isLive(x);
+  const ref = i.t === 'history' ? `history:${x.id}` : `${i.t}:${x.id}`;
+  let tag = '';
+  if (live) tag = '<span class="livebadge"><i></i>LIVE</span>';
+  else if (i.t === 'history') tag = `<span class="chip ${x.state === 'verified' ? 'done' : 'action'}">${x.state === 'verified' ? 'Done' : 'Awaiting'}</span>`;
+  else if (i.t === 'seva') { const a = st(x); tag = a === 'going' ? `<span class="chip done">${I.check}Going</span>` : a === 'maybe' ? '<span class="chip action">Maybe</span>' : a === 'invited' ? '<span class="chip event">Invited</span>' : `<span class="chip p">${I.plus}Join</span>`; }
+  else { const r = S.rsvp[x.id]; tag = r === 'going' ? `<span class="chip event">${I.check}Going</span>` : r === 'maybe' ? '<span class="chip action">Maybe</span>' : `<span class="chip p">${I.plus}RSVP</span>`; }
+  const sub = i.t === 'history' ? esc(x.role) : `${fmtTime(x.start)} · ${esc(x.place.split(',')[0])}${!i.mine && i.t === 'seva' ? ` · ${openPts(x)} point${openPts(x) === 1 ? '' : 's'} open` : !i.mine ? ' · not joined' : ''}`;
+  return `<button class="prow cc-${i.c}" data-open="${ref}"><span class="bar3"></span>${cico(i.c, true)}<span class="grow"><b>${esc(x.title)}</b><span class="m">${sub}</span></span>${tag}${chev}</button>`;
 }
 function itemRow(i) {
   if (i.t === 'history') { const h = i.x; return `<button class="item tap cc-${h.cat}" data-open="history:${h.id}">${dtile(h.date, h.cat)}<span class="grow"><h3>${esc(h.title)}</h3><span class="l2">${esc(h.role)} · ${h.hrs} h</span><span class="l3"><span class="chip ${h.state === 'verified' ? 'done' : 'action'}">${h.state === 'verified' ? I.checkc + 'Verified' : I.hourglass + 'Awaiting'}</span></span></span>${chev}</button>`; }
@@ -676,8 +703,7 @@ function Profile() {
       <button class="lrow" data-act="share">${cico('event', true)}<span class="grow"><b class="small">Share my seva</b><p class="xs muted">Image card for WhatsApp status or stories</p></span>${chev}</button></div>
     <div class="section"><div class="section-h"><h2>Appearance</h2></div><div class="card">
       <div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
-      <p class="small" style="font-weight:650;margin:16px 0 8px">Accent colour</p>
-      <div class="swatches">${[['indigo', 'Indigo', 'linear-gradient(135deg,#5B5BF0,#8B5CF6)'], ['forest', 'Forest', 'linear-gradient(135deg,#15803D,#22C55E)'], ['ocean', 'Ocean', 'linear-gradient(135deg,#0369A1,#0EA5E9)'], ['rose', 'Rose', 'linear-gradient(135deg,#BE185D,#F43F5E)']].map(([k, l, c]) => `<button class="swatch" data-setaccent="${k}" aria-pressed="${S.accent === k}"><i style="background:${c}"></i>${l}</button>`).join('')}</div></div></div>
+      </div></div></div>
     <div class="section"><div class="section-h"><h2>Notifications</h2></div><div class="card list">
       <div class="lrow"><div class="grow"><b class="small">Seva reminders</b><p class="xs muted">Evening before and 1 hour before, for points you picked</p></div><span class="chip done">${I.check}On</span></div>
       <div class="lrow"><div class="grow"><b class="small">Live updates</b><p class="xs muted">When a lead adds or changes a point during seva</p></div><span class="chip done">${I.check}On</span></div>
@@ -832,10 +858,12 @@ function handle(el) {
     case 'close-sheet': closeSheet(); if (!g3) rerender(); break;
     case 'inbox': push({ v: 'inbox' }); break;
     case 'share': closeSheet(); shareSheet(el.dataset.h); break;
-    case 'goto-mine': sevaSeg = 'mine'; go('seva'); break;
+    case 'goto-mine': sevaSeg = 'mine'; mySevaTab = smartMyTab(); go('seva'); break;
     case 'action': actionSheet(id); break;
-    case 'cal-prev': calM--; if (calM < 0) { calM = 11; calY--; } rerender(); break;
-    case 'cal-next': calM++; if (calM > 11) { calM = 0; calY++; } rerender(); break;
+    case 'cal-prev': calM--; if (calM < 0) { calM = 11; calY--; } calPop = null; calDir = -1; rerender(); calDir = 0; break;
+    case 'cal-today': calY = new Date().getFullYear(); calM = new Date().getMonth(); calPop = ymd(now()); calDir = 0; rerender(); break;
+    case 'cal-close': calPop = null; rerender(); break;
+    case 'cal-next': calM++; if (calM > 11) { calM = 0; calY++; } calPop = null; calDir = 1; rerender(); calDir = 0; break;
     case 'respond': {
       const v = el.dataset.v, kind = el.dataset.kind;
       if (kind === 'event') { setEventResponse(id, v); rerender(); break; }
@@ -873,7 +901,7 @@ function handle(el) {
       syncDraft(); const when = new Date($('#d-date').value || now() + 3 * DAY).getTime(); const pl = draft.points.filter((p) => p.t.trim());
       if (!pl.length) { toast('Add at least one point'); return; }
       const ns = { id: 's' + uid(), title: draft.title || 'New seva', cat: draft.cat, start: iso(when), end: iso(when + 3 * HOUR), place: $('#d-place').value, meet: 'Main entrance', lead: S.role === 'admin' ? 'Gurpreet Singh' : (S.name || 'You'), purpose: 'Created in the prototype.', instructions: 'Head covered.', created: iso(now()), people: [], points: pl.map((p) => ({ id: 't' + uid(), text: p.t.trim(), need: p.n, takers: [], at: iso(now()) })), updates: [] };
-      S.seva.push(ns); notify('p', `New seva: ${ns.title}`, 'seva:' + ns.id); save(); closeSheet(); draft = null; calY = new Date(when).getFullYear(); calM = new Date(when).getMonth(); calSel = ymd(when); push({ v: 'seva', id: ns.id }); toast('Published — members see it marked NEW'); break;
+      S.seva.push(ns); notify('p', `New seva: ${ns.title}`, 'seva:' + ns.id); save(); closeSheet(); draft = null; calY = new Date(when).getFullYear(); calM = new Date(when).getMonth(); calPop = ymd(when); push({ v: 'seva', id: ns.id }); toast('Published — members see it marked NEW'); break;
     }
     case 'demo-end': { const s = sv(id); s.end = iso(now() - MIN); const hid = 'h' + uid(); S.history.push({ id: hid, title: s.title, cat: s.cat, date: s.start, hrs: Math.max(.5, Math.round((T(s.end) - T(s.start)) / HOUR * 2) / 2), role: myPoints(s).map((p) => p.text).join(', ') || 'Volunteer', state: 'awaiting' }); save(); stack[stack.length - 1] = { v: 'history', id: hid }; render(); window.scrollTo(0, 0); toast('Seva ended — awaiting verification'); break; }
     case 'demo-verify': { const before = ITEM_ORDER.filter(isUnlocked); const h = S.history.find((x) => x.id === id); h.state = 'verified'; S.ggarden = Math.min(8, S.ggarden + 1); notify('done', `${h.title} verified — thank you`, 'history:' + h.id); save(); rerender(); toast('Verified ✓'); unlockToast(before); break; }
@@ -912,9 +940,9 @@ document.addEventListener('click', (e) => {
   if (t.dataset.act) return handle(t);
   if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open); return; }
   if (t.dataset.tab) { buzz(); go(t.dataset.tab); return; }
-  if (t.dataset.day) { calSel = t.dataset.day; const d = new Date(calSel + 'T12:00:00'); calY = d.getFullYear(); calM = d.getMonth(); buzz(); rerender(); return; }
+  if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
   if (t.dataset.calmode) { S.calMode = t.dataset.calmode; save(); rerender(); return; }
-  if (t.dataset.seg) { sevaSeg = t.dataset.seg; rerender(); return; }
+  if (t.dataset.seg) { if (t.dataset.seg === 'mine' && sevaSeg !== 'mine') mySevaTab = smartMyTab(); sevaSeg = t.dataset.seg; rerender(); return; }
   if (t.dataset.xf) { exploreFilter = t.dataset.xf; rerender(); return; }
   if (t.dataset.mst) { mySevaTab = t.dataset.mst; rerender(); return; }
   if (t.dataset.scope) { feedScope = t.dataset.scope; rerender(); return; }
@@ -923,13 +951,20 @@ document.addEventListener('click', (e) => {
   if (t.dataset.gv) { S.gview = t.dataset.gv; gardenEdit = false; save(); rerender(); return; }
   if (t.dataset.tool) { const id = t.dataset.tool; if (id !== 'erase' && !isUnlocked(id)) { toast(`${itemDef(id).name} is locked: ${unlockText(itemDef(id).u).toLowerCase()}`); return; } gardenTool = id; $$('[data-tool]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tool === id)); return; }
   if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); rerender(); return; }
-  if (t.dataset.setaccent) { S.accent = t.dataset.setaccent; save(); rerender(); return; }
-  if (t.dataset.role) { S.role = t.dataset.role; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(`Viewing as ${{ member: 'Member', lead: 'Team Lead', admin: 'Main Admin' }[S.role]}`); return; }
+    if (t.dataset.role) { S.role = t.dataset.role; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(`Viewing as ${{ member: 'Member', lead: 'Team Lead', admin: 'Main Admin' }[S.role]}`); return; }
   if (t.dataset.scn) { setScenario(t.dataset.scn); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); return; }
   if (t.dataset.dcat) { syncDraft(); draft.cat = t.dataset.dcat; draft.title = { cleanup: 'Gurdwara Hall Cleaning', langar: 'Langar Seva', tree: 'Tree Planting Drive', education: 'Reading Circle', blanket: 'Blanket Distribution' }[draft.cat]; draft.points = TEMPLATES[draft.cat].map(([t2, n]) => ({ t: t2, n })); createSheet(); return; }
   if (t.dataset.sk) { shareKind = t.dataset.sk; if (shareKind === 'month') shareH = null; shareSheet(); return; }
   if (t.dataset.react) { const [pid, k] = t.dataset.react.split(':'); S.mine[pid] = S.mine[pid] === k ? undefined : k; save(); buzz(); t.closest('.reacts').outerHTML = reacts(S.posts.find((x) => x.id === pid)); }
 });
+// swipe the calendar to change month
+let sw = null;
+document.addEventListener('touchstart', (e) => { const c = e.target.closest('#cal'); sw = c && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+document.addEventListener('touchend', (e) => { if (!sw) return; const t = e.changedTouches[0]; const dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) handle({ dataset: { act: dx < 0 ? 'cal-next' : 'cal-prev' } }); }, { passive: true });
+// no pinch / double-tap zoom anywhere (the 3D garden handles its own pinch)
+['gesturestart', 'gesturechange', 'gestureend'].forEach((ev2) => document.addEventListener(ev2, (e) => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 && !e.target.closest('.g3d')) e.preventDefault(); }, { passive: false });
+let lastTap = 0; document.addEventListener('touchend', (e) => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea,select,.g3d')) e.preventDefault(); lastTap = n; }, { passive: false });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#sheet-root').innerHTML) closeSheet(); else if (stack.length) pop(); } });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__dp = e; });
 window.addEventListener('online', rerender); window.addEventListener('offline', rerender);
