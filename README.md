@@ -1,6 +1,6 @@
 # Namdhari Seva & Community — member prototype
 
-Clickable, installable PWA prototype (v4) of the **Member** experience, following the *Product Experience Redesign V2.0* brief.
+Clickable, installable PWA prototype (v5) of the **Member** experience, following the *Product Experience Redesign V2.0* brief.
 No backend: all data is sample data stored on your own device.
 
 **Live:** https://iiswaranii.github.io/namdhari-seva-demo/
@@ -23,6 +23,12 @@ No backend: all data is sample data stored on your own device.
 ## Try the three member states
 Profile → *Prototype: try member states* → **New**, **Active** or **Less active**.
 On a live seva, use *Prototype controls* to end it, then verify it. This shows the "Awaiting verification" step.
+
+## New in v5
+- **Home:** greeting, replies needed, a swipeable **Live now** card for every running seva (with a red alert badge when the lead posts an update), a clickable **calendar** with colour-coded days, and "Can you help?" for points nobody has picked.
+- **Points:** each seva is broken into points (e.g. "Lay carpets in the main hall"). Members join in three steps — Will you come → Pick your points → Reminders. Several people can pick the same point; points with no one are highlighted for everyone.
+- **Live seva:** new updates since you last looked, your points with done-ticks, all points with "I'll help", who is here.
+- **Team Lead / Main Admin:** switch at the bottom of Profile. Leads create seva with points, add or edit points even while live (members get an alert) and see who is doing what. Admin sees coverage across groups.
 
 ## Stack
 Plain HTML/CSS/JS, no build step. `manifest.webmanifest` + `sw.js` provide installability and an offline shell.
