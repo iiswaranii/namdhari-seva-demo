@@ -43,3 +43,7 @@ Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you 
   - Every change notifies the people in that seva.
 - **Attendance:** after a seva, mark Present or Absent, add walk-ins and set points (1–5). Sevadars get garden points and a notification.
 - **Team:** members (search; filter by active, new or inactive; remind inactive members) and member details (message, invite, remove). Join requests can be approved or declined. Leads list. Invite link.
+- **Insights (Team → Insights):** four health tiles (seva held, places filled, turn-up, started on time), each marked On target / Watch / Behind.
+  - A "What needs attention" list with one-tap actions.
+  - Simple charts: seva per week against the target, places filled by seva type, came vs said going, start delays, and active members over time. Tap any bar or dot for details.
+- **Fixes:** the story progress bar and the move to the next story now run on one clock, so they always match. Story composer options apply in place: no flicker, and the keyboard stays open.

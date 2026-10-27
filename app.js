@@ -491,7 +491,9 @@ function faceHTML(gid, i, active) {
 function openStory(gid) {
   const order = S.groups.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || groupSeen(a) - groupSeen(b)).map((g) => g.id);
   if (!SV) history.pushState({ story: 1 }, '');
-  SV = { order, gi: order.indexOf(gid), i: startIdx(grp(gid)), t: null, start: 0, remain: STORY_MS, busy: false, paused: false };
+  if (SV?.raf) cancelAnimationFrame(SV.raf);
+  SV = { order, gi: order.indexOf(gid), i: startIdx(grp(gid)), el: 0, last: 0, bar: null, busy: false, paused: false, loading: false };
+  SV.raf = requestAnimationFrame(storyTick);
   let host = $('#sv-root'); if (!host) { host = document.createElement('div'); host.id = 'sv-root'; document.body.appendChild(host); }
   host.innerHTML = `<div class="sv" role="dialog" aria-label="Stories"><div class="stage"><div class="cube"></div></div></div>`;
   document.body.style.overflow = 'hidden';
@@ -510,17 +512,27 @@ function showStory() {
   const g = grp(SV.order[SV.gi]); const s = g.stories[SV.i];
   S.storySeen[s.id] = now(); save();
   const f = $('.sv .face[data-f="cur"]'); f.innerHTML = faceHTML(g.id, SV.i, true);
-  SV.remain = STORY_MS; if (!SV.paused) storyTimer();
+  SV.el = 0; SV.bar = f.querySelector('.bars i.cur b');
+  // a photo story waits for its image before the clock starts (like Instagram)
+  const im = f.querySelector('.simg'); SV.loading = !!(im && !im.complete); if (SV.loading) { const k = s.id; const go = () => { if (SV && grp(SV.order[SV.gi]).stories[SV.i]?.id === k) { SV.loading = false; SV.last = 0; } }; im.addEventListener('load', go, { once: true }); im.addEventListener('error', go, { once: true }); }
 }
-function storyTimer() { clearTimeout(SV.t); SV.start = now(); SV.t = setTimeout(() => storyStep(1), SV.remain); }
-function pauseStory() { if (!SV || SV.paused) return; SV.paused = true; clearTimeout(SV.t); SV.remain = Math.max(200, SV.remain - (now() - SV.start)); $('.sv')?.classList.add('paused'); }
-function resumeStory() { if (!SV || !SV.paused) return; SV.paused = false; $('.sv')?.classList.remove('paused', 'holding'); storyTimer(); }
+// One clock drives both the progress bar and the move to the next story, so they always match.
+function storyTick() {
+  if (!SV) return; const t = performance.now(); const dt = SV.last ? Math.min(100, t - SV.last) : 0; SV.last = t;
+  if (!SV.paused && !SV.busy && !SV.loading) SV.el += dt;
+  if (SV.bar) SV.bar.style.width = Math.min(100, SV.el / STORY_MS * 100) + '%';
+  if (SV.el >= STORY_MS && !SV.busy && !SV.paused) { SV.el = 0; storyStep(1); }
+  if (SV) SV.raf = requestAnimationFrame(storyTick);
+}
+function storyTimer() { if (SV) { SV.paused = false; SV.last = 0; } }
+function pauseStory() { if (!SV || SV.paused) return; SV.paused = true; $('.sv')?.classList.add('paused'); }
+function resumeStory() { if (!SV || !SV.paused) return; SV.paused = false; SV.last = 0; $('.sv')?.classList.remove('paused', 'holding'); }
 // within a group first, then across groups
 function storyStep(d) {
   if (!SV || SV.busy) return; const g = grp(SV.order[SV.gi]);
   if (d > 0 && SV.i < g.stories.length - 1) { SV.i++; showStory(); return; }
   if (d < 0 && SV.i > 0) { SV.i--; showStory(); return; }
-  if (d < 0 && SV.gi === 0) { SV.remain = STORY_MS; showStory(); return; }
+  if (d < 0 && SV.gi === 0) { showStory(); return; }
   turnGroup(d, d < 0 ? 'last' : 'start');
 }
 function shade(angle) { const a = Math.abs(angle) / 90; const c = $('.sv .face[data-f="cur"] .shade'); if (c) c.style.opacity = a * .55; const o = $(`.sv .face[data-f="${angle < 0 ? 'next' : 'prev'}"] .shade`); if (o) o.style.opacity = (1 - a) * .55; }
@@ -542,7 +554,7 @@ function turnGroup(d, where) {
 }
 let ignorePop = false, pendingRef = null;
 function closeStory(fromPop) {
-  if (!SV) return; clearTimeout(SV.t); SV = null; const el = $('.sv');
+  if (!SV) return; cancelAnimationFrame(SV.raf); SV = null; const el = $('.sv');
   const done = () => { $('#sv-root').innerHTML = ''; document.body.style.overflow = ''; if (!stack.length && tab === 'home') rerender(); };
   if (el) { el.classList.add('out'); setTimeout(done, 200); } else done();
   if (!fromPop) { ignorePop = true; history.back(); }
@@ -967,7 +979,7 @@ function leadSeed(d, kind) {
 function leadGlance() {
   const live = localSeva().filter(isLive); const att = localSeva().filter(needsAttend); const nobody = localSeva().filter((s) => T(s.end) > now()).reduce((a, s) => a + s.points.filter((p) => !p.takers.length).length, 0);
   const tiles = [['seva', live.length, 'Live now', 'var(--live)', I.seva], ['attend', att.length, 'Attendance due', 'var(--action)', I.clip], ['nobody', nobody, 'Tasks with no one', '#B7791F', I.alert], ['team', S.requests.length, 'Join requests', 'var(--p)', I.userplus]];
-  return `<div class="glance"><div class="row" style="justify-content:space-between"><b class="small">Today at Delhi Central</b><span class="chip p">${I.shield}Team lead</span></div><div class="gtiles">${tiles.map(([k, n, l, c, ic]) => `<button class="gtile tap" data-act="glance" data-k="${k}" style="--gc:${c}"><span class="gi">${ic}</span><b>${n}</b><span>${l}</span></button>`).join('')}</div></div>`;
+  return `<div class="glance"><div class="row" style="justify-content:space-between"><b class="small">Today at Delhi Central</b><button class="link" style="min-height:30px;padding:0" data-act="glance" data-k="insights">Insights${I.chev}</button></div><div class="gtiles">${tiles.map(([k, n, l, c, ic]) => `<button class="gtile tap" data-act="glance" data-k="${k}" style="--gc:${c}"><span class="gi">${ic}</span><b>${n}</b><span>${l}</span></button>`).join('')}</div></div>`;
 }
 function yourStoryRing() {
   const mine = myActiveStories(); const unseen = mine.some((s) => !S.storySeen[s.id]);
@@ -989,7 +1001,8 @@ function openComposer() {
 }
 function drawComposer(focus) {
   const used = myStoriesToday().length; const l = SC.link ? (SC.link.startsWith('seva') ? sv(SC.link.split(':')[1]) : ev(SC.link.split(':')[1])) : null;
-  $('#sc-root').innerHTML = `<div class="sc"><div class="sc-stage">
+  const hadFocus = document.activeElement?.id === 'sc-text';
+  $('#sc-root').innerHTML = `<div class="sc ${focus ? 'anim' : ''}"><div class="sc-stage">
     <div class="sc-canvas" id="sc-canvas" style="background:${SC.img ? '#000' : bgCss(SC.bg)}">${SC.img ? `<img src="${SC.img}" alt="">` : ''}
       <div class="sc-text f-${SC.font}" id="sc-text" contenteditable="true" spellcheck="false" data-ph="Type something…" style="left:${SC.x}%;top:${SC.y}%;text-align:${SC.align};color:${TCOL[SC.col]};${SC.img ? 'text-shadow:0 2px 12px rgba(0,0,0,.5)' : ''}">${esc(SC.text)}</div>
       ${l ? `<span class="sc-link">${I.link}${esc(l.title)}</span>` : ''}</div>
@@ -1001,8 +1014,20 @@ function drawComposer(focus) {
   </div></div>`;
   const t = $('#sc-text'); t.addEventListener('input', () => { SC.text = t.innerText; });
   $('#sc-file').addEventListener('change', (e) => scLoadImage(e.target.files[0]));
-  if (focus) setTimeout(() => placeCaret(t), 120);
+  if (focus) setTimeout(() => placeCaret(t), 120); else if (hadFocus) placeCaret(t);
 }
+// Small style changes are applied in place: no redraw, no flicker, the keyboard stays open.
+function scPatch() {
+  const t = $('#sc-text'), c = $('#sc-canvas'); if (!t || !c) return;
+  if (!SC.img) c.style.background = bgCss(SC.bg);
+  t.className = `sc-text f-${SC.font}`; t.style.textAlign = SC.align; t.style.color = TCOL[SC.col];
+  const dot = $('.sc-top .dotc'); if (dot) dot.style.background = TCOL[SC.col];
+  $$('[data-scbg]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.scbg === SC.bg));
+}
+// font name shows briefly in the middle, like Instagram, instead of a toast
+function scHint(txt) { let h = $('#sc-hint'); if (!h) { h = document.createElement('div'); h.id = 'sc-hint'; h.className = 'sc-hint'; $('.sc-stage')?.appendChild(h); } h.textContent = txt; h.classList.remove('show'); void h.offsetWidth; h.classList.add('show'); }
+// tapping a tool must not steal focus from the text (keeps the keyboard open)
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('.sc-top button:not([data-act=sc-close]):not([data-act=sc-photo]):not([data-act=sc-link]), .sc-bgs button')) e.preventDefault(); });
 function placeCaret(el) { el.focus(); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
 function scLoadImage(file) {
   if (!file) return; const fr = new FileReader();
@@ -1168,14 +1193,15 @@ function AttendScreen({ id }) {
     <div class="stickyact"><div><button class="btn block" data-act="att-save" data-id="${id}">${I.check}Save · ${on} present · ${on * A.pts} points</button></div></div>`;
 }
 // ----- Lead: team management -----
-let teamSeg = 'members', teamF = 'all';
+let teamSeg = 'insights', teamF = 'all';
 const tStatus = (m) => m.last > 60 ? 'inactive' : now() - T(m.joined) < 60 * DAY ? 'new' : 'active';
 function LeadTeam() {
   const q = teamQ.trim().toLowerCase(); const inact = S.team.filter((m) => tStatus(m) === 'inactive');
   const list = S.team.filter((m) => teamF === 'all' || tStatus(m) === teamF).filter((m) => !q || m.n.toLowerCase().includes(q));
-  const segs = [['members', 'Members'], ['requests', `Requests${S.requests.length ? ` · ${S.requests.length}` : ''}`], ['leads', 'Leads']];
+  const segs = [['insights', 'Insights'], ['members', 'Members'], ['requests', `Requests${S.requests.length ? ` · ${S.requests.length}` : ''}`], ['leads', 'Leads']];
   let body = '';
-  if (teamSeg === 'members') body = `<label class="search" style="margin-top:12px">${I.search}<input id="team-q" placeholder="Search ${S.team.length + 218} members" value="${esc(teamQ)}" autocomplete="off"></label>
+  if (teamSeg === 'insights') body = Insights();
+  else if (teamSeg === 'members') body = `<label class="search" style="margin-top:12px">${I.search}<input id="team-q" placeholder="Search ${S.team.length + 218} members" value="${esc(teamQ)}" autocomplete="off"></label>
     <div class="chips" style="margin-top:10px">${[['all', 'All'], ['active', 'Active'], ['new', 'New'], ['inactive', 'Inactive']].map(([k, l]) => `<button class="chip2" data-tfil="${k}" aria-pressed="${teamF === k}">${l}<span class="n">${k === 'all' ? S.team.length : S.team.filter((m) => tStatus(m) === k).length}</span></button>`).join('')}</div>
     ${teamF === 'inactive' && inact.length ? `<button class="banner tap" style="margin-top:10px" data-act="nudge-inactive">${I.bell}<span class="grow"><b>Send a gentle reminder to ${inact.length} inactive members</b><br><span class="xs">"We miss you at seva — here's what's coming up."</span></span>${chev}</button>` : ''}
     <div class="card list" style="margin-top:10px">${list.map((m) => `<button class="lrow" data-act="member" data-n="${esc(m.n)}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${tStatus(m) === 'new' ? '<span class="leadtag" style="background:var(--done-bg);color:var(--done)">New</span>' : ''}<p class="xs muted">${m.contrib} contributions · last seva ${m.last === 1 ? 'yesterday' : `${m.last} days ago`}</p></div>${tStatus(m) === 'inactive' ? '<span class="status st-plan">Inactive</span>' : ''}${chev}</button>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
@@ -1200,6 +1226,87 @@ function teamInviteSheet() {
   openSheet(`${sheetHead('Invite to Delhi Central')}<div class="card"><p class="xs muted">Invite link</p><p class="small" style="word-break:break-all;font-weight:600">${esc(link)}</p></div>
     <div class="btn-row" style="margin-top:12px"><button class="btn ghost" data-act="copy-link" data-l="${esc(link)}">Copy link</button><button class="btn" data-act="wa-invite" data-l="${esc(link)}">${I.wa}WhatsApp</button></div>
     <p class="xs muted" style="text-align:center;margin-top:12px">People who join with this link appear under Requests for you to approve.</p>`);
+}
+
+// ----- Lead: Insights (simple, glanceable charts) -----
+let insP = 'month';
+const INS = {
+  month: { held: [14, 16], fill: [82, 85], turn: [91, 85], ontime: [11, 14], weeks: [['W1', 3], ['W2', 4], ['W3', 5], ['W4', 2]], wkTarget: 4,
+    cats: [['langar', 'Langar', 94], ['cleanup', 'Cleaning', 64], ['tree', 'Tree planting', 81], ['education', 'Education', 100], ['blanket', 'Relief', 47]],
+    recent: [['Langar Sun', 13, 2], ['Hall clean', 9, 3], ['Yamuna', 8, 4], ['Reading', 4, 0], ['Langar Sun', 15, 1], ['Blankets', 5, 3]],
+    delays: [0, 5, 0, 22, 0, 3, 15, 0, 0, 18, 2, 0, 0, 4], active: [['May', 96], ['Jun', 101], ['Jul', 99], ['Aug', 104], ['Sep', 108], ['Oct', 112]] },
+  q: { held: [44, 48], fill: [79, 85], turn: [88, 85], ontime: [36, 44], weeks: [['Aug', 13], ['Sep', 15], ['Oct', 16]], wkTarget: 16,
+    cats: [['langar', 'Langar', 91], ['cleanup', 'Cleaning', 68], ['tree', 'Tree planting', 77], ['education', 'Education', 96], ['blanket', 'Relief', 52]],
+    recent: [['Aug', 118, 19], ['Sep', 131, 16], ['Oct', 142, 14]],
+    delays: [0, 12, 0, 5, 0, 0, 25, 3, 0, 9, 0, 14, 0, 0, 2, 0, 18, 0, 6, 0], active: [['Jan', 82], ['Mar', 88], ['May', 96], ['Jul', 99], ['Sep', 108], ['Oct', 112]] },
+};
+const ST = { good: ['On target', 'var(--done)', 'var(--done-bg)', I.checkc], warn: ['Watch', 'var(--action)', 'var(--action-bg)', I.alert], bad: ['Behind', 'var(--live)', 'var(--live-bg)', I.xc] };
+const grade = (v, t, soft = .93) => v >= t ? 'good' : v >= t * soft ? 'warn' : 'bad';
+const pill = (g) => `<span class="spill" style="color:${ST[g][1]};background:${ST[g][2]}">${ST[g][3]}${ST[g][0]}</span>`;
+function ring(pct, g) { const r = 17, c = 2 * Math.PI * r; return `<svg viewBox="0 0 44 44" class="ring2" aria-hidden="true"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${ST[g][1]}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - Math.min(1, pct / 100))}" transform="rotate(-90 22 22)"/></svg>`; }
+function weeksChart(d) {
+  const W = 340, H = 150, L = 26, B = 22, T = 14; const max = Math.max(d.wkTarget * 1.4, ...d.weeks.map((w) => w[1])); const y = (v) => T + (H - T - B) * (1 - v / max);
+  const bw = Math.min(44, (W - L - 10) / d.weeks.length - 14); const step = (W - L - 10) / d.weeks.length;
+  const ticks = [0, Math.round(max / 2), Math.round(max)];
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Seva held per period against a target of ${d.wkTarget}">${ticks.map((t) => `<line x1="${L}" x2="${W}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${L - 6}" y="${y(t) + 4}" class="ax" text-anchor="end">${t}</text>`).join('')}
+    ${d.weeks.map(([l, v], i) => { const x = L + 10 + i * step + (step - 14 - bw) / 2; const g = grade(v, d.wkTarget, .8); return `<g data-tip="${l}: ${v} seva · target ${d.wkTarget}"><rect x="${x - 6}" y="${T}" width="${bw + 12}" height="${H - T - B}" fill="transparent"/><path d="M${x} ${y(0)}V${y(v) + 4}a4 4 0 0 1 4 -4h${bw - 8}a4 4 0 0 1 4 4V${y(0)}z" fill="var(--ch1)" opacity="${g === 'good' ? 1 : .45}"/>${g !== 'good' ? `<text x="${x + bw / 2}" y="${y(v) - 6}" class="lbl warn" text-anchor="middle">${v}</text>` : `<text x="${x + bw / 2}" y="${y(v) - 6}" class="lbl" text-anchor="middle">${v}</text>`}<text x="${x + bw / 2}" y="${H - 6}" class="ax" text-anchor="middle">${l}</text></g>`; }).join('')}
+    <line x1="${L}" x2="${W}" y1="${y(d.wkTarget)}" y2="${y(d.wkTarget)}" class="target"/><text x="${W}" y="${y(d.wkTarget) - 5}" class="ax tgt" text-anchor="end">Target ${d.wkTarget}</text></svg>`;
+}
+function catBars(d, target = 85) {
+  return `<div class="hbars">${d.cats.slice().sort((a, b) => a[2] - b[2]).map(([k, l, v]) => { const g = grade(v, target, .88); return `<div class="hb" data-tip="${l}: ${v}% of places filled · target ${target}%"><span class="hl">${l}</span><span class="track"><i style="width:${v}%;background:${ST[g][1]}"></i><b class="tmark" style="left:${target}%"></b></span><span class="hv" style="color:${g === 'good' ? 'var(--ink)' : ST[g][1]}">${g !== 'good' ? ST[g][3] : ''}${v}%</span></div>`; }).join('')}<p class="xs muted" style="margin-top:6px"><b class="tkey"></b> Target ${target}% of places filled</p></div>`;
+}
+function turnChart(d) {
+  const W = 340, H = 160, L = 8, B = 30, T = 16; const max = Math.max(...d.recent.map((r) => r[1] + r[2])); const step = (W - L * 2) / d.recent.length; const bw = Math.min(36, step - 16);
+  const y = (v) => (H - T - B) * v / max;
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Sevadars who came versus said going but did not come"><line x1="0" x2="${W}" y1="${H - B}" y2="${H - B}" class="grid"/>
+    ${d.recent.map(([l, came, no], i) => { const x = L + i * step + (step - bw) / 2; const h1 = y(came), h2 = y(no); const pct = Math.round(came / (came + no) * 100); return `<g data-tip="${l}: ${came} came, ${no} didn't come (${pct}%)"><rect x="${x - 6}" y="${T}" width="${bw + 12}" height="${H - T - B}" fill="transparent"/><rect x="${x}" y="${H - B - h1}" width="${bw}" height="${h1}" fill="var(--ch1)" rx="0"/>${no ? `<path d="M${x} ${H - B - h1 - 2}V${H - B - h1 - h2 + 4}a4 4 0 0 1 4 -4h${bw - 8}a4 4 0 0 1 4 4V${H - B - h1 - 2}z" fill="var(--ch2)"/>` : ''}<text x="${x + bw / 2}" y="${H - B - h1 - h2 - 6}" class="lbl" text-anchor="middle">${pct}%</text><text x="${x + bw / 2}" y="${H - 12}" class="ax" text-anchor="middle">${l.split(' ')[0]}</text></g>`; }).join('')}</svg>
+    <div class="legend"><span><i style="background:var(--ch1)"></i>Came</span><span><i style="background:var(--ch2)"></i>Said going, didn't come</span></div>`;
+}
+function delayChart(d, limit = 10) {
+  const W = 340, H = 120, L = 26, B = 18, T = 12; const max = Math.max(30, ...d.delays); const step = (W - L - 8) / d.delays.length; const y = (v) => T + (H - T - B) * (1 - v / max);
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Minutes late at the start of each seva">${[0, 15, 30].map((t) => `<line x1="${L}" x2="${W}" y1="${y(t)}" y2="${y(t)}" class="grid"/><text x="${L - 6}" y="${y(t) + 4}" class="ax" text-anchor="end">${t}</text>`).join('')}
+    <line x1="${L}" x2="${W}" y1="${y(limit)}" y2="${y(limit)}" class="target"/>
+    ${d.delays.map((v, i) => { const x = L + 8 + i * step; const late = v > limit; return `<g data-tip="Seva ${i + 1}: ${v ? v + ' min late' : 'on time'}"><rect x="${x - step / 2}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent"/>${v ? `<line x1="${x}" x2="${x}" y1="${y(0)}" y2="${y(v)}" stroke="${late ? 'var(--action-c)' : 'var(--faint)'}" stroke-width="2"/>` : ''}<circle cx="${x}" cy="${y(v)}" r="4.5" fill="${late ? 'var(--action-c)' : v ? 'var(--faint)' : 'var(--done-c)'}" stroke="var(--surface)" stroke-width="2"/></g>`; }).join('')}
+    <text x="${W}" y="${y(limit) - 5}" class="ax tgt" text-anchor="end">${limit} min</text></svg>
+    <div class="legend"><span><i style="background:var(--done-c);border-radius:50%"></i>On time</span><span><i style="background:var(--faint);border-radius:50%"></i>A little late</span><span><i style="background:var(--action-c);border-radius:50%"></i>Over ${limit} min</span></div>`;
+}
+function activeChart(d) {
+  const W = 340, H = 120, L = 8, R = 44, T = 14, B = 20; const vs = d.active.map((a) => a[1]); const lo = Math.min(...vs) - 10, hi = Math.max(...vs) + 6;
+  const x = (i) => L + (W - L - R) * i / (vs.length - 1), y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const pts = vs.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Active members per month"><defs><linearGradient id="actg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ch1)" stop-opacity=".22"/><stop offset="1" stop-color="var(--ch1)" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${x(0)},${H - B} ${pts} ${x(vs.length - 1)},${H - B}" fill="url(#actg)"/><polyline points="${pts}" fill="none" stroke="var(--ch1)" stroke-width="2" stroke-linejoin="round"/>
+    ${d.active.map(([l, v], i) => `<g data-tip="${l}: ${v} active members"><rect x="${x(i) - 22}" y="${T}" width="44" height="${H - T - B}" fill="transparent"/><circle cx="${x(i)}" cy="${y(v)}" r="${i === vs.length - 1 ? 5 : 3}" fill="${i === vs.length - 1 ? 'var(--ch1)' : 'var(--surface)'}" stroke="var(--ch1)" stroke-width="2"/><text x="${x(i)}" y="${H - 5}" class="ax" text-anchor="middle">${l}</text></g>`).join('')}
+    <text x="${x(vs.length - 1) + 9}" y="${y(vs[vs.length - 1]) + 4}" class="lbl">${vs[vs.length - 1]}</text></svg>`;
+}
+function Insights() {
+  const d = INS[insP]; const att = localSeva().filter(needsAttend).length; const inact = S.team.filter((m) => tStatus(m) === 'inactive').length;
+  const tiles = [
+    ['Seva held', Math.round(d.held[0] / d.held[1] * 100), `${d.held[0]}<small>/${d.held[1]}</small>`, `Target ${d.held[1]}`, grade(d.held[0], d.held[1], .85)],
+    ['Places filled', d.fill[0], `${d.fill[0]}<small>%</small>`, `Target ${d.fill[1]}%`, grade(d.fill[0], d.fill[1])],
+    ['Turned up', d.turn[0], `${d.turn[0]}<small>%</small>`, 'Came vs said going', grade(d.turn[0], d.turn[1])],
+    ['Started on time', Math.round(d.ontime[0] / d.ontime[1] * 100), `${d.ontime[0]}<small>/${d.ontime[1]}</small>`, 'Target 90%', grade(d.ontime[0] / d.ontime[1] * 100, 90, .95)],
+  ];
+  const worst = d.cats.slice().sort((a, b) => a[2] - b[2]);
+  const late = d.delays.filter((v) => v > 10);
+  const issues = [
+    worst[0][2] < 75 && ['bad', `${worst[0][1]} seva are short of people`, `Only ${worst[0][2]}% of places filled — ask early, invite inactive members`, 'Invite', `ins-invite`],
+    worst[1][2] < 75 && ['bad', `${worst[1][1]} seva are short of people`, `${worst[1][2]}% of places filled`, null],
+    late.length && ['warn', `${late.length} seva started more than 10 min late`, `Average ${Math.round(late.reduce((a, b) => a + b, 0) / late.length)} min late — share the meeting point the evening before`, null],
+    att && ['warn', `Attendance not marked for ${att} seva`, 'Sevadars are waiting for their points', 'Mark now', 'ins-attend'],
+    inact && ['warn', `${inact} members inactive for 2+ months`, 'A gentle reminder often brings people back', 'Remind', 'nudge-inactive'],
+    ['good', `Turn-up is strong at ${d.turn[0]}%`, 'Most people who say "going" really come', null],
+  ].filter(Boolean);
+  const card = (title, sub, body) => `<div class="card ichart"><div class="ich"><div><h3>${title}</h3>${sub ? `<p class="xs muted">${sub}</p>` : ''}</div></div>${body}<div class="ctip" hidden></div></div>`;
+  return `<div class="seg" style="margin-top:12px"><button data-insp="month" aria-pressed="${insP === 'month'}">This month</button><button data-insp="q" aria-pressed="${insP === 'q'}">Last 3 months</button></div>
+    <div class="htiles">${tiles.map(([l, p, v, sub, g]) => `<div class="htile"><div class="row" style="gap:10px">${ring(p, g)}<div class="grow"><b class="hv2">${v}</b><p class="xs muted">${l}</p></div></div><div style="margin-top:8px">${pill(g)}</div><p class="xs faint" style="margin-top:4px">${sub}</p></div>`).join('')}</div>
+    <div class="card" style="margin-top:12px"><h3 style="font-size:16px">What needs attention</h3>${issues.map(([g, t, s2, btn, act]) => `<div class="lrow" style="align-items:flex-start"><span class="av2" style="width:32px;height:32px;background:${ST[g][2]};color:${ST[g][1]}">${ST[g][3].replace('<svg', '<svg style="width:18px;height:18px"')}</span><div class="grow"><b class="small">${t}</b><p class="xs muted">${s2}</p></div>${btn ? `<button class="btn soft sm" data-act="${act}">${btn}</button>` : ''}</div>`).join('')}</div>
+    ${card(insP === 'month' ? 'Seva held each week' : 'Seva held each month', 'Faded bars are below target', weeksChart(d))}
+    ${card('Places filled by type of seva', 'Where we are short of people', catBars(d))}
+    ${card('Did people turn up?', insP === 'month' ? 'Last 6 seva' : 'Per month', turnChart(d))}
+    ${card('Start delays', 'Minutes late, each seva in order', delayChart(d))}
+    ${card('Active members', 'Did at least one seva that month', activeChart(d))}
+    <p class="xs faint" style="text-align:center;margin-top:10px">Tap any bar or dot for details · sample figures in this prototype</p>`;
 }
 
 // ---------- Sheets ----------
@@ -1249,15 +1356,15 @@ function handle(el) {
     case 'story-mine': { closeSheet(); const g = grp('g-delhi'); const k = g.stories.findIndex((x) => x.by === '@me'); if (k < 0) { openComposer(); break; } openStory('g-delhi'); SV.i = k; buildCube(); showStory(); break; }
     case 'story-del': pauseStory(); if (confirm('Delete this story? Members will no longer see it.')) deleteMyStory(id); else resumeStory(); break;
     case 'sc-close': if (!(SC.text || '').trim() && !SC.img) closeComposer(); else if (confirm('Discard this story?')) closeComposer(); break;
-    case 'sc-font': SC.text = $('#sc-text').innerText; SC.font = FONTS[(FONTS.findIndex((f) => f[0] === SC.font) + 1) % FONTS.length][0]; drawComposer(); toast(FONTS.find((f) => f[0] === SC.font)[1]); break;
-    case 'sc-align': SC.text = $('#sc-text').innerText; SC.align = { center: 'left', left: 'right', right: 'center' }[SC.align]; drawComposer(); break;
-    case 'sc-col': SC.text = $('#sc-text').innerText; SC.col = (SC.col + 1) % TCOL.length; drawComposer(); break;
+    case 'sc-font': SC.font = FONTS[(FONTS.findIndex((f) => f[0] === SC.font) + 1) % FONTS.length][0]; scPatch(); scHint(FONTS.find((f) => f[0] === SC.font)[1]); break;
+    case 'sc-align': SC.align = { center: 'left', left: 'right', right: 'center' }[SC.align]; scPatch(); break;
+    case 'sc-col': SC.col = (SC.col + 1) % TCOL.length; scPatch(); break;
     case 'sc-photo': SC.text = $('#sc-text').innerText; $('#sc-file').click(); break;
     case 'sc-nophoto': SC.text = $('#sc-text').innerText; SC.img = null; drawComposer(); break;
     case 'sc-link': SC.text = $('#sc-text').innerText; scLinkSheet(); break;
     case 'sc-setlink': SC.link = el.dataset.ref || null; closeSheet(); drawComposer(); break;
     case 'sc-share': SC.text = $('#sc-text').innerText; scShare(); break;
-    case 'glance': { const k = el.dataset.k; if (k === 'team') { teamSeg = 'requests'; go('team'); } else { sevaSeg = 'manage'; leadChip = k === 'attend' ? 'attend' : k === 'seva' ? 'live' : 'upcoming'; go('seva'); } break; }
+    case 'glance': { const k = el.dataset.k; if (k === 'insights') { teamSeg = 'insights'; go('team'); } else if (k === 'team') { teamSeg = 'requests'; go('team'); } else { sevaSeg = 'manage'; leadChip = k === 'attend' ? 'attend' : k === 'seva' ? 'live' : 'upcoming'; go('seva'); } break; }
     case 'seva-new': draft = null; push({ v: 'create' }); break;
     case 'd-need': { syncDraft(); const tk = draft.tasks[+el.dataset.i]; tk.n = Math.max(1, Math.min(60, tk.n + +el.dataset.d)); rerender(); break; }
     case 'd-del': syncDraft(); draft.tasks.splice(+el.dataset.i, 1); rerender(); break;
@@ -1315,6 +1422,8 @@ function handle(el) {
     case 'req': { const r = S.requests.splice(+el.dataset.i, 1)[0]; if (el.dataset.v === '1') S.team.unshift({ n: r.n, joined: iso(now()), contrib: 0, last: 0 }); save(); rerender(); toast(el.dataset.v === '1' ? `${first(r.n)} joined Delhi Central 🙏` : 'Request declined'); break; }
     case 'nudge-inactive': toast(`Reminder sent to ${S.team.filter((m) => tStatus(m) === 'inactive').length} members`); break;
     case 'team-invite': teamInviteSheet(); break;
+    case 'ins-attend': { const s = localSeva().find(needsAttend); if (s) push({ v: 'attend', id: s.id }); break; }
+    case 'ins-invite': { const s = localSeva().filter((x) => isFuture(x) && x.cat === 'cleanup')[0] || localSeva().filter(isFuture)[0]; if (s) { push({ v: 'seva', id: s.id }); dtab = 'people'; teamFilter = 'going'; rerender(); inviteSheet(s.id); } break; }
     case 'copy-link': try { navigator.clipboard.writeText(el.dataset.l); toast('Link copied'); } catch (e) { toast('Copy not available here'); } break;
     case 'wa-invite': window.open(`https://wa.me/?text=${encodeURIComponent('Join Delhi Central on Namdhari Seva 🙏 ' + el.dataset.l)}`, '_blank', 'noopener'); break;
     case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
@@ -1395,7 +1504,7 @@ let lastDbl = { id: null, t: 0 };
 document.addEventListener('click', (e) => {
   if (e.target.closest('.sv') && !e.target.closest('[data-act]')) return;
   const gi = e.target.closest('[data-gi]'); if (gi) { buzz(); itemSheet(gi.dataset.gi); return; }
-  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role]');
+  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role],[data-insp],[data-tip]');
   if (!t || t.disabled) return;
   if (t.dataset.act) return handle(t);
   if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open.includes(':') ? t.dataset.open : t.dataset.open + ':'); return; }
@@ -1407,10 +1516,12 @@ document.addEventListener('click', (e) => {
   if (t.dataset.dtab) { dtab = t.dataset.dtab; const top = stack[stack.length - 1]; rerender(); if (top?.v === 'seva') { if (dtab === 'updates') S.seenUpd[top.id] = now(); if (dtab === 'tasks') S.seenTasks[top.id] = now(); save(); } return; }
   if (t.dataset.tf) { teamFilter = t.dataset.tf; rerender(); return; }
   if (t.dataset.lchip) { leadChip = t.dataset.lchip; rerender(); return; }
-  if (t.dataset.scbg) { SC.bg = t.dataset.scbg; SC.text = $('#sc-text').innerText; drawComposer(); return; }
+  if (t.dataset.scbg) { SC.bg = t.dataset.scbg; scPatch(); return; }
   if (t.dataset.dcat) { syncDraft(); const tt = draft.tasks.some((x, i) => x.t !== (TEMPLATES[draft.cat][1][i] || [])[0]); draft.cat = t.dataset.dcat; draft.title = TEMPLATES[draft.cat][0]; if (!tt) draft.tasks = TEMPLATES[draft.cat][1].map(([x, n]) => ({ t: x, n })); rerender(); return; }
   if (t.dataset.tseg) { teamSeg = t.dataset.tseg; rerender(); return; }
   if (t.dataset.tfil) { teamF = t.dataset.tfil; rerender(); return; }
+  if (t.dataset.insp) { insP = t.dataset.insp; rerender(); return; }
+  if (t.dataset.tip) { const card = t.closest('.ichart'); const tip = card?.querySelector('.ctip'); if (!tip) return; const r = t.getBoundingClientRect(), c = card.getBoundingClientRect(); $$('.ichart [data-tip].on').forEach((x) => x.classList.remove('on')); t.classList.add('on'); tip.textContent = t.dataset.tip; tip.hidden = false; const w = tip.offsetWidth; tip.style.left = Math.max(8, Math.min(c.width - w - 8, r.left - c.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(6, r.top - c.top - tip.offsetHeight - 6) + 'px'; buzz(); return; }
   if (t.dataset.role) { S.role = t.dataset.role; sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); return; }
   if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
