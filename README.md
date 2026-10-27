@@ -1,8 +1,8 @@
-# Namdhari Seva & Community — member prototype (v6.1)
+# Namdhari Seva & Community — prototype (v7: Member + Team Lead)
 
 Live demo: https://iiswaranii.github.io/namdhari-seva-demo/ — open it on your phone and use **Add to Home Screen**.
 
-This is a clickable prototype for the **Member** role only. There is no backend; the sample data lives on your device.
+This is a clickable prototype for the **Member** and **Team Lead** roles. Switch between them in Profile → "Viewing as". There is no backend; the sample data lives on your device.
 
 ## What's inside
 - **Home (Instagram-style)**
@@ -30,3 +30,16 @@ This is a clickable prototype for the **Member** role only. There is no backend;
   - My Seva Journey, My Garden, My Commitments, **My Team** (Delhi Central members, leads, search), Notifications, and App Settings (theme and prototype member state).
 
 Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you open the 3D view.
+
+## Team Lead (v7)
+- **Stories, Instagram-style composer:** text on gradient backgrounds (8 options, including grey) or on a photo. You can change the font, alignment and colour, drag the text to move it, and link a seva.
+  - Max 2 stories per lead per day.
+  - Stories disappear after 24 h.
+  - You can delete your own story; it shows "Seen by".
+- **Today at Delhi Central:** live seva, attendance due, tasks with no one, join requests.
+- **Manage seva:** Live / Upcoming / Attendance / Done.
+  - Create a seva with templates and tasks; it can repeat weekly.
+  - Edit details, add, edit or delete tasks, ask for help, invite and remind members, post updates, cancel, and end a seva.
+  - Every change notifies the people in that seva.
+- **Attendance:** after a seva, mark Present or Absent, add walk-ins and set points (1–5). Sevadars get garden points and a notification.
+- **Team:** members (search; filter by active, new or inactive; remind inactive members) and member details (message, invite, remove). Join requests can be approved or declined. Leads list. Invite link.
