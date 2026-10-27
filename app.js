@@ -86,6 +86,7 @@ const I = {
   download: svg('<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>'),
   team: svg('<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 21a5 5 0 0 1 10 0M1.5 19a3.6 3.6 0 0 1 5.5-3M22.5 19a3.6 3.6 0 0 0-5.5-3"/>'),
   flag: svg('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+  globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
 };
 const SEED = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#F6C453"/><circle cx="12" cy="12" r="10" fill="none" stroke="#D99A1E" stroke-width="1.4"/><path d="M12 17.5v-6M12 11.5c0-3 2-5 5-5 0 3-2 5-5 5zM12 13.5c0-2.4-1.7-4-4.2-4 0 2.4 1.7 4 4.2 4z" stroke="#7A4D00" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
 const seed = (n) => `<span class="seed">${SEED}${n}</span>`;
@@ -126,6 +127,13 @@ function baseSeva(kind) {
       points: pts(21, [['Load blankets into vans', 4, 1, false], ['Hand out blankets', 8, 1, false], ['Drive a van', 3, 0, false]]), updates: [] },
     { id: 's7', title: 'Punjabi Reading Circle', cat: 'education', start: at(6, 17), end: at(6, 18, 30), place: 'Community Hall, Karol Bagh', meet: 'Room 2', lead: 'Harpreet Kaur', purpose: 'Help children practise Gurmukhi reading.', instructions: 'Books provided.', created: at(-20, 9), recur: 'Every Saturday', people: crowd(24, 4, 1, 1),
       points: pts(24, [['Read with a small group', 4, 3, false], ['Set up the room', 1, 1, false]]), updates: [] },
+    { id: 's10', title: 'Shoe Seva at the Gurdwara', cat: 'cleanup', start: rel(-30), end: rel(150), place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Joda ghar (shoe room)', lead: 'Balwinder Singh', purpose: 'Look after the sangat\'s shoes during the evening diwan.', instructions: 'Gloves provided.', created: at(-2, 9), people: crowd(6, 5, 0, 0, 5),
+      points: pts(6, [['Take and tag shoes', 3, 2, false, .5], ['Return shoes after diwan', 3, 1, false, 0]]), updates: [] },
+    // Created by the Main Admin (Seva HQ): shown to every member, wherever they are
+    { id: 's9', hq: true, region: 'Sri Bhaini Sahib', title: 'Annual Cleaning Seva', cat: 'cleanup', start: at(8, 7), end: at(8, 12), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Main gate, near the langar hall', lead: 'Seva HQ team', purpose: 'Clean and prepare the whole complex before the winter gathering. Sangat from every city is welcome.', instructions: 'Travel and stay are arranged by your own jatha. Tell your team lead if you are coming.', created: rel(-60), people: crowd(4, 46, 12, 3),
+      points: pts(4, [['Clean the main diwan hall', 20, 14, false], ['Langar hall and kitchen', 15, 9, false], ['Gardens and pathways', 12, 4, false], ['Water seva for arriving sangat', 6, 0, false]]), updates: [{ id: 'u9', t: 'Buses from Delhi and Ludhiana are being arranged — ask your team lead', d: rel(-40), by: 'Seva HQ team', kind: 'info' }] },
+    { id: 's8', hq: true, region: 'Sri Bhaini Sahib', title: 'Hola Mohalla Langar Seva', cat: 'langar', start: at(23, 6), end: at(23, 14), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Langar hall, gate 3', lead: 'Seva HQ team', purpose: 'Langar for thousands of sangat arriving for Hola Mohalla.', instructions: 'Register with your team lead so kitchens can plan.', created: at(-3, 9), people: crowd(10, 120, 30, 6),
+      points: pts(10, [['Cook dal and sabzi', 40, 18, false], ['Make rotis', 60, 22, false], ['Serve in the pangat', 50, 10, false], ['Clean utensils', 30, 3, false]]), updates: [] },
   ];
 }
 function baseEvents() {
@@ -138,6 +146,7 @@ function baseEvents() {
 // Feed: only the Super Admin posts. Text only, rendered as designed cards.
 function baseFeed() {
   return [
+    { id: 'f0', type: 'seva', d: rel(-20), sid: 's9', title: 'Annual Cleaning Seva', text: 'Seva HQ invites sangat from every city to Sri Bhaini Sahib.', r: { g: 860, s: 410 } },
     { id: 'f1', type: 'thought', d: rel(-50), title: 'Thought of the Day', text: 'Seva done with a quiet heart is never small. Every roti rolled and every step swept is an offering.', r: { g: 1204, s: 312 } },
     { id: 'f2', type: 'alert', d: rel(-120), title: 'Venue changed', text: 'Yamuna Ghat Clean-up on Thursday now meets at Gate 2. Gate 1 is closed for repairs. Same time, 7:00 AM.', link: 'seva:s2', cta: 'View seva', r: { g: 88, s: 240 } },
     { id: 'f3', type: 'hukam', d: rel(-300), title: 'Satguru Ji\'s Hukam', text: 'This winter, every jatha is asked to hold one blanket seva for those sleeping in the cold. Plans for Delhi are now open — please give your name to your team lead.', link: 'seva:s6', cta: 'See the plan', r: { g: 2310, s: 1430 } },
@@ -145,6 +154,12 @@ function baseFeed() {
     { id: 'f5', type: 'event', d: at(-1, 12), title: 'Monthly Satsang', text: 'Kirtan, katha and langar. 86 sangat going so far.', link: 'event:e1', ev: 'e1', cta: 'RSVP', r: { g: 410, s: 96 } },
     { id: 'f6', type: 'info', d: at(-2, 10), title: 'New in the app', text: 'You can now pick the exact tasks you will do at a seva. Your team lead sees it instantly, and you get a reminder before it starts.', r: { g: 150, s: 77 } },
     { id: 'f7', type: 'thought', d: at(-3, 7), title: 'Thought of the Day', text: 'The sangat is a garden. It grows when each of us tends one small patch of it.', r: { g: 980, s: 205 } },
+    { id: 'f8', type: 'seva', d: at(-3, 9), sid: 's8', title: 'Hola Mohalla Langar Seva', text: 'Kitchens for thousands of sangat. Register with your team lead.', r: { g: 1520, s: 890 } },
+    { id: 'f9', type: 'appreciation', d: at(-4, 18), title: 'Thank you, London Sangat', text: '16 sevadars served langar to 450 sangat at Southall in under 2 hours.', stat: '450 served', r: { g: 733, s: 140 } },
+    { id: 'f10', type: 'info', d: at(-5, 11), title: 'Winter timings', text: 'From next week, morning seva at Karol Bagh starts at 7:30 AM instead of 7:00 AM.', r: { g: 98, s: 44 } },
+    { id: 'f11', type: 'thought', d: at(-6, 7), title: 'Thought of the Day', text: 'Serve without counting. The garden never asks the rain how many drops it gave.', r: { g: 1101, s: 260 } },
+    { id: 'f12', type: 'alert', d: at(-7, 9), title: 'Heavy rain expected', text: 'Saturday\'s outdoor seva in Ludhiana may move indoors. Watch your seva updates.', r: { g: 61, s: 180 } },
+    { id: 'f13', type: 'appreciation', d: at(-8, 19), title: 'Thank you, Jammu Sangat', text: '200 blankets packed in one evening for the winter relief drive.', stat: '200 blankets', r: { g: 512, s: 133 } },
   ];
 }
 // Stories: posted by team leads under their group name (max 2 per lead per day).
@@ -168,7 +183,7 @@ function baseStories() {
   ];
 }
 function scenario(kind) {
-  const d = { seva: baseSeva(kind), events: baseEvents(), feed: baseFeed(), groups: baseStories(), assign: {}, rsvp: {}, history: [], notifs: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0 };
+  const d = { seenTasks: {}, seva: baseSeva(kind), events: baseEvents(), feed: baseFeed(), groups: baseStories(), assign: {}, rsvp: {}, history: [], notifs: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0 };
   if (kind === 'active') {
     d.assign = { s0: { state: 'going' }, s5: { state: 'going' }, s1: { state: 'going' }, s2: { state: 'maybe' }, s3: { state: 'invited' } };
     d.rsvp = { e1: 'going' };
@@ -202,10 +217,13 @@ function scenario(kind) {
   return d;
 }
 
-const KEY = 'namdhari-seva-v6';
+const KEY = 'namdhari-seva-v7';
 let S;
-function fresh(kind = 'active') { return { v: 6, onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
-try { S = JSON.parse(localStorage.getItem(KEY)); if (!S || S.v !== 6) S = fresh(); } catch (e) { S = fresh(); }
+function fresh(kind = 'active') { return { v: 7, onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
+try {
+  S = JSON.parse(localStorage.getItem(KEY));
+  if (!S || S.v !== 7) { const old = JSON.parse(localStorage.getItem('namdhari-seva-v6') || 'null'); S = fresh(old?.scenario || 'active'); if (old) Object.assign(S, { onboarded: old.onboarded, name: old.name, mode: old.mode, gview: old.gview }); }
+} catch (e) { S = fresh(); }
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
 
@@ -223,6 +241,10 @@ const seenAt = (sid) => S.seenUpd[sid] ?? 0;
 const unreadUpd = (s) => s.updates.filter((u) => T(u.d) > seenAt(s.id));
 const liveMine = () => S.seva.filter((s) => isLive(s) && going(s)).sort((a, b) => T(a.start) - T(b.start));
 const liveAll = () => S.seva.filter(isLive);
+const liveHome = () => S.seva.filter((s) => isLive(s) && !s.hq).sort((a, b) => going(b) - going(a) || T(a.start) - T(b.start));
+const pendingMine = (s) => going(s) && isLive(s) ? myPoints(s).filter((p) => !S.mydone[p.id]) : [];
+const newTasks = (s) => s.points.filter((p) => p.live && T(p.at) > (S.seenTasks[s.id] ?? 0));
+const needsPick = (s) => going(s) && T(s.end) > now() && !myPoints(s).length;
 const contributions = () => S.history.slice().sort((a, b) => T(b.date) - T(a.date));
 const isNew = (x) => !S.seen[x.id] && x.created && now() - T(x.created) < 5 * DAY && isFuture(x);
 const markSeen = (id) => { if (!S.seen[id]) { S.seen[id] = now(); save(); } };
@@ -310,7 +332,7 @@ function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); histo
 function pop() { if (stack.length) history.back(); }
 window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; if (pendingRef) { const r = pendingRef; pendingRef = null; openRef(r); } return; } if ($('.sv')) { closeStory(true); return; } if (stack.length) { leaveDetail(); stack.pop(); closeSheet(); render(); window.scrollTo(0, scrollMem[key()] || 0); } });
 function go(t) { closeSheet(); if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
-function leaveDetail() { const top = stack[stack.length - 1]; if (top?.v === 'seva') { S.seenUpd[top.id] = now(); save(); } }
+function leaveDetail() {} // updates and new tasks stay flagged until their tab is opened
 
 // ---------- Render ----------
 function render() {
@@ -326,6 +348,7 @@ function render() {
     $('#app').innerHTML = `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${screens[tab]()}</main>${tab === 'garden' && cartQty() ? cartBar() : ''}${tabbar()}`;
   }
   if (!stack.length && tab === 'garden' && S.gview === '3d') mount3D();
+  if (!stack.length && tab === 'home') { setupFeed(); setupLiveCarousel(); }
 }
 function rerender() { const y = window.scrollY; render(); window.scrollTo(0, y); }
 function tabbar() {
@@ -349,18 +372,41 @@ function storiesRow() {
   return `<div class="stories" role="list" aria-label="Stories from team leads">${gs.map((g) => `<button class="story ${groupSeen(g) ? 'seen' : ''}" role="listitem" data-story="${g.id}" aria-label="${esc(g.full)} stories${groupSeen(g) ? ', seen' : ''}"><span class="ring"><span>${groupAv(g)}</span></span><b>${esc(g.name)}</b></button>`).join('')}</div>`;
 }
 function liveBanner(s) {
-  const n = unreadUpd(s).length; const mine = myPoints(s).filter((p) => !S.mydone[p.id]).length;
-  return `<button class="livebanner tap" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc)">${CAT[s.cat].ic}</span><div class="grow"><span class="livepill"><i></i>LIVE NOW</span><h3 class="ellipsis">${esc(s.title)}</h3><p class="m ellipsis">${mine ? `${mine} task${mine > 1 ? 's' : ''} for you` : 'You\'re here'} · ${progress(s)}% done · ends ${fmtTime(s.end)}</p></div>${n ? `<span class="newbadge">${I.bell}${n} new</span>` : ''}${chev}</button>`;
+  if (!going(s)) { const here = peopleOf(s).filter((p) => p.st === 'here').length; return `<button class="livebanner tap" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc)">${CAT[s.cat].ic}</span><div class="grow"><span class="livepill"><i></i>LIVE NOW</span><h3 class="ellipsis">${esc(s.title)}</h3><p class="m ellipsis">${here} sevadars here · ${openPtsN(s)} task${openPtsN(s) === 1 ? '' : 's'} need help</p></div><span class="status st-up" style="flex:none">Join</span></button>`; }
+  const n = unreadUpd(s).length + newTasks(s).length; const mine = pendingMine(s).length;
+  return `<button class="livebanner tap" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc)">${CAT[s.cat].ic}</span><div class="grow"><span class="livepill"><i></i>LIVE NOW</span><h3 class="ellipsis">${esc(s.title)}</h3><p class="m ellipsis">${mine ? `<b class="pend">${mine} to tick</b> · ` : needsPick(s) ? '<b class="pend">Pick a task</b> · ' : 'You\'re here · '}${progress(s)}% done · ends ${fmtTime(s.end)}</p></div>${n ? `<span class="newbadge">${I.bell}${n} new</span>` : ''}${chev}</button>`;
 }
 function Home() {
-  const live = liveMine();
-  const next = !live.length ? S.seva.filter((s) => isFuture(s) && going(s)).sort((a, b) => T(a.start) - T(b.start))[0] : null;
+  const live = liveHome();
+  const next = !liveMine().length ? S.seva.filter((s) => isFuture(s) && going(s)).sort((a, b) => T(a.start) - T(b.start))[0] : null;
   return `<header class="apphdr">${LOGO}<h1>Namdhari Seva</h1><span class="sp"></span>${bellBtn()}</header>
     ${storiesRow()}
-    ${live.map(liveBanner).join('')}
+    ${live.length > 1 ? `<div class="lhead"><span class="livepill"><i></i>${live.length} LIVE NOW</span><span class="xs muted">Swipe to see all ${I.arrow.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')}</span></div><div class="lcar" id="lcar">${live.map(liveBanner).join('')}</div><div class="ldots" id="ldots">${live.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : live.map(liveBanner).join('')}
     ${next ? `<button class="livebanner tap" style="background:var(--surface);border-color:var(--border)" data-open="seva:${next.id}"><span class="art cc-${next.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[next.cat].ic}</span><div class="grow"><span class="status st-up">${I.clock}Your next seva</span><h3 class="ellipsis">${esc(next.title)}</h3><p class="m ellipsis">${relDay(next.start)} · ${fmtTime(next.start)}</p></div>${chev}</button>` : ''}
-    <div style="margin-top:18px">${S.feed.map(postCard).join('')}</div>
-    <p class="xs faint" style="text-align:center;margin:20px 0 4px">You're all caught up 🙏</p>`;
+    <div style="margin-top:18px" id="feed">${S.feed.slice(0, feedShown).map(postCard).join('')}</div>
+    ${feedShown < S.feed.length ? feedMore() : caughtUp()}`;
+}
+// Feed loads a few posts at a time as you scroll (keeps server and database load low)
+const FEED_PAGE = 3;
+let feedShown = FEED_PAGE, feedLoading = false, feedIO = null;
+const caughtUp = () => `<p class="xs faint" id="feed-end" style="text-align:center;margin:20px 0 4px">You're all caught up 🙏</p>`;
+const feedMore = () => `<div id="feed-more" aria-label="Loading more posts"><div class="post skelpost"><div class="ph"><span class="skel" style="width:38px;height:38px;border-radius:50%"></span><span class="skel" style="height:14px;width:45%;border-radius:6px"></span></div><div class="skel" style="height:220px;margin:0 12px 14px;border-radius:18px"></div></div></div>`;
+function setupFeed() {
+  feedIO && feedIO.disconnect(); const el = $('#feed-more'); if (!el || !('IntersectionObserver' in window)) return;
+  feedIO = new IntersectionObserver((en) => { if (en[0].isIntersecting) loadMoreFeed(); }, { rootMargin: '400px 0px' }); feedIO.observe(el);
+}
+function loadMoreFeed() {
+  if (feedLoading || feedShown >= S.feed.length) return; feedLoading = true;
+  setTimeout(() => { // stands in for the network request for the next page
+    feedLoading = false; const box = $('#feed'); if (!box) return;
+    box.insertAdjacentHTML('beforeend', S.feed.slice(feedShown, feedShown + FEED_PAGE).map(postCard).join('')); feedShown += FEED_PAGE;
+    if (feedShown >= S.feed.length) { feedIO && feedIO.disconnect(); $('#feed-more')?.insertAdjacentHTML('afterend', caughtUp()); $('#feed-more')?.remove(); }
+  }, 650);
+}
+function setupLiveCarousel() {
+  const c = $('#lcar'); if (!c) return; if (setupLiveCarousel.x) c.scrollLeft = setupLiveCarousel.x;
+  const upd = () => { setupLiveCarousel.x = c.scrollLeft; const kids = [...c.children]; const mid = c.scrollLeft + c.clientWidth / 2; let best = 0, bd = 1e9; kids.forEach((k, i) => { const d = Math.abs(k.offsetLeft + k.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }); $$('#ldots i').forEach((d, i) => d.classList.toggle('on', i === best)); };
+  c.addEventListener('scroll', upd, { passive: true }); upd();
 }
 const PK = {
   thought: { label: 'Thought of the Day', ic: I.sun, cls: '', grad: ['#FFE9C9', '#FFC9A6', '#F9A9BC'] },
@@ -369,6 +415,7 @@ const PK = {
   appreciation: { label: 'Appreciation', ic: I.heart, cls: '', grad: ['#E3F9C6', '#A7F0C2', '#7DE3D6'] },
   event: { label: 'Upcoming event', ic: I.cal, cls: 'light', grad: ['#7C4DFF', '#9C3FD8', '#C2389E'] },
   info: { label: 'Information', ic: I.info, cls: '', grad: ['#E0ECFF', '#CBD8FF', '#D9CCFF'] },
+  seva: { label: 'Seva from HQ', ic: I.globe, cls: '', grad: ['#FFF6DB', '#FFE08A', '#FFC24D'] },
 };
 function postArt(p) {
   const k = PK[p.type]; const g = `pg-${p.id}`;
@@ -378,6 +425,7 @@ function postArt(p) {
     alert: `<g opacity=".18">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 34 - 40} 0 l20 0 l-26 26 l-20 0z" fill="#B42318"/>`).join('')}</g><path d="M330 150 L390 260 H270Z" fill="#B42318" opacity=".08"/>`,
     appreciation: Array.from({ length: 26 }, (_, i) => `<rect x="${(i * 53) % 400}" y="${(i * 37) % 300}" width="8" height="4" rx="1" fill="${['#F59E0B', '#E0458F', '#3B7BE0', '#22C55E'][i % 4]}" opacity=".55" transform="rotate(${i * 29} ${(i * 53) % 400} ${(i * 37) % 300})"/>`).join(''),
     event: `<circle cx="340" cy="60" r="90" fill="#fff" opacity=".08"/><circle cx="40" cy="270" r="70" fill="#fff" opacity=".08"/>${Array.from({ length: 18 }, (_, i) => `<circle cx="${(i * 71) % 400}" cy="${(i * 43) % 300}" r="${1 + i % 3}" fill="#fff" opacity=".35"/>`).join('')}`,
+    seva: `<g opacity=".16" fill="none" stroke="#7A3E00" stroke-width="1.4" transform="translate(340 70)">${[26, 46, 66, 86].map((r) => `<circle r="${r}"/>`).join('')}</g><path d="M0 250 Q120 215 240 245 T400 235 V300 H0Z" fill="#fff" opacity=".35"/>`,
     info: Array.from({ length: 12 }, (_, r) => Array.from({ length: 16 }, (_, c) => `<circle cx="${c * 26 + 8}" cy="${r * 26 + 8}" r="1.3" fill="#3B5BDB" opacity=".18"/>`).join('')).join(''),
   }[p.type];
   return `<svg class="bgart" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${k.grad[0]}"/><stop offset=".55" stop-color="${k.grad[1]}"/><stop offset="1" stop-color="${k.grad[2]}"/></linearGradient></defs><rect width="400" height="300" fill="url(#${g})"/>${deco}</svg>`;
@@ -385,12 +433,14 @@ function postArt(p) {
 const rx = (p) => S.react[p.id] || {};
 function reactBar(p) {
   const r = rx(p); const g = p.r.g + (r.g ? 1 : 0), s = p.r.s + (r.s ? 1 : 0);
-  return `<div class="pacts"><button class="pact grat" data-react="${p.id}:g" aria-pressed="${!!r.g}" aria-label="Gratitude">${gratIc(r.g)}${num(g)}</button><button class="pact supp" data-react="${p.id}:s" aria-pressed="${!!r.s}" aria-label="Support">${suppIc(r.s)}${num(s)}</button><span class="sp" style="flex:1"></span><button class="iconbtn" data-act="post-share" data-id="${p.id}" aria-label="Share">${I.share}</button><button class="iconbtn" data-act="post-save" data-id="${p.id}" aria-label="Save" style="${S.saved[p.id] ? 'color:var(--p)' : ''}">${S.saved[p.id] ? I.bookmark.replace('fill="none"', 'fill="currentColor"') : I.bookmark}</button></div>`;
+  return `<div class="pacts"><button class="pact grat" data-react="${p.id}:g" aria-pressed="${!!r.g}" aria-label="Gratitude">${gratIc(r.g)}${num(g)}</button><button class="pact supp" data-react="${p.id}:s" aria-pressed="${!!r.s}" aria-label="Support">${suppIc(r.s)}${num(s)}</button></div>`;
 }
 const gratIc = (on) => `<span class="em">🙏</span>`;
 const suppIc = (on) => `<span class="em">🤝</span>`;
 function postCard(p) {
   const k = PK[p.type]; const e = p.ev ? ev(p.ev) : null; const r = rx(p);
+  const hs = p.sid ? sv(p.sid) : null;
+  if (hs) return sevaPost(p, hs);
   const body = p.type === 'thought' ? `<p class="msg big">“${esc(p.text)}”</p>`
     : p.type === 'appreciation' ? `<p class="ttl" style="font-style:normal;font-family:var(--font);font-weight:800;font-size:44px;letter-spacing:-.03em">${esc(p.stat)}</p><p class="msg">${esc(p.text)}</p>`
     : p.type === 'event' && e ? `<div class="row" style="align-items:flex-end;gap:14px"><span class="datebox"><b>${new Date(e.start).getDate()}</b><span>${new Date(e.start).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span><div><p class="ttl" style="margin:0">${esc(e.title)}</p><p class="small" style="opacity:.9;margin-top:4px">${relDay(e.start)} · ${fmtTime(e.start)}</p></div></div><p class="msg" style="font-size:16px">${esc(p.text)}</p>`
@@ -401,43 +451,134 @@ function postCard(p) {
     ${reactBar(p)}<div class="pcap"><span class="muted">${r.g ? 'You and ' + num(p.r.g) + ' others said 🙏' : 'Double-tap the card to say 🙏'}</span></div></article>`;
 }
 
-// ----- Story viewer -----
+// HQ seva in the feed: stays as a record; shows its state (upcoming, live, done)
+function sevaPost(p, s) {
+  const d = new Date(s.start); const ended = T(s.end) < now(); const live = isLive(s); const a = st(s); const g = peopleOf(s).filter((x) => x.st === 'going' || x.st === 'here');
+  return `<article class="post hqpost" id="post-${p.id}"><div class="ph"><span class="av">${LOGO}</span><div class="grow"><b>Namdhari Seva HQ</b><span class="adminpill">Official</span><p class="xs muted">${ended ? 'Seva · completed' : live ? 'Seva · live now' : 'Upcoming seva'} · ${ago(p.d)}</p></div></div>
+    <div class="pcard" data-dbl="${p.id}">${postArt(p)}<span class="kind">${I.globe}${ended ? 'Completed seva' : live ? 'Live seva' : 'Upcoming seva'}</span>
+      <span class="hqtag">${I.pin}${esc(s.region)} · not your area</span>
+      <div class="row" style="align-items:flex-end;gap:14px;margin-top:14px"><span class="datebox" style="color:#7A3E00"><b>${d.getDate()}</b><span>${d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span><div class="grow"><p class="ttl" style="margin:0;font-style:normal;font-family:var(--font);font-weight:800;font-size:25px;letter-spacing:-.02em">${esc(s.title)}</p><p class="small" style="margin-top:4px;opacity:.85">${relDay(s.start)} · ${fmtTime(s.start)}</p></div></div>
+      <p class="msg" style="font-size:16px">${esc(p.text)}</p>
+      <div class="row" style="margin-top:12px;gap:8px">${faceRow(g.map((x) => x.n), g.length, 4)}<span class="small" style="font-weight:650">${num(g.length)} going</span></div>
+      <button class="cta" style="background:#2B1E14;color:#fff" data-open="seva:${s.id}">${a === 'going' ? `${I.check} You're going · View` : ended ? 'See seva' : 'View seva'}${a === 'going' ? '' : I.arrow}</button></div>
+    ${reactBar(p)}</article>`;
+}
+
+// ----- Story viewer (Instagram-style) -----
+// Tap right = next story (then next group), tap left = previous. Swipe left/right = next/previous group
+// with a cube turn. Press and hold = pause. Swipe down = close.
 const STH = { live: ['#FF5A6E', '#B5122F'], langar: ['#F7A428', '#D9480F'], river: ['#0EA5E9', '#0F766E'], tree: ['#34C76A', '#0F766E'], gold: ['#F6C453', '#C2410C'], night: ['#1E3A8A', '#6D28D9'], edu: ['#EC4899', '#7C3AED'] };
+const STORY_MS = 5000;
 let SV = null;
+const grp = (id) => S.groups.find((x) => x.id === id);
+const startIdx = (g) => { const i = g.stories.findIndex((s) => !S.storySeen[s.id]); return i < 0 ? 0 : i; };
 function storyArt(s) { const h = STH[s.theme] || STH.night; return `<svg class="bgart" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sg-${s.id}" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="${h[0]}"/><stop offset="1" stop-color="${h[1]}"/></linearGradient></defs><rect width="400" height="800" fill="url(#sg-${s.id})"/><circle cx="360" cy="120" r="160" fill="#fff" opacity=".08"/><circle cx="40" cy="700" r="200" fill="#fff" opacity=".07"/><circle cx="300" cy="620" r="60" fill="#fff" opacity=".06"/>${s.theme === 'live' ? `<circle cx="200" cy="230" r="70" fill="#fff" opacity=".1"><animate attributeName="r" values="60;90;60" dur="2s" repeatCount="indefinite"/></circle>` : ''}</svg>`; }
-function openStory(gid, idx) {
-  const g = S.groups.find((x) => x.id === gid); if (!g) return;
-  let i = idx ?? g.stories.findIndex((s) => !S.storySeen[s.id]); if (i < 0) i = 0;
-  if (!SV) history.pushState({ story: 1 }, '');
-  SV = { g: gid, i, t: null, start: 0, remain: 5000 };
-  let host = $('#sv-root'); if (!host) { host = document.createElement('div'); host.id = 'sv-root'; document.body.appendChild(host); }
-  drawStory();
-}
-function drawStory() {
-  const g = S.groups.find((x) => x.id === SV.g); const s = g.stories[SV.i];
-  S.storySeen[s.id] = now(); save();
-  $('#sv-root').innerHTML = `<div class="sv" role="dialog" aria-label="${esc(g.full)} story"><div class="frame">
-    <div class="slide">${storyArt(s)}<span class="skind">${esc(s.kind)}</span><h2 class="sttl">${esc(s.title)}</h2><p class="smsg">${esc(s.msg)}</p></div>
-    <div class="bars">${g.stories.map((x, k) => `<i class="${k < SV.i ? 'done' : k === SV.i ? 'cur' : ''}"><b></b></i>`).join('')}</div>
-    <div class="top"><span class="gav">${groupAv(g)}</span><div><b>${esc(g.full)}</b> <span>· ${ago(s.d)}</span></div><button data-act="story-close" aria-label="Close">${I.close}</button></div>
-    <button class="tapl" data-act="story-prev" aria-label="Previous"></button><button class="tapr" data-act="story-next" aria-label="Next"></button>
+function faceHTML(gid, i, active) {
+  const g = grp(gid); const s = g.stories[i];
+  return `<div class="slide">${storyArt(s)}<span class="skind">${esc(s.kind)}</span><h2 class="sttl">${esc(s.title)}</h2><p class="smsg">${esc(s.msg)}</p></div>
+    <div class="bars">${g.stories.map((x, k) => `<i class="${k < i ? 'done' : k === i && active ? 'cur' : ''}"><b></b></i>`).join('')}</div>
+    <div class="top"><span class="gav">${groupAv(g)}</span><div class="who"><b>${esc(g.full)}</b> <span>${ago(s.d)}</span></div><button data-act="story-close" aria-label="Close">${I.close}</button></div>
     <p class="by">Shared by ${esc(g.full)} team leads</p>
-    ${s.link ? `<button class="sbtn" data-act="story-link" data-ref="${s.link}">${esc(s.cta || 'Open')}${I.arrow}</button>` : ''}
-  </div></div>`;
+    ${s.link ? `<button class="sbtn" data-act="story-link" data-ref="${s.link}">${esc(s.cta || 'Open')}${I.arrow}</button>` : ''}<span class="shade"></span>`;
+}
+function openStory(gid) {
+  const order = S.groups.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || groupSeen(a) - groupSeen(b)).map((g) => g.id);
+  if (!SV) history.pushState({ story: 1 }, '');
+  SV = { order, gi: order.indexOf(gid), i: startIdx(grp(gid)), t: null, start: 0, remain: STORY_MS, busy: false, paused: false };
+  let host = $('#sv-root'); if (!host) { host = document.createElement('div'); host.id = 'sv-root'; document.body.appendChild(host); }
+  host.innerHTML = `<div class="sv" role="dialog" aria-label="Stories"><div class="stage"><div class="cube"></div></div></div>`;
   document.body.style.overflow = 'hidden';
-  SV.remain = 5000; storyTimer();
+  buildCube(); showStory();
 }
-function storyTimer() { clearTimeout(SV.t); SV.start = now(); SV.t = setTimeout(storyNext, SV.remain); }
-function storyNext() {
-  if (!SV) return; const g = S.groups.find((x) => x.id === SV.g);
-  if (SV.i < g.stories.length - 1) { SV.i++; drawStory(); return; }
-  const order = S.groups.slice().sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0)); const gi = order.findIndex((x) => x.id === SV.g);
-  const nx = order.slice(gi + 1).find((x) => !groupSeen(x));
-  if (nx) { SV.g = nx.id; SV.i = nx.stories.findIndex((s) => !S.storySeen[s.id]); if (SV.i < 0) SV.i = 0; drawStory(); } else closeStory();
+const W = () => $('.sv .stage').clientWidth;
+// three faces: previous group, current, next group
+function buildCube(prevI) {
+  const w = W(), h = w / 2; const cube = $('.sv .cube'); const cur = SV.order[SV.gi], pv = SV.order[SV.gi - 1], nx = SV.order[SV.gi + 1];
+  cube.style.transition = 'none'; cube.style.transform = `translateZ(-${h}px) rotateY(0deg)`;
+  cube.innerHTML = `${pv ? `<div class="face" data-f="prev" style="transform:rotateY(-90deg) translateZ(${h}px)">${faceHTML(pv, prevI ?? startIdx(grp(pv)), false)}</div>` : ''}
+    <div class="face" data-f="cur" style="transform:rotateY(0deg) translateZ(${h}px)">${faceHTML(cur, SV.i, true)}</div>
+    ${nx ? `<div class="face" data-f="next" style="transform:rotateY(90deg) translateZ(${h}px)">${faceHTML(nx, startIdx(grp(nx)), false)}</div>` : ''}`;
 }
-function storyPrev() { if (!SV) return; if (SV.i > 0) { SV.i--; drawStory(); } else { SV.remain = 5000; drawStory(); } }
+function showStory() {
+  const g = grp(SV.order[SV.gi]); const s = g.stories[SV.i];
+  S.storySeen[s.id] = now(); save();
+  const f = $('.sv .face[data-f="cur"]'); f.innerHTML = faceHTML(g.id, SV.i, true);
+  SV.remain = STORY_MS; if (!SV.paused) storyTimer();
+}
+function storyTimer() { clearTimeout(SV.t); SV.start = now(); SV.t = setTimeout(() => storyStep(1), SV.remain); }
+function pauseStory() { if (!SV || SV.paused) return; SV.paused = true; clearTimeout(SV.t); SV.remain = Math.max(200, SV.remain - (now() - SV.start)); $('.sv')?.classList.add('paused'); }
+function resumeStory() { if (!SV || !SV.paused) return; SV.paused = false; $('.sv')?.classList.remove('paused', 'holding'); storyTimer(); }
+// within a group first, then across groups
+function storyStep(d) {
+  if (!SV || SV.busy) return; const g = grp(SV.order[SV.gi]);
+  if (d > 0 && SV.i < g.stories.length - 1) { SV.i++; showStory(); return; }
+  if (d < 0 && SV.i > 0) { SV.i--; showStory(); return; }
+  if (d < 0 && SV.gi === 0) { SV.remain = STORY_MS; showStory(); return; }
+  turnGroup(d, d < 0 ? 'last' : 'start');
+}
+function shade(angle) { const a = Math.abs(angle) / 90; const c = $('.sv .face[data-f="cur"] .shade'); if (c) c.style.opacity = a * .55; const o = $(`.sv .face[data-f="${angle < 0 ? 'next' : 'prev'}"] .shade`); if (o) o.style.opacity = (1 - a) * .55; }
+function setAngle(angle, anim) { const cube = $('.sv .cube'); cube.style.transition = anim ? 'transform .38s cubic-bezier(.2,.75,.25,1)' : 'none'; cube.style.transform = `translateZ(-${W() / 2}px) rotateY(${angle}deg)`; $$('.sv .shade').forEach((s) => { s.style.transition = anim ? 'opacity .38s' : 'none'; }); shade(angle); }
+function turnGroup(d, where) {
+  if (!SV || SV.busy) return;
+  const target = SV.gi + d;
+  if (target >= SV.order.length) { closeStory(); return; }
+  if (target < 0) { setAngle(0, true); return; }
+  if (d < 0 && where === 'last') { const pg = grp(SV.order[target]); const pf = $('.sv .face[data-f="prev"]'); if (pf) pf.innerHTML = faceHTML(pg.id, pg.stories.length - 1, false); }
+  SV.busy = true; clearTimeout(SV.t);
+  setAngle(d > 0 ? -90 : 90, true);
+  setTimeout(() => {
+    if (!SV) return; SV.gi = target; const g = grp(SV.order[target]);
+    SV.i = d < 0 && where === 'last' ? g.stories.length - 1 : startIdx(g);
+    SV.busy = false; SV.paused = false; $('.sv')?.classList.remove('paused', 'holding');
+    buildCube(); showStory();
+  }, 390);
+}
 let ignorePop = false, pendingRef = null;
-function closeStory(fromPop) { if (!SV) return; clearTimeout(SV.t); SV = null; $('#sv-root').innerHTML = ''; document.body.style.overflow = ''; if (!fromPop) { ignorePop = true; history.back(); } if (!stack.length && tab === 'home') rerender(); }
+function closeStory(fromPop) {
+  if (!SV) return; clearTimeout(SV.t); SV = null; const el = $('.sv');
+  const done = () => { $('#sv-root').innerHTML = ''; document.body.style.overflow = ''; if (!stack.length && tab === 'home') rerender(); };
+  if (el) { el.classList.add('out'); setTimeout(done, 200); } else done();
+  if (!fromPop) { ignorePop = true; history.back(); }
+}
+// gestures
+let G = null;
+function svDown(e) {
+  if (!SV || SV.busy || e.target.closest('button')) return;
+  G = { x: e.clientX, y: e.clientY, t: now(), axis: null, dx: 0, dy: 0, id: e.pointerId };
+  try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+  pauseStory(); G.hold = setTimeout(() => $('.sv')?.classList.add('holding'), 260);
+}
+function svMove(e) {
+  if (!G || e.pointerId !== G.id) return;
+  G.dx = e.clientX - G.x; G.dy = e.clientY - G.y;
+  if (!G.axis && Math.hypot(G.dx, G.dy) > 10) { G.axis = Math.abs(G.dx) > Math.abs(G.dy) ? 'x' : 'y'; clearTimeout(G.hold); $('.sv')?.classList.remove('holding'); }
+  if (G.axis === 'x') { let a = G.dx / W() * 90; if ((a > 0 && SV.gi === 0) || (a < 0 && SV.gi === SV.order.length - 1)) a *= .3; setAngle(Math.max(-90, Math.min(90, a)), false); }
+  if (G.axis === 'y' && G.dy > 0) { const st = $('.sv .stage'); st.style.transition = 'none'; st.style.transform = `translateY(${G.dy}px) scale(${1 - Math.min(.25, G.dy / 1600)})`; st.style.borderRadius = '18px'; $('.sv').style.background = `rgba(0,0,0,${Math.max(.2, 1 - G.dy / 500)})`; }
+}
+function svUp(e) {
+  if (!G || e.pointerId !== G.id) return; const g = G; G = null; clearTimeout(g.hold);
+  const dt = now() - g.t, w = W();
+  if (g.axis === 'x') {
+    const v = g.dx / Math.max(1, dt);
+    if (g.dx < -w * .25 || v < -.5) { if (SV.gi < SV.order.length - 1) turnGroup(1, 'start'); else closeStory(); }
+    else if (g.dx > w * .25 || v > .5) { if (SV.gi > 0) turnGroup(-1, 'start'); else { setAngle(0, true); resumeStory(); } }
+    else { setAngle(0, true); resumeStory(); }
+    return;
+  }
+  if (g.axis === 'y') {
+    const st = $('.sv .stage');
+    if (g.dy > 110) { st.style.transition = 'transform .2s'; st.style.transform = `translateY(${window.innerHeight}px) scale(.8)`; closeStory(); return; }
+    st.style.transition = 'transform .25s'; st.style.transform = ''; st.style.borderRadius = ''; $('.sv').style.background = ''; resumeStory(); return;
+  }
+  if (g.axis === 'none') { resumeStory(); return; }
+  if (dt < 260) { SV.paused = false; $('.sv')?.classList.remove('paused', 'holding'); storyStep(g.x < w * .3 + $('.sv .stage').getBoundingClientRect().left ? -1 : 1); return; }
+  resumeStory();
+}
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('.sv')) svDown(e); });
+document.addEventListener('pointermove', (e) => { if (G) svMove(e); });
+document.addEventListener('pointerup', (e) => { if (G) svUp(e); });
+document.addEventListener('pointercancel', (e) => { if (G) { G.axis = G.axis || 'none'; svUp(e); } });
+document.addEventListener('visibilitychange', () => { if (!SV) return; if (document.hidden) pauseStory(); else resumeStory(); });
 
 // =================== SEVA ===================
 const dblock = (s, cat, live, endOf) => { const d = new Date(s); return `<span class="dblock cc-${cat}">${live ? `<span><span class="lv"><i></i>LIVE</span><span class="dn" style="font-size:24px;display:block;margin:6px 0 4px">NOW</span><span class="mo" style="font-size:10px;letter-spacing:.04em;opacity:.9">ENDS ${fmtTime(endOf)}</span></span>` : `<span><span class="wd" style="display:block">${d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</span><span class="dn" style="display:block">${d.getDate()}</span><span class="mo" style="display:block">${d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span>`}</span>`; };
@@ -452,12 +593,12 @@ function statusPill(s) {
   return open ? `<span class="status st-plan">${open} spots open</span>` : `<span class="status st-up">Join</span>`;
 }
 function sevaCard(s) {
-  const live = isLive(s); const ppl = peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here'); const n = unreadUpd(s).length;
-  return `<button class="scard tap ${live ? 'live' : ''}" data-open="seva:${s.id}">${dblock(s.start, s.cat, live, s.end)}
+  const live = isLive(s); const ppl = peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here'); const n = unreadUpd(s).length + newTasks(s).length; const pend = pendingMine(s).length;
+  return `<button class="scard tap ${live ? 'live' : ''} ${s.hq ? 'hq' : ''}" data-open="seva:${s.id}">${s.hq ? `<span class="hqrib">${I.globe}${esc(s.region)} seva · not your area</span>` : ''}${dblock(s.start, s.cat, live, s.end)}
     <div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span>
       <h3>${esc(s.title)}</h3><p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${fmtTime(s.start)} – ${fmtTime(s.end)}`}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(s.place)}</p>
-      <div class="foot">${faceRow(ppl.map((p) => p.n), ppl.length, 3)}${live && going(s) ? `<span class="status st-done">${I.check}You're here</span>` : statusPill(s)}</div></div>
-    ${n && going(s) ? `<span class="newbadge" style="right:10px">${n} new</span>` : ''}</button>`;
+      <div class="foot">${faceRow(ppl.map((p) => p.n), ppl.length, 3)}${pend ? `<span class="status st-plan">${I.checkc}${pend} to tick</span>` : needsPick(s) ? `<span class="status st-plan">${I.alert}Pick a task</span>` : live && going(s) ? `<span class="status st-done">${I.check}You're here</span>` : statusPill(s)}</div></div>
+    ${n && going(s) ? `<span class="newbadge" style="right:10px;${s.hq ? 'top:38px' : ''}">${n} new</span>` : ''}</button>`;
 }
 function eventCard(e) {
   const r = S.rsvp[e.id];
@@ -471,7 +612,7 @@ function sevaLists() {
   const ongoing = (mine ? liveMine() : liveAll()).map((s) => ({ t: T(s.start), h: sevaCard(s) }));
   const upS = S.seva.filter((s) => isFuture(s) && (!mine || ['going', 'maybe', 'invited'].includes(st(s))));
   const upE = S.events.filter((e) => isFuture(e) && (!mine || ['going', 'maybe'].includes(S.rsvp[e.id])));
-  const upcoming = [...upS.map((s) => ({ t: T(s.start), h: sevaCard(s) })), ...upE.map((e) => ({ t: T(e.start), h: eventCard(e) }))].sort((a, b) => a.t - b.t);
+  const upcoming = [...upS.map((s) => ({ t: T(s.start), hq: !!s.hq, h: sevaCard(s) })), ...upE.map((e) => ({ t: T(e.start), h: eventCard(e) }))].sort((a, b) => (!mine && (b.hq ? 1 : 0) - (a.hq ? 1 : 0)) || a.t - b.t); // HQ seva pinned on top in All
   const done = contributions().map((h) => ({ h: doneCard(h) }));
   return { ongoing, upcoming, done };
 }
@@ -518,6 +659,7 @@ function SevaDetail({ id }) {
   const tabs = [['overview', 'Overview'], ['tasks', 'Tasks'], ['team', 'Team'], ['updates', 'Updates']];
   const hero = `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''}"><svg class="bgart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice"><circle cx="350" cy="40" r="110" fill="#fff" opacity=".18"/><circle cx="30" cy="250" r="90" fill="#fff" opacity=".12"/></svg>
     <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}${s.recur ? `<span class="chip" style="background:rgba(255,255,255,.18);color:#fff">${s.recur}</span>` : ''}</div>
+    ${s.hq ? `<div class="hqband">${I.globe}<span><b>${esc(s.region)} seva</b> · organised by Seva HQ for the whole sangat — not in your area</span></div>` : ''}
     <h1>${esc(s.title)}</h1>
     <div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div><div>${I.user}Lead: ${esc(s.lead)}</div></div>
     <div class="row" style="margin-top:14px">${faceRow(here.map((p) => p.n), here.length, 5)}<span class="small" style="opacity:.95">${here.length} ${live ? 'sevadars here' : 'going'}</span></div>
@@ -538,9 +680,16 @@ function SevaDetail({ id }) {
     else act = respButtons(s);
   }
   return `${dtop(live ? 'Live Seva' : 'Seva Details', `<button class="iconbtn" data-act="wa" data-id="${s.id}" aria-label="Share on WhatsApp">${I.share}</button>`)}${hero}
-    <div class="dtabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" data-dtab="${k}" aria-selected="${dtab === k}">${l}${k === 'updates' && nU ? `<span class="n">${nU}</span>` : ''}</button>`).join('')}</div>
+    <div class="dtabs" role="tablist">${tabs.map(([k, l]) => `<button role="tab" data-dtab="${k}" aria-selected="${dtab === k}">${l}${tabBadge(s, k)}</button>`).join('')}</div>
     <div style="margin-top:16px" class="stack">${body}</div>
     ${act ? `<div class="stickyact"><div>${act}</div></div>` : ''}`;
+}
+// Badges stay until the member deals with them: tasks to tick, new tasks, unread updates
+function tabBadge(s, k) {
+  if (k === 'overview') { const n = pendingMine(s).length; return n ? `<span class="n warn" aria-label="${n} to tick">${n}</span>` : ''; }
+  if (k === 'tasks') { const n = newTasks(s).length; return n ? `<span class="n" aria-label="${n} new">${n}</span>` : needsPick(s) ? '<span class="n warn" aria-label="Pick a task">!</span>' : ''; }
+  if (k === 'updates') { const n = unreadUpd(s).length; return n ? `<span class="n" aria-label="${n} new">${n}</span>` : ''; }
+  return '';
 }
 function respButtons(s) {
   const a = st(s);
@@ -559,7 +708,7 @@ function overviewTab(s) {
 }
 const openPtsN = (s) => s.points.filter((p) => p.takers.length < p.need).length;
 function tasksTab(s) {
-  const g = going(s), live = isLive(s); const since = seenAt(s.id);
+  const g = going(s), live = isLive(s); const since = S.seenTasks[s.id] ?? 0;
   const nobody = s.points.filter((p) => !p.takers.length).length;
   return `${!g && !(T(s.end) < now()) ? `<div class="banner">${I.info}<span>Choose <b>Going</b> first, then pick the tasks you'll do.</span></div>` : ''}
     ${nobody ? `<div class="banner" style="background:var(--action-bg)">${I.alert}<span><b>${nobody} task${nobody > 1 ? 's have' : ' has'} no one yet</b> — highlighted below.</span></div>` : ''}
@@ -823,11 +972,9 @@ function handle(el) {
     case 'inbox': push({ v: 'inbox' }); break;
     case 'noop-up': toast('You can tick this off once the seva starts'); break;
     case 'story-close': closeStory(); break;
-    case 'story-next': storyNext(); break;
-    case 'story-prev': storyPrev(); break;
+    case 'story-next': storyStep(1); break;
+    case 'story-prev': storyStep(-1); break;
     case 'story-link': pendingRef = el.dataset.ref; closeStory(); break;
-    case 'post-save': S.saved[id] = !S.saved[id]; save(); refreshBar(id); toast(S.saved[id] ? 'Saved to your collection' : 'Removed from saved'); break;
-    case 'post-share': { const p = S.feed.find((x) => x.id === id); window.open(`https://wa.me/?text=${encodeURIComponent(`${PK[p.type].label}\n\n${p.text}\n\n— Namdhari Seva`)}`, '_blank', 'noopener'); break; }
     case 'seva-view': sevaView = sevaView === 'list' ? 'cal' : 'list'; calPop = null; rerender(); break;
     case 'cal-prev': calM--; if (calM < 0) { calM = 11; calY--; } calPop = null; rerender(); break;
     case 'cal-next': calM++; if (calM > 11) { calM = 0; calY++; } calPop = null; rerender(); break;
@@ -906,7 +1053,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.react) { const [pid, k] = t.dataset.react.split(':'); buzz(); setReact(pid, k); return; }
   if (t.dataset.seg) { sevaSeg = t.dataset.seg; sevaChip = null; calPop = null; rerender(); return; }
   if (t.dataset.chip) { sevaChip = t.dataset.chip; rerender(); return; }
-  if (t.dataset.dtab) { dtab = t.dataset.dtab; if (dtab === 'updates') { const top = stack[stack.length - 1]; rerender(); if (top) { S.seenUpd[top.id] = now(); save(); } } else rerender(); return; }
+  if (t.dataset.dtab) { dtab = t.dataset.dtab; const top = stack[stack.length - 1]; rerender(); if (top?.v === 'seva') { if (dtab === 'updates') S.seenUpd[top.id] = now(); if (dtab === 'tasks') S.seenTasks[top.id] = now(); save(); } return; }
   if (t.dataset.tf) { teamFilter = t.dataset.tf; rerender(); return; }
   if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
@@ -914,10 +1061,6 @@ document.addEventListener('click', (e) => {
   if (t.dataset.scn) { setScenario(t.dataset.scn); stack = []; tab = 'home'; sevaChip = null; closeSheet(); render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); }
 });
 document.addEventListener('input', (e) => { if (e.target.id === 'team-q') { teamQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); window.scrollTo(0, y); const i = $('#team-q'); i.focus(); i.setSelectionRange(pos, pos); } });
-// story: hold to pause, swipe down to close
-let svTouch = null;
-document.addEventListener('pointerdown', (e) => { if (!SV || !e.target.closest('.sv')) return; svTouch = { y: e.clientY, t: Date.now() }; clearTimeout(SV.t); SV.remain = Math.max(300, SV.remain - (Date.now() - SV.start)); $('.sv')?.classList.add('paused'); });
-document.addEventListener('pointerup', (e) => { if (!SV || !svTouch) return; const dy = e.clientY - svTouch.y; svTouch = null; $('.sv')?.classList.remove('paused'); if (dy > 90) { closeStory(); return; } storyTimer(); });
 // swipe calendar
 let sw = null;
 document.addEventListener('touchstart', (e) => { const c = e.target.closest('#cal'); sw = c && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
@@ -934,7 +1077,7 @@ document.addEventListener('touchend', (e) => {
 }, { passive: false });
 document.addEventListener('dblclick', (e) => { const card = e.target.closest('[data-dbl]'); if (card && !e.target.closest('button')) likeCard(card); });
 function likeCard(card) { burst(card); setReact(card.dataset.dbl, 'g', true); buzz(); }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (SV) closeStory(); else if ($('#sheet-root').innerHTML) closeSheet(); else if (stack.length) pop(); } if (SV && e.key === 'ArrowRight') storyNext(); if (SV && e.key === 'ArrowLeft') storyPrev(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (SV) closeStory(); else if ($('#sheet-root').innerHTML) closeSheet(); else if (stack.length) pop(); } if (SV && e.key === 'ArrowRight') storyStep(1); if (SV && e.key === 'ArrowLeft') storyStep(-1); });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__dp = e; });
 window.addEventListener('online', rerender); window.addEventListener('offline', rerender);
 setInterval(() => { if (!$('#sheet-root').innerHTML && !SV && S.onboarded && !document.hidden && !g3 && document.activeElement?.tagName !== 'INPUT') rerender(); }, 60000);
