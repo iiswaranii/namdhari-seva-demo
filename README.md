@@ -65,3 +65,18 @@ Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you 
   - **Live across tabs:** open the app in two tabs, one as Team Lead and one as Member (role is per tab). Anything the lead posts appears in the member tab immediately.
   - **One-phone demo:** while a seva you joined is live, your lead "sends" a few updates. Toggle this in App Settings.
 - **For production:** true real-time between phones needs a backend push channel. Options are Supabase Realtime or Firebase (Firestore listeners + Cloud Messaging), plus Web Push for the installed PWA (iOS 16.4+ supports it from the Home Screen).
+
+## v9 — Super Admin (Seva HQ)
+Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed · People · Profile. There is no garden for the admin.
+- **Stats:**
+  - **Filters:** one sticky row with period (7 days / 30 days / 3 months / 12 months), country, group and seva type.
+  - **Live strip:** how many seva are running now.
+  - **"Needs your attention":** red items need action, amber items are worth watching.
+  - **Six KPI tiles:** seva held, places filled, turn-up, active members, started on time, attendance on time. Each shows On track / Watch / Needs action and the change vs the previous period; tap a tile for its detailed report.
+  - **Charts:** seva over time, places filled with a target band, countries, team-lead performance (score + sparkline), seva types, a day-by-day heatmap, and blockers reported by leads.
+- **Reports:** big number with the change vs the previous period, trend, a by-country and by-group breakdown (worst first, target line), and "what we see".
+- **Group page:** lead score, KPIs, seva per week, team leads (assign / remove), recent seva, blockers.
+- **Seva:** live, upcoming and needs-attention across all groups. "New seva" can target the whole sangat (HQ seva, auto-posted to the feed) or one group.
+- **Feed:** "New post" with designed card types (Thought, Hukam, Alert, Information, Appreciation, Event) or plain long text, with a live preview. Admins can delete posts.
+- **People:** groups by country, a searchable member list, and team leads. Make any member a team lead, or remove the role.
+- Colours: red = needs action, amber = watch, green = on track, always with an icon and a word. Charts use the app indigo.
