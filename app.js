@@ -649,7 +649,7 @@ function statusPill(s) {
 }
 function sevaCard(s) {
   const live = isLive(s); const ppl = peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here'); const n = unreadUpd(s).length + newTasks(s).length; const pend = pendingMine(s).length;
-  return `<button class="scard tap ${live ? 'live' : ''} ${s.hq ? 'hq' : ''}" data-open="seva:${s.id}">${s.hq ? `<span class="hqrib">${I.globe}${esc(s.region)} seva · not your area</span>` : ''}${dblock(s.start, s.cat, live, s.end)}
+  return `<button class="scard tap ${live ? 'live' : ''} ${s.hq ? 'hq' : ''}" data-open="seva:${s.id}">${s.hq && !isAdmin() ? `<span class="hqrib">${I.globe}${esc(s.region)} seva · not your area</span>` : ''}${dblock(s.start, s.cat, live, s.end)}
     <div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span>
       <h3>${esc(s.title)}</h3><p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${fmtTime(s.start)} – ${fmtTime(s.end)}`}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(s.place)}</p>
       <div class="foot">${faceRow(ppl.map((p) => p.n), ppl.length, 3)}${pend ? `<span class="status st-plan">${I.checkc}${pend} to tick</span>` : needsPick(s) ? `<span class="status st-plan">${I.alert}Pick a task</span>` : live && going(s) ? `<span class="status st-done">${I.check}You're here</span>` : statusPill(s)}</div></div>
@@ -1223,7 +1223,7 @@ function LeadSevaDetail({ id }) {
   if (!tabs.find((t) => t[0] === dtab)) dtab = 'overview';
   const hero = `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''}"><svg class="bgart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice"><circle cx="350" cy="40" r="110" fill="#fff" opacity=".18"/></svg>
     <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}<span class="chip" style="background:rgba(0,0,0,.18);color:#fff">${I.shield}You manage this</span></div>
-    <h1>${esc(s.title)}</h1><div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div></div>
+    <h1>${esc(s.title)}</h1><div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div>${isAdmin() ? (() => { const g = sevaGroup(s); return `<div>${I.globe}${g.flag} ${g.country} · ${g.state} · ${esc(g.name)}${s.hq ? ' · HQ seva for all sangat' : ''}</div>`; })() : ''}</div>
     ${!ended ? `<button class="partpill" style="background:rgba(255,255,255,.95);color:#16151A" data-act="seva-edit" data-id="${s.id}">${I.edit}Edit details</button>` : ''}</div>`;
   let body = '';
   if (dtab === 'overview') {
@@ -1516,6 +1516,8 @@ function doRefresh() {
 // =================== SUPER ADMIN ===================
 // Seva HQ: sangat-wide stats with filters and drill-downs, all seva, feed posts, and team-lead assignment.
 const isAdmin = () => S.role === 'admin';
+const STATE = { delhi: 'Delhi', ludhiana: 'Punjab', bhaini: 'Punjab', mumbai: 'Maharashtra', jammu: 'Jammu & Kashmir', jaipur: 'Rajasthan', london: 'England', birmingham: 'England', nairobi: 'Nairobi County', toronto: 'Ontario', bangkok: 'Bangkok' };
+GROUPS.forEach((g) => { g.state = STATE[g.id]; });
 const COUNTRIES = [...new Set(GROUPS.map((g) => g.country))];
 const FLAG = Object.fromEntries(GROUPS.map((g) => [g.country, g.flag]));
 const CATW = [['langar', .22], ['cleanup', .17], ['stall', .1], ['education', .1], ['tree', .08], ['blanket', .08], ['clothes', .08], ['social', .07], ['nasha', .06], ['donation', .04]];
@@ -1750,16 +1752,27 @@ function admMemberSheet(n, gid) {
 function leadAssignSheet(gid) { const g = gOf(gid); const L = S.adm.leads[gid] || []; openSheet(`${sheetHead('Assign a team lead', `${g.flag} ${esc(g.name)}`)}<div class="card list" style="max-height:56vh;overflow:auto">${membersOf(gid).filter((n) => !L.includes(n)).map((n) => `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><b class="small grow">${esc(n)}</b><span class="link" style="min-height:0">Make lead</span></button>`).join('')}</div>`); }
 // ----- Admin: all seva -----
 let aSeg = 'live';
+// where a seva belongs: its group, state and country
+const sevaGroup = (s) => gOf(s.gid || (s.hq ? 'bhaini' : 'delhi'));
+const locRib = (g, hq) => `<span class="locrib ${hq ? 'hq' : ''}"><b>${g.flag} ${g.country}</b><i>›</i>${esc(g.state)}<i>›</i><span class="ellipsis">${esc(g.name)}</span>${hq ? '<em>HQ · all sangat</em>' : ''}</span>`;
+const withLoc = (html, g, hq) => html.replace('class="scard', 'class="scard withloc').replace(/^(\s*<(button|div)[^>]*>)/, `$1${locRib(g, hq)}`);
 function AdminSeva() {
   const F = af(); const others = GROUPS.filter((g) => g.id !== 'delhi' && inScope(g));
-  const syn = (k) => others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 5][0]].label} Seva`, cat: CATW[i % 5][0], when: k === 'live' ? 'Live now' : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12) }));
-  const real = S.seva.filter((s) => (s.hq || inScope(gOf('delhi'))) && (aSeg === 'live' ? isLive(s) : aSeg === 'upcoming' ? isFuture(s) : needsAttend(s)));
-  const list = aSeg === 'attention' ? [] : syn(aSeg);
+  const syn = (k) => others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 10][0]].label} Seva`, cat: CATW[i % 10][0], when: k === 'live' ? `Live now · ends ${fmtTime(at(0, 13))}` : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12), d: k === 'live' ? now() : T(at(1 + (i % 6), 9)) }));
+  const items = [];
+  if (aSeg !== 'attention') {
+    S.seva.filter((s) => inScope(sevaGroup(s)) && (aSeg === 'live' ? isLive(s) : isFuture(s))).forEach((s) => items.push({ g: sevaGroup(s), d: T(s.start), html: withLoc(s.hq ? sevaCard(s) : leadCard(s), sevaGroup(s), s.hq) }));
+    if (aSeg === 'upcoming') (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).forEach((s) => items.push({ g: gOf(s.gid), d: T(s.start), html: withLoc(`<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${esc(s.title)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`, gOf(s.gid)) }));
+    syn(aSeg).forEach((x) => items.push({ g: x.g, d: x.d, html: withLoc(`<button class="scard tap ${aSeg === 'live' ? 'live' : ''}" data-open="grp:${x.g.id}">${dblock(at(1 + (x.g.id.length % 6), 9), x.cat, aSeg === 'live', at(0, 13))}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${x.cat}) 13%,transparent);color:var(--c-${x.cat})">${CAT[x.cat].label}</span><h3>${x.title}</h3><p class="m">${x.when} · lead ${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])}</p><div class="mini"><i style="width:${x.fill}%;background:${STL[KPI.fill.g({ fill: x.fill })][1]}"></i></div><p class="xs muted" style="margin-top:4px">${x.fill}% places filled · ${x.going} going</p></div></button>`, x.g) }));
+  }
+  // grouped by country so the admin always knows where each seva is
+  const byC = COUNTRIES.map((c) => ({ c, list: items.filter((x) => x.g.country === c).sort((a, b) => a.d - b.d) })).filter((x) => x.list.length);
+  const alerts = aSeg === 'attention' ? alertsList() : [];
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">All seva</h1><span class="sp"></span>${bellBtn()}</header>${filterBar()}
     <div class="chips fill tight" style="margin-top:12px">${[['live', 'Live'], ['upcoming', 'Upcoming'], ['attention', 'Needs attention']].map(([k, l]) => `<button class="chip2" data-aseg="${k}" aria-pressed="${aSeg === k}">${k === 'live' ? '<i class="ld"></i>' : ''}${l}</button>`).join('')}</div>
-    <div style="margin-top:12px">${aSeg === 'upcoming' ? (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).map((s) => `<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip">${gOf(s.gid).flag} ${esc(gOf(s.gid).name)}</span><h3>${esc(s.title)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`).join('') : ''}${real.map((s) => s.hq ? sevaCard(s) : leadCard(s)).join('')}
-      ${list.map((x) => `<button class="scard tap ${aSeg === 'live' ? 'live' : ''}" data-open="grp:${x.g.id}">${dblock(at(1, 9), x.cat, aSeg === 'live', at(0, 23))}<div class="grow"><span class="chip">${x.g.flag} ${esc(x.g.name)}</span><h3>${x.title}</h3><p class="m">${x.when} · lead ${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])}</p><div class="mini"><i style="width:${x.fill}%;background:${STL[KPI.fill.g({ fill: x.fill })][1]}"></i></div><p class="xs muted" style="margin-top:4px">${x.fill}% places filled · ${x.going} going</p></div></button>`).join('')}
-      ${aSeg === 'attention' ? alertsList().map(([g, t, s2, gid]) => `<button class="banner tap" data-open="grp:${gid}" style="margin-bottom:8px;background:${STL[g][2]};border-color:${STL[g][1]}">${STL[g][3]}<span class="grow"><b>${esc(t)}</b><br><span class="xs">${esc(s2)}</span></span>${chev}</button>`).join('') : ''}</div>
+    <div style="margin-top:4px">${aSeg === 'attention'
+      ? (alerts.length ? alerts.map(([g, t, s2, gid]) => { const gg = gOf(gid); return `<button class="banner tap" data-open="grp:${gid}" style="margin-top:8px;background:${STL[g][2]};border-color:${STL[g][1]};flex-wrap:wrap">${STL[g][3]}<span class="grow"><span class="xs" style="font-weight:700;opacity:.8">${gg.flag} ${gg.country} · ${esc(gg.state)} · ${esc(gg.name)}</span><br><b>${esc(t)}</b><br><span class="xs">${esc(s2)}</span></span>${chev}</button>`; }).join('') : emptyState('Nothing needs attention', 'All groups in this filter are on track.'))
+      : byC.length ? byC.map(({ c, list }) => `<div class="chead"><b>${FLAG[c]} ${c}</b><span>${list.length} seva · ${[...new Set(list.map((x) => x.g.name))].length} group${[...new Set(list.map((x) => x.g.name))].length > 1 ? 's' : ''}</span></div>${list.map((x) => x.html).join('')}`).join('') : emptyState(aSeg === 'live' ? 'Nothing live here right now' : 'No upcoming seva here', 'Try another place in the filter.')}</div>
     <button class="fab" data-act="seva-new" aria-label="Create seva">${I.plus}<span>New seva</span></button>`;
 }
 // ----- Admin: feed composer (designed cards, no images) -----

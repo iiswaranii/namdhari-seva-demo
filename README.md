@@ -88,3 +88,4 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - **Gender:** members choose Male or Female when joining (changeable in settings). Stats shows the male/female split for members, for people who came to seva, and by seva type.
 - **Admin stories:** the Super Admin can post stories under "Seva HQ" (up to 5 a day).
 - **Alert cards** are now clearly red.
+- **Admin seva list (v9.2):** every seva card shows a location strip (🇮🇳 India › Delhi › Delhi Central), with an "HQ · all sangat" tag on HQ seva. The list is grouped by country with counts. Needs-attention items and the seva detail also show country · state · group.

@@ -690,3 +690,13 @@ html, body { overscroll-behavior-y: contain; }
 .ptools { display: flex; gap: 6px; margin-top: 12px; }
 .ptools .fchip2 { height: 42px; border-radius: 14px; padding: 0 14px; font-size: 14px; }
 .ptools .fchip2.reset { width: 42px; padding: 0; }
+/* v9.2 — location on admin seva cards */
+.scard.withloc { flex-wrap: wrap; align-content: flex-start; padding-top: 0; overflow: hidden; }
+.scard.withloc > .grow { flex: 1; }
+.locrib { flex: 0 0 calc(100% + 24px); margin: 0 -12px 4px; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 8px 12px; font-size: 12.5px; font-weight: 650; color: var(--ink); background: var(--surface2); border-bottom: 1px solid var(--border); }
+.locrib b { font-weight: 800; white-space: nowrap; } .locrib i { font-style: normal; color: var(--faint); }
+.locrib em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: linear-gradient(90deg, #FFD978, #FFB547); color: #6B3A00; white-space: nowrap; }
+.scard.live .locrib { background: color-mix(in srgb, var(--live) 10%, var(--surface)); }
+.locrib.hq { background: color-mix(in srgb, #FFB547 18%, var(--surface)); }
+.chead { display: flex; align-items: baseline; justify-content: space-between; margin: 18px 2px 8px; }
+.chead b { font-size: 16px; } .chead span { font-size: 12.5px; color: var(--muted); font-weight: 600; }
