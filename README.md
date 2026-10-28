@@ -56,3 +56,12 @@ Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you 
   - **Preview before you buy:** "Try" puts a ghost item in your garden. "Add to cart" keeps that spot, and after purchase the item lands there.
   - New purchases are placed automatically. Anything without a free box waits in storage.
 - **Day by default:** 2D and 3D gardens stay in daylight whatever the app theme. A sun/moon button switches to night.
+
+## v8.1
+- **Pull down to refresh** on any screen: a spinner appears, the app re-reads the latest data, and you see "Up to date".
+- **Real-time notifications:**
+  - New alerts slide in as a banner at the top (tap to open). The bell and tab badges update instantly without reloading.
+  - When the app is in the background and notifications are allowed, a phone notification is shown too.
+  - **Live across tabs:** open the app in two tabs, one as Team Lead and one as Member (role is per tab). Anything the lead posts appears in the member tab immediately.
+  - **One-phone demo:** while a seva you joined is live, your lead "sends" a few updates. Toggle this in App Settings.
+- **For production:** true real-time between phones needs a backend push channel. Options are Supabase Realtime or Firebase (Firestore listeners + Cloud Messaging), plus Web Push for the installed PWA (iOS 16.4+ supports it from the Home Screen).

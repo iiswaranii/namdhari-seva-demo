@@ -226,7 +226,9 @@ try {
   S = JSON.parse(localStorage.getItem(KEY));
   if (!S || S.v !== 8) { const old = JSON.parse(localStorage.getItem('namdhari-seva-v7') || localStorage.getItem('namdhari-seva-v6') || 'null'); S = fresh(old?.scenario || 'active'); if (old) Object.assign(S, { onboarded: old.onboarded, name: old.name, mode: old.mode, gview: old.gview }); }
 } catch (e) { S = fresh(); }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+// notifications created by your own actions in this role count as already seen
+const seenIds = new Set();
+const save = () => { (S.notifs || []).forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); }); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview, role: S.role }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
 
 // ---------- Derived model ----------
@@ -757,7 +759,7 @@ function teamTab(s) {
 }
 function updatesTab(s) {
   const since = seenAt(s.id);
-  return s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd ${T(u.d) > since ? 'new' : ''}"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by)} · ${ago(u.d)} ago${T(u.d) > since ? ' · <b style="color:var(--live)">New</b>' : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', `${first(s.lead)} will post changes and notes here. You'll get an alert.`);
+  return s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd ${T(u.d) > since ? 'new' : ''}"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${T(u.d) > since ? ' · <b style="color:var(--live)">New</b>' : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', `${first(s.lead)} will post changes and notes here. You'll get an alert.`);
 }
 function EventDetail({ id }) {
   const e = ev(id); markSeen(e.id); const r = S.rsvp[e.id]; const k = r === 'no' ? 'cant' : r;
@@ -1008,14 +1010,15 @@ function Inbox() {
   const ic = { live: I.bell, action: I.clock, p: I.sparkle, done: I.checkc };
   const col = { live: 'var(--live)', action: 'var(--action)', p: 'var(--p)', done: 'var(--done)' };
   return `${dtop('Notifications', notifsFor().some((n) => !n.read) ? `<button class="link" data-act="read-all">Mark all read</button>` : '')}
-    ${notifsFor().length ? `<div class="card list">${notifsFor().map((n) => `<button class="lrow" data-act="notif" data-id="${n.id}"><span class="av2" style="background:color-mix(in srgb,${col[n.level]} 14%,transparent);color:${col[n.level]}">${ic[n.level].replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small" style="font-weight:${n.read ? 500 : 700}">${esc(n.t)}</b><p class="xs muted">${ago(n.d)} ago</p></div>${n.read ? '' : '<span style="width:9px;height:9px;border-radius:50%;background:var(--p)"></span>'}</button>`).join('')}</div>` : emptyState('All quiet', 'Seva alerts and reminders appear here.')}
+    ${notifsFor().length ? `<div class="card list">${notifsFor().map((n) => `<button class="lrow" data-act="notif" data-id="${n.id}"><span class="av2" style="background:color-mix(in srgb,${col[n.level]} 14%,transparent);color:${col[n.level]}">${ic[n.level].replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small" style="font-weight:${n.read ? 500 : 700}">${esc(n.t)}</b><p class="xs muted">${ago(n.d)}${ago(n.d) === 'just now' ? '' : ' ago'}</p></div>${n.read ? '' : '<span style="width:9px;height:9px;border-radius:50%;background:var(--p)"></span>'}</button>`).join('')}</div>` : emptyState('All quiet', 'Seva alerts and reminders appear here.')}
     <button class="btn ghost block" style="margin-top:14px" data-act="push">${I.bell}Test a phone notification</button>`;
 }
 function settingsSheet() {
   openSheet(`${sheetHead('App Settings')}
     <label class="f">Appearance</label><div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
     <label class="f">Your name</label><input class="in" id="set-name" value="${esc(S.name)}" placeholder="Your name">
-    <button class="btn soft block" style="margin-top:14px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>
+    <button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
+    <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>
     <div class="demo"><p class="h">Prototype: member state</p><div class="seg">${[['new', 'New'], ['active', 'Active'], ['less', 'Less active']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
     <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
     <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
@@ -1212,7 +1215,7 @@ function LeadSevaDetail({ id }) {
   } else {
     const q = ['Running 15 minutes late', 'Tea break in the courtyard', 'Please bring gloves', 'Thank you all 🙏'];
     body = `${ended ? '' : `<div class="card"><label class="f" style="margin-top:0" for="up-text">Post an update · goes to ${r.length} people</label><textarea class="in" id="up-text" rows="2" placeholder="e.g. Meet at Gate 2 instead"></textarea><div class="chips" style="margin-top:8px">${q.map((t) => `<button class="chip2" data-act="up-quick" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div><button class="btn block" style="margin-top:10px" data-act="up-send" data-id="${s.id}">${I.megaphone}Send to everyone</button></div>`}
-      ${s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by === ME() ? 'You' : u.by)} · ${ago(u.d)} ago${u.sent ? ` · sent to ${u.sent}` : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', 'Anything you post here reaches everyone in this seva as a notification.')}`;
+      ${s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by === ME() ? 'You' : u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${u.sent ? ` · sent to ${u.sent}` : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', 'Anything you post here reaches everyone in this seva as a notification.')}`;
   }
   const act = needsAttend(s) ? `<button class="btn block" data-act="attend" data-id="${s.id}">${I.clip}Mark attendance</button>` : live ? `<div class="btn-row"><button class="btn ghost" data-dtab="updates">${I.megaphone}Post update</button><button class="btn" data-act="seva-end" data-id="${s.id}">${I.check}End seva</button></div>` : '';
   return `${dtop('Manage seva', `<button class="iconbtn" data-act="wa" data-id="${s.id}" aria-label="Share on WhatsApp">${I.share}</button>`)}${hero}
@@ -1297,7 +1300,7 @@ function LeadTeam() {
     ${teamF === 'inactive' && inact.length ? `<button class="banner tap" style="margin-top:10px" data-act="nudge-inactive">${I.bell}<span class="grow"><b>Send a gentle reminder to ${inact.length} inactive members</b><br><span class="xs">"We miss you at seva — here's what's coming up."</span></span>${chev}</button>` : ''}
     <div class="card list" style="margin-top:10px">${list.map((m) => `<button class="lrow" data-act="member" data-n="${esc(m.n)}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${tStatus(m) === 'new' ? '<span class="leadtag" style="background:var(--done-bg);color:var(--done)">New</span>' : ''}<p class="xs muted">${m.contrib} contributions · last seva ${m.last === 1 ? 'yesterday' : `${m.last} days ago`}</p></div>${tStatus(m) === 'inactive' ? '<span class="status st-plan">Inactive</span>' : ''}${chev}</button>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
     <p class="xs faint" style="text-align:center;margin-top:10px">Showing ${list.length} · the full list loads as you scroll in the real app</p>`;
-  else if (teamSeg === 'requests') body = S.requests.length ? `<div class="card list" style="margin-top:12px">${S.requests.map((r, i) => `<div class="lrow" style="flex-wrap:wrap"><span class="av2" style="background:${avColor(r.n)}">${initials(r.n)}</span><div class="grow"><b class="small">${esc(r.n)}</b><p class="xs muted">${ago(r.d)} ago${r.note ? ' · ' + esc(r.note) : ''}</p></div><div class="btn-row" style="flex:0 0 100%;padding-left:52px"><button class="btn sm" data-act="req" data-i="${i}" data-v="1">${I.check}Approve</button><button class="btn ghost sm" data-act="req" data-i="${i}" data-v="0">Decline</button></div></div>`).join('')}</div>` : `<div style="margin-top:12px">${emptyState('No pending requests', 'New join requests for Delhi Central appear here.')}</div>`;
+  else if (teamSeg === 'requests') body = S.requests.length ? `<div class="card list" style="margin-top:12px">${S.requests.map((r, i) => `<div class="lrow" style="flex-wrap:wrap"><span class="av2" style="background:${avColor(r.n)}">${initials(r.n)}</span><div class="grow"><b class="small">${esc(r.n)}</b><p class="xs muted">${ago(r.d)}${ago(r.d) === 'just now' ? '' : ' ago'}${r.note ? ' · ' + esc(r.note) : ''}</p></div><div class="btn-row" style="flex:0 0 100%;padding-left:52px"><button class="btn sm" data-act="req" data-i="${i}" data-v="1">${I.check}Approve</button><button class="btn ghost sm" data-act="req" data-i="${i}" data-v="0">Decline</button></div></div>`).join('')}</div>` : `<div style="margin-top:12px">${emptyState('No pending requests', 'New join requests for Delhi Central appear here.')}</div>`;
   else body = `<div class="card list" style="margin-top:12px"><div class="lrow"><span class="av2" style="background:var(--p)">${initials(ME())}</span><div class="grow"><b class="small">${esc(ME())} (you)</b><span class="leadtag">Lead</span></div></div>${LEADS.map((n) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div><p class="xs muted" style="text-align:center;margin-top:10px">${I.shield.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} Only the Main Admin can add or remove team leads.</p>`;
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">Team</h1><span class="sp"></span><button class="btn sm" data-act="team-invite">${I.userplus}Invite</button>${bellBtn()}</header>
     <div class="tstats four" style="margin-top:8px"><div class="tstat" style="--tc:var(--p)"><b>248</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>112</b><span>Active</span></div><div class="tstat" style="--tc:var(--action)"><b>41</b><span>Inactive</span></div><div class="tstat" style="--tc:var(--live)"><b>${S.requests.length}</b><span>Requests</span></div></div>
@@ -1398,6 +1401,83 @@ function Insights() {
     ${card('Start delays', 'Minutes late, each seva in order', delayChart(d))}
     ${card('Active members', 'Did at least one seva that month', activeChart(d))}
     <p class="xs faint" style="text-align:center;margin-top:10px">Tap any bar or dot for details · sample figures in this prototype</p>`;
+}
+
+
+// =================== REAL-TIME ===================
+// In-app banner + bell badge update the moment something arrives. Across tabs on this device it is
+// truly live (storage events). Across phones the real app needs a push service (see README).
+const LV = { live: ['var(--live)', I.bell], action: ['var(--action)', I.clock], p: ['var(--p)', I.sparkle], done: ['var(--done)', I.checkc] };
+function announceNew() {
+  const fresh = notifsFor().filter((n) => !seenIds.has(n.id) && !n.read);
+  S.notifs.forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); });
+  if (!fresh.length) return;
+  showBanner(fresh[0], fresh.length);
+  if (document.hidden && 'Notification' in window && Notification.permission === 'granted') navigator.serviceWorker?.getRegistration().then((r) => r && r.showNotification('Namdhari Seva', { body: fresh[0].t, icon: 'icons/icon-192.png', tag: fresh[0].id }));
+}
+let bnT;
+function showBanner(n, count) {
+  let el = $('#nb-root'); if (!el) { el = document.createElement('div'); el.id = 'nb-root'; document.body.appendChild(el); }
+  const [c, ic] = LV[n.level] || LV.p; buzz(); try { navigator.vibrate && navigator.vibrate([12, 60, 12]); } catch (e) {}
+  el.innerHTML = `<button class="nbanner" data-act="nb-open" data-id="${n.id}"><span class="nbic" style="color:${c};background:color-mix(in srgb,${c} 14%,var(--surface))">${ic}</span><span class="grow"><b>${count > 1 ? `${count} new notifications` : 'Namdhari Seva'}<i>now</i></b><span>${esc(n.t)}</span></span></button>`;
+  requestAnimationFrame(() => el.firstChild.classList.add('in'));
+  updateBadges(); clearTimeout(bnT); bnT = setTimeout(hideBanner, 5000);
+}
+function hideBanner() { const b = $('#nb-root .nbanner'); if (b) { b.classList.remove('in'); setTimeout(() => { const r = $('#nb-root'); if (r) r.innerHTML = ''; }, 300); } }
+// refresh only the little numbers, so nothing jumps while you read
+function updateBadges() {
+  $$('[data-act=inbox]').forEach((b) => { const u = unread(); b.querySelector('.nb')?.remove(); if (u) b.insertAdjacentHTML('beforeend', `<span class="nb">${u}</span>`); });
+  const tb = $('.tabbar'); if (tb) tb.outerHTML = tabbar();
+}
+const busy = () => $('#sheet-root').innerHTML || SV || SC || GE || ['create', 'attend'].includes(stack[stack.length - 1]?.v) || document.activeElement?.matches?.('input,textarea,[contenteditable]');
+// another tab of the app changed something → apply it now
+window.addEventListener('storage', (e) => {
+  if (e.key !== KEY || !e.newValue) return;
+  try { const role = S.role; const next = JSON.parse(e.newValue); next.role = role; S = next; } catch (err) { return; }
+  if (busy()) updateBadges(); else rerender();
+  announceNew();
+});
+// Prototype: a lead sends live updates while a seva is running (so you can feel real-time on one phone)
+const LIVE_SCRIPT = [
+  { sid: 's0', t: 'Tea break in the courtyard at 11:00 🍵', kind: 'info' },
+  { sid: 's0', t: 'New task added: Fold the rumalas after diwan', kind: 'new', task: ['Fold the rumalas after diwan', 2] },
+  { sid: 's5', t: '40 more rotis needed — can someone help?', kind: 'info' },
+];
+let liveIdx = 0, liveT = null;
+function scheduleLive(ms) { clearTimeout(liveT); if (S.liveDemo === false || liveIdx >= LIVE_SCRIPT.length) return; liveT = setTimeout(liveTick, ms); }
+function liveTick() {
+  const ev2 = LIVE_SCRIPT[liveIdx]; const s = ev2 && sv(ev2.sid);
+  if (!ev2) return; if (!S.onboarded || S.role !== 'member' || !s || !isLive(s) || !going(s) || document.hidden) { scheduleLive(15000); return; }
+  liveIdx++;
+  if (ev2.task) s.points.push({ id: 't' + uid(), text: ev2.task[0], need: ev2.task[1], takers: [], at: iso(now()), live: true });
+  s.updates.unshift({ id: 'u' + uid(), t: ev2.t, d: iso(now()), by: s.lead, kind: ev2.kind });
+  S.notifs.unshift({ id: 'n' + uid(), level: 'live', t: `${s.title}: ${ev2.t}`, d: iso(now()), ref: 'seva:' + s.id });
+  announceNew(); save();
+  const top = stack[stack.length - 1];
+  if (!busy() && (top?.v === 'seva' && top.id === s.id || !stack.length && ['home', 'seva'].includes(tab))) rerender(); else updateBadges();
+  scheduleLive(45000);
+}
+// ----- Pull down to refresh -----
+let PR = null;
+function canPull(e) { return window.scrollY <= 0 && S.onboarded && !$('#sheet-root').innerHTML && !SV && !SC && !GE && !e.target.closest('.g3d,.lcar,.stories,.chips,.tray2,#cal,input,textarea'); }
+document.addEventListener('touchstart', (e) => { PR = e.touches.length === 1 && canPull(e) ? { y: e.touches[0].clientY, x: e.touches[0].clientX, d: 0 } : null; }, { passive: true });
+document.addEventListener('touchmove', (e) => {
+  if (!PR) return; const dy = e.touches[0].clientY - PR.y, dx = e.touches[0].clientX - PR.x;
+  if (PR.d === 0 && (dy < 6 || Math.abs(dx) > dy)) { if (dy < 0 || Math.abs(dx) > 10) PR = null; return; }
+  if (window.scrollY > 0) { PR = null; return; }
+  PR.d = Math.min(120, dy * .5); let el = $('#ptr'); if (!el) { el = document.createElement('div'); el.id = 'ptr'; el.innerHTML = `<span>${I.reset}</span>`; document.body.appendChild(el); }
+  el.style.transform = `translate(-50%, ${PR.d}px) rotate(${PR.d * 4}deg)`; el.style.opacity = Math.min(1, PR.d / 50); el.classList.toggle('ready', PR.d > 64);
+}, { passive: true });
+document.addEventListener('touchend', () => {
+  if (!PR) return; const d = PR.d; PR = null; const el = $('#ptr'); if (!el) return;
+  if (d > 64) { el.classList.add('spin'); el.style.transform = 'translate(-50%, 60px)'; buzz(); doRefresh().then(() => { el.style.transition = 'transform .25s, opacity .25s'; el.style.opacity = 0; el.style.transform = 'translate(-50%, 0)'; setTimeout(() => el.remove(), 260); }); }
+  else { el.style.transition = 'transform .2s, opacity .2s'; el.style.opacity = 0; el.style.transform = 'translate(-50%, 0)'; setTimeout(() => el.remove(), 210); }
+}, { passive: true });
+function doRefresh() {
+  return new Promise((res) => setTimeout(() => { // stands in for re-fetching from the server
+    try { const fresh = JSON.parse(localStorage.getItem(KEY)); if (fresh) { fresh.role = S.role; S = fresh; } } catch (e) {}
+    feedShown = FEED_PAGE; render(); window.scrollTo(0, 0); announceNew(); toast('Up to date'); res();
+  }, 750));
 }
 
 // ---------- Sheets ----------
@@ -1517,6 +1597,8 @@ function handle(el) {
     case 'ins-invite': { const s = localSeva().filter((x) => isFuture(x) && x.cat === 'cleanup')[0] || localSeva().filter(isFuture)[0]; if (s) { push({ v: 'seva', id: s.id }); dtab = 'people'; teamFilter = 'going'; rerender(); inviteSheet(s.id); } break; }
     case 'copy-link': try { navigator.clipboard.writeText(el.dataset.l); toast('Link copied'); } catch (e) { toast('Copy not available here'); } break;
     case 'wa-invite': window.open(`https://wa.me/?text=${encodeURIComponent('Join Delhi Central on Namdhari Seva 🙏 ' + el.dataset.l)}`, '_blank', 'noopener'); break;
+    case 'nb-open': { const n = S.notifs.find((x) => x.id === id); hideBanner(); if (n) { n.read = true; save(); openRef(n.ref); } break; }
+    case 'live-demo': S.liveDemo = S.liveDemo === false; save(); if (S.liveDemo !== false) { liveIdx = 0; scheduleLive(4000); } toast(S.liveDemo === false ? 'Live demo updates off' : 'Live demo updates on — watch for a banner'); closeSheet(); break;
     case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
     case 'back': pop(); break;
     case 'close-sheet': closeSheet(); if (S.justPlanted) { rerender(); S.justPlanted = null; } break;
@@ -1628,7 +1710,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.insp) { insP = t.dataset.insp; rerender(); return; }
   if (t.dataset.uview) { uview = t.dataset.uview; rerender(); return; }
   if (t.dataset.tip) { const card = t.closest('.ichart'); const tip = card?.querySelector('.ctip'); if (!tip) return; const r = t.getBoundingClientRect(), c = card.getBoundingClientRect(); $$('.ichart [data-tip].on').forEach((x) => x.classList.remove('on')); t.classList.add('on'); tip.textContent = t.dataset.tip; tip.hidden = false; const w = tip.offsetWidth; tip.style.left = Math.max(8, Math.min(c.width - w - 8, r.left - c.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(6, r.top - c.top - tip.offsetHeight - 6) + 'px'; buzz(); return; }
-  if (t.dataset.role) { S.role = t.dataset.role; sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); return; }
+  if (t.dataset.role) { S.role = t.dataset.role; try { sessionStorage.setItem('seva-role', S.role); } catch (e) {} sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = 'home'; render(); window.scrollTo(0, 0); toast(isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); setTimeout(announceNew, 900); return; }
   if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
   if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); applyTheme(); $$('[data-setmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.setmode === S.mode)); const y = window.scrollY; const sh = $('#sheet-root').innerHTML; render(); $('#sheet-root').innerHTML = sh; window.scrollTo(0, y); return; }
@@ -1658,6 +1740,8 @@ setInterval(() => { if (!$('#sheet-root').innerHTML && !SV && !SC && !['create',
 function deepLink() { const m = location.hash.match(/^#(seva|event)=(\w+)/); if (m && S.onboarded) { history.replaceState(null, '', location.pathname); openRef(`${m[1]}:${m[2]}`); } }
 applyTheme();
 $('#app').innerHTML = `<main class="screen"><div class="skel" style="height:34px;width:55%;margin-top:14px"></div><div class="row" style="margin-top:18px">${'<div class="skel" style="width:70px;height:70px;border-radius:50%"></div>'.repeat(4)}</div><div class="skel" style="height:90px;margin-top:18px"></div><div class="skel" style="height:340px;margin-top:18px"></div></main>`;
-setTimeout(() => { render(); deepLink(); }, 200);
+try { const r = sessionStorage.getItem('seva-role'); if (r) S.role = r; } catch (e) {} // role is per tab, so two tabs can be lead + member
+S.notifs.forEach((n) => seenIds.add(n.id));
+setTimeout(() => { render(); deepLink(); scheduleLive(15000); }, 200);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
