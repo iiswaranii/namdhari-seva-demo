@@ -80,3 +80,11 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - **Feed:** "New post" with designed card types (Thought, Hukam, Alert, Information, Appreciation, Event) or plain long text, with a live preview. Admins can delete posts.
 - **People:** groups by country, a searchable member list, and team leads. Make any member a team lead, or remove the role.
 - Colours: red = needs action, amber = watch, green = on track, always with an icon and a word. Charts use the app indigo.
+
+## v9.1
+- **Stats filter:** one "Where" filter (countries with their groups inside; tick a whole country or any number of groups) next to period and seva type. All three fit in one row, with no sideways scrolling.
+- **People filter:** the same "Where" filter plus name search on Groups, Members and Team leads.
+- **New seva types:** Nasha Mukti, Donation, Langar stall, Clothes for needy, Social service (with templates for leads and admin).
+- **Gender:** members choose Male or Female when joining (changeable in settings). Stats shows the male/female split for members, for people who came to seva, and by seva type.
+- **Admin stories:** the Super Admin can post stories under "Seva HQ" (up to 5 a day).
+- **Alert cards** are now clearly red.

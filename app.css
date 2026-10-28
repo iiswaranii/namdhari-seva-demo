@@ -6,7 +6,7 @@
   --action: #B45309; --action-c: #F59E0B; --action-bg: #FEF3C7;
   --done: #15803D; --done-c: #22C55E; --done-bg: #DCFCE7;
   --event: #6D3FD8; --event-bg: #EEE8FD;
-  --c-langar: #F2780C; --c-cleanup: #0E9F97; --c-tree: #2E9A4B; --c-education: #3B7BE0; --c-blanket: #E0458F; --c-event: #7B4FE0;
+  --c-langar: #F2780C; --c-cleanup: #0E9F97; --c-tree: #2E9A4B; --c-education: #3B7BE0; --c-blanket: #E0458F; --c-event: #7B4FE0; --c-nasha: #475569; --c-donation: #CA8A04; --c-stall: #B45309; --c-clothes: #9333EA; --c-social: #0891B2;
   --seg-bg: #ECEAE6; --seg-ink: #5A5862;
   --gold: #E7A93A;
   --shadow: 0 1px 2px rgba(30,20,10,.04), 0 6px 18px rgba(30,20,10,.06);
@@ -659,3 +659,34 @@ html, body { overscroll-behavior-y: contain; }
 .post { position: relative; } .postmenu { position: absolute; top: 8px; right: 6px; }
 .ptext { padding: 2px 16px 6px; font-size: 16px; line-height: 1.55; }
 .ptext .clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* v9.1 — merged Where filter, gender, more seva types */
+.cc-nasha { --cc: var(--c-nasha); } .cc-donation { --cc: var(--c-donation); } .cc-stall { --cc: var(--c-stall); } .cc-clothes { --cc: var(--c-clothes); } .cc-social { --cc: var(--c-social); }
+[data-mode="dark"] { --c-nasha: #94A3B8; }
+.fbar { overflow: visible; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; }
+.fchip2 { min-width: 0; justify-content: space-between; }
+.fchip2 .ellipsis { min-width: 0; }
+.fchip2.reset { padding: 0; width: 34px; justify-content: center; } .fchip2.reset svg { width: 16px; height: 16px; opacity: .8; }
+.fbar:not(:has(.reset)) { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); }
+.wrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 8px 14px; border: 0; background: none; text-align: left; color: var(--ink); border-top: 1px solid var(--border); }
+.wrow.top { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 10px; }
+.wbox { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+.wbox .wrow:first-child { border-top: 0; }
+.wrow.sub { padding-left: 46px; min-height: 44px; }
+.ck2 { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--faint); display: grid; place-items: center; flex: none; color: #fff; }
+.ck2 svg { width: 14px; height: 14px; }
+.wrow.on > .ck2 { background: var(--p); border-color: var(--p); }
+.wrow.some > .ck2 { border-color: var(--p); } .wrow.some > .ck2 i { width: 10px; height: 2.5px; border-radius: 2px; background: var(--p); }
+.gbar { margin-top: 10px; cursor: pointer; }
+.gtrack { display: flex; height: 26px; border-radius: 8px; overflow: hidden; gap: 2px; margin-top: 6px; }
+.gtrack i { display: flex; align-items: center; padding: 0 8px; min-width: 0; }
+.gtrack i b { font-size: 12px; font-weight: 800; color: #fff; }
+.gtrack i:last-child { justify-content: flex-end; } .gtrack i:last-child b { color: #2A1A00; }
+[data-mode="dark"] .gtrack i:last-child b { color: #fff; }
+.gtrack.sm { height: 10px; border-radius: 5px; margin: 0; flex: 1; }
+.gmini { display: grid; grid-template-columns: 110px 1fr 46px; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+.gmini .hv small { font-size: 10px; color: var(--muted); }
+.gseg button { min-height: 46px; }
+.ptools { display: flex; gap: 6px; margin-top: 12px; }
+.ptools .fchip2 { height: 42px; border-radius: 14px; padding: 0 14px; font-size: 14px; }
+.ptools .fchip2.reset { width: 42px; padding: 0; }

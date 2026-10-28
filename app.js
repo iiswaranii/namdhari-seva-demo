@@ -99,6 +99,11 @@ const CAT = {
   tree: { label: 'Tree planting', ic: svg('<path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2.5-5-6-5 0 3.5 2.5 5 6 5z"/><path d="M6 21h12"/>') },
   education: { label: 'Education', ic: svg('<path d="M3 6c3-1.5 6-1.5 9 1 3-2.5 6-2.5 9-1v13c-3-1.5-6-1.5-9 1-3-2.5-6-2.5-9-1z"/><path d="M12 7v13"/>') },
   blanket: { label: 'Relief', ic: svg('<path d="M12 20s-7-4.4-7-9.5A3.5 3.5 0 0 1 12 8a3.5 3.5 0 0 1 7 2.5C19 15.6 12 20 12 20z"/>') },
+  nasha: { label: 'Nasha Mukti', ic: svg('<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/><path d="M8 12h5"/>') },
+  donation: { label: 'Donation', ic: svg('<path d="M12 7v10M9.5 9.5c0-1.4 1.1-2 2.5-2s2.5.7 2.5 2-1.1 1.8-2.5 2-2.5.7-2.5 2 1.1 2 2.5 2 2.5-.6 2.5-2"/><circle cx="12" cy="12" r="9"/>') },
+  stall: { label: 'Langar stall', ic: svg('<path d="M3 10l2-6h14l2 6"/><path d="M3 10h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 14v7h14v-7"/>') },
+  clothes: { label: 'Clothes for needy', ic: svg('<path d="M8 3l-5 4 3 3 2-1v12h8V9l2 1 3-3-5-4c0 1.7-1.3 3-4 3S8 4.7 8 3z"/>') },
+  social: { label: 'Social service', ic: svg('<path d="M11 17l2 2a1.4 1.4 0 0 0 2-2"/><path d="M14 14l2.5 2.5a1.4 1.4 0 0 0 2-2L15 11l-1.5 1.5a2 2 0 0 1-3-3L13 7h3l5 5"/><path d="M3 11l5-5 3 1"/><path d="M3 11l5 5 1.5-1.5"/>') },
   event: { label: 'Event', ic: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>') },
 };
 
@@ -355,7 +360,7 @@ function leaveDetail() {} // updates and new tasks stay flagged until their tab 
 
 // ---------- Render ----------
 function render() {
-  applyTheme(); unmount3D();
+  applyTheme(); unmount3D(); ensureHQGroup();
   S.groups.forEach((g) => { g.stories = g.stories.filter((x) => x.by !== '@me' || now() - T(x.d) < DAY); }); // own stories expire after 24 h
   if (!S.onboarded) return renderOnboarding();
   const top = stack[stack.length - 1];
@@ -402,7 +407,7 @@ const storyOrder = () => S.groups.filter((g) => g.stories.length).sort((a, b) =>
 const groupSeen = (g) => g.stories.every((s) => SS()[s.id]);
 function storiesRow() {
   const gs = storyOrder();
-  return `<div class="stories" role="list" aria-label="Stories from team leads">${isLead() ? yourStoryRing() : ''}${gs.filter((g) => g.stories.length).map((g) => `<button class="story ${groupSeen(g) ? 'seen' : ''}" role="listitem" data-story="${g.id}" aria-label="${esc(g.full)} stories${groupSeen(g) ? ', seen' : ''}"><span class="ring"><span>${groupAv(g)}</span></span><b>${esc(g.name)}</b></button>`).join('')}</div>`;
+  return `<div class="stories" role="list" aria-label="Stories from team leads">${isLead() || isAdmin() ? yourStoryRing() : ''}${gs.filter((g) => g.stories.length).map((g) => `<button class="story ${groupSeen(g) ? 'seen' : ''}" role="listitem" data-story="${g.id}" aria-label="${esc(g.full)} stories${groupSeen(g) ? ', seen' : ''}"><span class="ring"><span>${groupAv(g)}</span></span><b>${esc(g.name)}</b></button>`).join('')}</div>`;
 }
 function liveBanner(s) {
   if (!going(s)) { const here = peopleOf(s).filter((p) => p.st === 'here').length; return `<button class="livebanner tap" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc)">${CAT[s.cat].ic}</span><div class="grow"><span class="livepill"><i></i>LIVE NOW</span><h3 class="ellipsis">${esc(s.title)}</h3><p class="m ellipsis">${here} sevadars here · ${openPtsN(s)} task${openPtsN(s) === 1 ? '' : 's'} need help</p></div><span class="status st-up" style="flex:none">Join</span></button>`; }
@@ -446,7 +451,7 @@ function setupLiveCarousel() {
 const PK = {
   thought: { label: 'Thought of the Day', ic: I.sun, cls: '', grad: ['#FFE9C9', '#FFC9A6', '#F9A9BC'] },
   hukam: { label: 'Satguru Ji\'s Hukam', ic: I.sparkle, cls: 'light', grad: ['#F7A428', '#D9480F', '#8A1C3B'] },
-  alert: { label: 'Important alert', ic: I.alert, cls: '', grad: ['#FFE4E0', '#FFC2B8', '#FF9C8F'] },
+  alert: { label: 'Important alert', ic: I.alert, cls: 'light', grad: ['#FF5A5F', '#E0263F', '#A3122E'] },
   appreciation: { label: 'Appreciation', ic: I.heart, cls: '', grad: ['#E3F9C6', '#A7F0C2', '#7DE3D6'] },
   event: { label: 'Upcoming event', ic: I.cal, cls: 'light', grad: ['#7C4DFF', '#9C3FD8', '#C2389E'] },
   info: { label: 'Information', ic: I.info, cls: '', grad: ['#E0ECFF', '#CBD8FF', '#D9CCFF'] },
@@ -458,7 +463,7 @@ function postArt(p) {
   const deco = {
     thought: `<circle cx="330" cy="330" r="120" fill="#FFF3D6" opacity=".7"/><circle cx="330" cy="330" r="80" fill="#FFE0A3" opacity=".8"/><circle cx="60" cy="40" r="60" fill="#fff" opacity=".25"/><path d="M0 260 Q100 230 200 260 T400 250 V300 H0Z" fill="#fff" opacity=".22"/>`,
     hukam: `<g opacity=".18" stroke="#fff" fill="none" stroke-width="1.5" transform="translate(330 70)">${[30, 52, 74, 96].map((r) => `<circle r="${r}"/>`).join('')}${Array.from({ length: 16 }, (_, i) => `<path transform="rotate(${i * 22.5})" d="M0 -30 Q12 -60 0 -96 Q-12 -60 0 -30"/>`).join('')}</g><circle cx="40" cy="280" r="90" fill="#fff" opacity=".07"/>`,
-    alert: `<g opacity=".18">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 34 - 40} 0 l20 0 l-26 26 l-20 0z" fill="#B42318"/>`).join('')}</g><path d="M330 150 L390 260 H270Z" fill="#B42318" opacity=".08"/>`,
+    alert: `<g opacity=".22">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 34 - 40} 0 l20 0 l-26 26 l-20 0z" fill="#FFD43B"/>`).join('')}</g><path d="M300 120 L392 280 H208Z" fill="#fff" opacity=".1"/><text x="300" y="262" font-size="90" font-weight="900" fill="#fff" opacity=".12" text-anchor="middle" font-family="Inter,system-ui">!</text>`,
     appreciation: Array.from({ length: 26 }, (_, i) => `<rect x="${(i * 53) % 400}" y="${(i * 37) % 300}" width="8" height="4" rx="1" fill="${['#F59E0B', '#E0458F', '#3B7BE0', '#22C55E'][i % 4]}" opacity=".55" transform="rotate(${i * 29} ${(i * 53) % 400} ${(i * 37) % 300})"/>`).join(''),
     event: `<circle cx="340" cy="60" r="90" fill="#fff" opacity=".08"/><circle cx="40" cy="270" r="70" fill="#fff" opacity=".08"/>${Array.from({ length: 18 }, (_, i) => `<circle cx="${(i * 71) % 400}" cy="${(i * 43) % 300}" r="${1 + i % 3}" fill="#fff" opacity=".35"/>`).join('')}`,
     seva: `<g opacity=".16" fill="none" stroke="#7A3E00" stroke-width="1.4" transform="translate(340 70)">${[26, 46, 66, 86].map((r) => `<circle r="${r}"/>`).join('')}</g><path d="M0 250 Q120 215 240 245 T400 235 V300 H0Z" fill="#fff" opacity=".35"/>`,
@@ -1038,6 +1043,7 @@ function settingsSheet() {
   openSheet(`${sheetHead('App Settings')}
     <label class="f">Appearance</label><div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
     <label class="f">Your name</label><input class="in" id="set-name" value="${esc(S.name)}" placeholder="Your name">
+    <label class="f">You are</label><div class="seg"><button data-act="set-gender" data-v="m" aria-pressed="${S.gender === 'm'}">Male</button><button data-act="set-gender" data-v="f" aria-pressed="${S.gender === 'f'}">Female</button></div>
     <button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
     <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>
     <div class="demo"><p class="h">Prototype: member state</p><div class="seg">${[['new', 'New'], ['active', 'Active'], ['less', 'Less active']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
@@ -1055,6 +1061,8 @@ function renderOnboarding() {
       <p class="muted" style="margin-top:12px">See what the sangat is doing, pick the seva tasks you'll do, and grow your own garden with every contribution.</p>
       <div style="margin:22px -22px;overflow:hidden">${boardSVG(layoutFromOwned({ marigold: 3, sapling: 2, rose: 1, mango: 1, bench: 1, cat: 1, lantern: 1 })).replace('class="scene board"', 'class="scene board" style="display:block;width:100%;height:auto"')}</div>
       <label class="f" for="onb-name">Your name</label><input class="in" id="onb-name" placeholder="e.g. Harpreet Kaur" autocomplete="name">
+      <label class="f">You are</label><div class="seg gseg"><button data-act="onb-gender" data-v="m" aria-pressed="${S.gender === 'm'}">Male</button><button data-act="onb-gender" data-v="f" aria-pressed="${S.gender === 'f'}">Female</button></div>
+      <p class="xs muted" style="margin-top:6px">Helps your team plan seva. Only counted in overall numbers.</p>
       <p class="xs muted" style="margin-top:8px">You've been invited to <b style="color:var(--ink)">Delhi Central</b>.</p></div>
     <button class="btn block" style="margin-top:20px" data-act="onb-finish">Join Delhi Central</button></div>`;
 }
@@ -1063,13 +1071,16 @@ function renderOnboarding() {
 // The prototype lead is a team lead of Delhi Central: manages all local (non-HQ) seva,
 // posts group stories (max 2 a day, gone after 24 h), manages members and marks attendance.
 const isLead = () => S.role === 'lead';
-const STORY_LIMIT = 2;
+const STORY_LIMIT = 2; // per lead per day; Seva HQ gets 5
+const SG = () => (isAdmin() ? 'g-hq' : 'g-delhi');
+const storyLimit = () => (isAdmin() ? 5 : STORY_LIMIT);
+function ensureHQGroup() { if (!S.groups.some((g) => g.id === 'g-hq')) S.groups.unshift({ id: 'g-hq', name: 'Seva HQ', code: 'HQ', full: 'Namdhari Seva HQ', hue: ['#6A5AE0', '#3F2F99'], stories: [] }); }
 const localSeva = () => S.seva.filter((s) => !s.hq);
 const needsAttend = (s) => !s.hq && T(s.end) < now() && !s.att && !s.cancelled;
 const recipients = (s) => peopleOf(s).filter((p) => ['going', 'maybe', 'here'].includes(p.st));
 const noReply = (s) => s.people.filter((p) => p.st === 'invited');
-const myStoriesToday = () => { const g = grp('g-delhi'); const d0 = new Date(); d0.setHours(0, 0, 0, 0); return g.stories.filter((s) => s.by === '@me' && T(s.d) >= d0.getTime()); };
-const myActiveStories = () => grp('g-delhi').stories.filter((s) => s.by === '@me');
+const myStoriesToday = () => { ensureHQGroup(); const g = grp(SG()); const d0 = new Date(); d0.setHours(0, 0, 0, 0); return g.stories.filter((s) => s.by === '@me' && T(s.d) >= d0.getTime()); };
+const myActiveStories = () => { ensureHQGroup(); return grp(SG()).stories.filter((s) => s.by === '@me'); };
 I.edit = svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/>');
 I.trash = svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>');
 I.camera = svg('<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 7l2-3h4l2 3"/><circle cx="12" cy="13.5" r="3.5"/>');
@@ -1108,7 +1119,7 @@ const TCOL = ['#FFFFFF', '#16151A', '#FFE27A', '#FFB4D2'];
 let SC = null;
 const bgCss = (k) => `linear-gradient(160deg, ${BGS[k][0]}, ${BGS[k][1]})`;
 function openComposer() {
-  if (myStoriesToday().length >= STORY_LIMIT) { openSheet(`${sheetHead('Daily limit reached')}<div class="card" style="text-align:center"><div style="font-size:40px">⏳</div><p class="small" style="margin-top:6px">Each team lead can share <b>${STORY_LIMIT} stories a day</b>, so the sangat's story row stays calm and useful.</p><p class="xs muted" style="margin-top:8px">You can share again after midnight. You can still delete one of today's stories to post a new one.</p></div><button class="btn block" style="margin-top:14px" data-act="story-mine">See your stories</button>`); return; }
+  if (myStoriesToday().length >= storyLimit()) { openSheet(`${sheetHead('Daily limit reached')}<div class="card" style="text-align:center"><div style="font-size:40px">⏳</div><p class="small" style="margin-top:6px">You can share <b>${storyLimit()} stories a day</b>, so the sangat's story row stays calm and useful.</p><p class="xs muted" style="margin-top:8px">You can share again after midnight. You can still delete one of today's stories to post a new one.</p></div><button class="btn block" style="margin-top:14px" data-act="story-mine">See your stories</button>`); return; }
   SC = { bg: 'saffron', img: null, font: 'classic', align: 'center', col: 0, x: 50, y: 42, link: null, text: '' };
   history.pushState({ sc: 1 }, '');
   let host = $('#sc-root'); if (!host) { host = document.createElement('div'); host.id = 'sc-root'; document.body.appendChild(host); }
@@ -1124,7 +1135,7 @@ function drawComposer(focus) {
     <div class="sc-top"><button data-act="sc-close" aria-label="Discard">${I.close}</button><span class="sp"></span>
       <button data-act="sc-font" aria-label="Font"><b style="font-size:17px">Aa</b></button><button data-act="sc-align" aria-label="Align">${I.align}</button><button data-act="sc-col" aria-label="Text colour"><i class="dotc" style="background:${TCOL[SC.col]}"></i></button><button data-act="sc-photo" aria-label="Add photo">${I.camera}</button><button data-act="sc-link" aria-label="Link a seva">${I.link}</button></div>
     <div class="sc-bottom">${SC.img ? `<button class="sc-chip" data-act="sc-nophoto">${I.trash}Remove photo</button>` : `<div class="sc-bgs">${Object.keys(BGS).map((k) => `<button data-scbg="${k}" aria-label="${k} background" aria-pressed="${SC.bg === k}" style="background:${bgCss(k)}"></button>`).join('')}</div>`}
-      <div class="row" style="margin-top:12px"><span class="sc-note">${used} of ${STORY_LIMIT} today · lasts 24 h</span><span class="sp" style="flex:1"></span><button class="sc-share" data-act="sc-share"><span class="gav">${groupAv(grp('g-delhi'))}</span>Share to Delhi${I.chev}</button></div></div>
+      <div class="row" style="margin-top:12px"><span class="sc-note">${used} of ${storyLimit()} today · lasts 24 h</span><span class="sp" style="flex:1"></span><button class="sc-share" data-act="sc-share"><span class="gav">${groupAv(grp(SG()))}</span>Share to ${isAdmin() ? 'all' : 'Delhi'}${I.chev}</button></div></div>
     <input type="file" id="sc-file" accept="image/*" hidden>
   </div></div>`;
   const t = $('#sc-text'); t.addEventListener('input', () => { SC.text = t.innerText; });
@@ -1152,13 +1163,13 @@ function scLoadImage(file) {
 function closeComposer(fromPop) { if (!SC) return; SC = null; $('#sc-root').innerHTML = ''; document.body.style.overflow = ''; if (!fromPop) { ignorePop = true; history.back(); } }
 function scShare() {
   const text = (SC.text || '').trim(); if (!text && !SC.img) { toast('Add some text or a photo first'); placeCaret($('#sc-text')); return; }
-  if (myStoriesToday().length >= STORY_LIMIT) { toast(`Limit: ${STORY_LIMIT} stories a day`); return; }
+  if (myStoriesToday().length >= storyLimit()) { toast(`Limit: ${STORY_LIMIT} stories a day`); return; }
   const l = SC.link; const lt = l ? (l.startsWith('seva') ? sv(l.split(':')[1]) : ev(l.split(':')[1])) : null;
   const st2 = { id: 'my' + uid(), d: iso(now()), by: '@me', poster: ME(), custom: true, text, bg: SC.bg, img: SC.img, font: SC.font, align: SC.align, col: SC.col, x: SC.x, y: SC.y, link: l, cta: lt ? (isLive(lt) ? 'Open live seva' : 'View seva') : null, views: 0 };
-  grp('g-delhi').stories.push(st2); SS()[st2.id] = now();
+  grp(SG()).stories.push(st2); SS()[st2.id] = now();
   try { save(); } catch (e) {}
   if (!localStorage.getItem(KEY)?.includes(st2.id)) { st2.img = null; save(); toast('Photo too large to keep on this device — saved the text only'); }
-  closeComposer(); rerender(); setTimeout(() => toast('Shared to Delhi · disappears in 24 hours'), 250);
+  closeComposer(); rerender(); setTimeout(() => toast(`Shared to ${isAdmin() ? 'every member' : 'Delhi'} · disappears in 24 hours`), 250);
 }
 // drag text to move it; tap to edit
 let scDrag = null;
@@ -1174,7 +1185,7 @@ function customSlide(s) {
   return `<div class="slide custom">${bg}<div class="sc-text f-${s.font} shown" style="left:${s.x}%;top:${s.y}%;text-align:${s.align};color:${TCOL[s.col]};${s.img ? 'text-shadow:0 2px 12px rgba(0,0,0,.5)' : ''}">${esc(s.text).replace(/\n/g, '<br>')}</div></div>`;
 }
 function deleteMyStory(id) {
-  const g = grp('g-delhi'); g.stories = g.stories.filter((s) => s.id !== id); save();
+  const g = grp(SG()); g.stories = g.stories.filter((s) => s.id !== id); save();
   if (!SV) return; if (!g.stories.length) { closeStory(); return; }
   SV.i = Math.min(SV.i, g.stories.length - 1); buildCube(); showStory(); toast('Story deleted');
 }
@@ -1274,7 +1285,7 @@ function inviteSheet(sid) {
     <button class="btn block" style="margin-top:14px" data-act="invite-send" data-id="${sid}">${I.userplus}Send invites</button>`);
 }
 // ----- Seva creation -----
-const TEMPLATES = { cleanup: ['Gurdwara Hall Cleaning', [['Lay carpets', 4], ['Sweep and mop', 3], ['Windows and fans', 2], ['Shoe racks', 2]]], langar: ['Langar Seva', [['Cook dal and sabzi', 3], ['Make rotis', 4], ['Serve langar', 6], ['Wash utensils', 3]]], tree: ['Tree Planting Drive', [['Dig pits', 6], ['Plant saplings', 6], ['Carry water', 4]]], education: ['Reading Circle', [['Read with a group', 4], ['Set up the room', 1]]], blanket: ['Blanket Distribution', [['Load the vans', 4], ['Hand out blankets', 8], ['Drive a van', 3]]] };
+const TEMPLATES = { nasha: ['Nasha Mukti Awareness Camp', [['Set up the stall and banners', 3], ['Talk with visitors', 4], ['Hand out leaflets', 4], ['Counselling desk', 2]]], donation: ['Donation Drive', [['Collection desk', 2], ['Count and record', 2], ['Pack items for delivery', 4]]], stall: ['Roadside Langar Stall', [['Set up the stall', 4], ['Cook', 4], ['Serve passers-by', 6], ['Clean up after', 3]]], clothes: ['Clothes for the Needy', [['Sort clothes by size', 4], ['Pack bundles', 4], ['Hand out clothes', 6]]], social: ['Social Service Day', [['Visit the elderly home', 4], ['Help with errands', 3], ['Hospital visit', 3]]], cleanup: ['Gurdwara Hall Cleaning', [['Lay carpets', 4], ['Sweep and mop', 3], ['Windows and fans', 2], ['Shoe racks', 2]]], langar: ['Langar Seva', [['Cook dal and sabzi', 3], ['Make rotis', 4], ['Serve langar', 6], ['Wash utensils', 3]]], tree: ['Tree Planting Drive', [['Dig pits', 6], ['Plant saplings', 6], ['Carry water', 4]]], education: ['Reading Circle', [['Read with a group', 4], ['Set up the room', 1]]], blanket: ['Blanket Distribution', [['Load the vans', 4], ['Hand out blankets', 8], ['Drive a van', 3]]] };
 let draft = null;
 function newDraft(cat = 'cleanup') { const t = TEMPLATES[cat]; return { cat, title: t[0], date: ymd(now() + 3 * DAY), start: '09:00', end: '12:00', place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Main entrance', about: '', repeat: false, tasks: t[1].map(([x, n]) => ({ t: x, n })) }; }
 function syncDraft() { if (!draft || !$('#d-title')) return; draft.title = $('#d-title').value; draft.date = $('#d-date').value; draft.start = $('#d-start').value; draft.end = $('#d-end').value; draft.place = $('#d-place').value; draft.meet = $('#d-meet').value; draft.about = $('#d-about').value; draft.repeat = $('#d-repeat').checked; $$('[data-dt]').forEach((i) => { const tk = draft.tasks[+i.dataset.dt]; if (tk) tk.t = i.value; }); }
@@ -1507,8 +1518,11 @@ function doRefresh() {
 const isAdmin = () => S.role === 'admin';
 const COUNTRIES = [...new Set(GROUPS.map((g) => g.country))];
 const FLAG = Object.fromEntries(GROUPS.map((g) => [g.country, g.flag]));
-const CATW = [['langar', .34], ['cleanup', .26], ['tree', .12], ['education', .16], ['blanket', .12]];
+const CATW = [['langar', .22], ['cleanup', .17], ['stall', .1], ['education', .1], ['tree', .08], ['blanket', .08], ['clothes', .08], ['social', .07], ['nasha', .06], ['donation', .04]];
+const FEM = { langar: .58, cleanup: .5, tree: .36, education: .64, blanket: .48, nasha: .3, donation: .52, stall: .46, clothes: .62, social: .55 };
 const REASONS = ['Heavy rain', 'Venue not available', 'Not enough sevadars', 'Lead unwell'];
+const GFEM = { delhi: .02, ludhiana: -.04, bhaini: 0, mumbai: .06, jammu: -.05, jaipur: 0, london: .05, birmingham: .03, nairobi: -.02, toronto: .07, bangkok: -.03 };
+GROUPS.forEach((g) => { g.fem = GFEM[g.id] || 0; });
 let ADM = null;
 function admData() {
   if (ADM) return ADM; let h = 20261028; const r = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -1519,7 +1533,8 @@ function admData() {
     const need = Math.round((8 + r() * 30) * Math.sqrt(g.members / 120)); const fillR = Math.max(.2, Math.min(1, q.fill + (r() - .5) * .22 + q.trend * (.5 - age) * .5));
     const filled = Math.round(need * fillR); const going = filled + Math.round(r() * 3); const came = Math.min(going, Math.round(going * Math.max(.4, Math.min(1, q.turn + (r() - .5) * .14))));
     const cancelled = r() < .035; const delay = r() < q.delay ? Math.round(6 + r() * 26) : Math.round(r() * 6); const lag = Math.round(q.lag * (.3 + r() * 1.6));
-    recs.push({ d: t0.getTime() - a * DAY, g: g.id, cat, need, filled, going, came, cancelled, reason: cancelled ? REASONS[Math.floor(r() * 4)] : '', delay, lag, newm: r() < .3 ? 1 + Math.floor(r() * 3) : 0 });
+    const fem = Math.round(came * Math.max(.15, Math.min(.85, FEM[cat] + (g.fem || 0) + (r() - .5) * .16)));
+    recs.push({ d: t0.getTime() - a * DAY, g: g.id, cat, need, filled, going, came, fem, cancelled, reason: cancelled ? REASONS[Math.floor(r() * 4)] : '', delay, lag, newm: r() < .3 ? 1 + Math.floor(r() * 3) : 0 });
   } });
   ADM = { recs }; return ADM;
 }
@@ -1530,9 +1545,10 @@ function admSeed(d) {
 }
 // ----- filters -----
 const AFP = [[7, '7 days'], [30, '30 days'], [90, '3 months'], [365, '12 months']];
-const af = () => (S.af = S.af || { p: 30, c: 'all', g: 'all', t: 'all' });
+const af = () => { S.af = S.af || { p: 30, t: 'all' }; if (!Array.isArray(S.af.gs)) S.af.gs = []; return S.af; };
 const gOf = (id) => GROUPS.find((g) => g.id === id);
-const inScope = (g) => (af().c === 'all' || g.country === af().c) && (af().g === 'all' || g.id === af().g);
+const inScope = (g) => !af().gs.length || af().gs.includes(g.id);
+const ctryInScope = (c) => GROUPS.some((g) => g.country === c && inScope(g));
 function recsIn(fromA, toA, extra) { const F = af(); const lo = now() - fromA * DAY, hi = now() - toA * DAY; return admData().recs.filter((x) => x.d >= lo && x.d < hi && inScope(gOf(x.g)) && (F.t === 'all' || x.cat === F.t) && (!extra || extra(x))); }
 function metrics(rs, groups, days) {
   const ok = rs.filter((x) => !x.cancelled); const sum = (k) => ok.reduce((a, x) => a + x[k], 0);
@@ -1540,7 +1556,7 @@ function metrics(rs, groups, days) {
   const came = sum('came'); const active = Math.min(members, Math.round(came / Math.max(1.4, Math.min(4, days / 9))));
   return { held: ok.length, target, cancelled: rs.length - ok.length, fill: ok.length ? Math.round(sum('filled') / sum('need') * 100) : 0, turn: ok.length ? Math.round(came / Math.max(1, sum('going')) * 100) : 0,
     ontime: ok.length ? Math.round(ok.filter((x) => x.delay <= 10).length / ok.length * 100) : 0, att: ok.length ? Math.round(ok.filter((x) => x.lag <= 24).length / ok.length * 100) : 0,
-    active, activePct: members ? Math.round(active / members * 100) : 0, members, newm: sum('newm'), came };
+    active, activePct: members ? Math.round(active / members * 100) : 0, members, newm: sum('newm'), came, femPct: came ? Math.round(sum('fem') / came * 100) : 0, memFemPct: members ? Math.round(groups.reduce((a, g) => a + g.members * (.5 + g.fem * .6), 0) / members * 100) : 0 };
 }
 const scopeGroups = () => GROUPS.filter(inScope);
 function cur() { const p = af().p; return metrics(recsIn(p, 0), scopeGroups(), p); }
@@ -1561,13 +1577,13 @@ function leadScore(m) { return Math.round(m.fill * .35 + m.turn * .25 + m.ontime
 const scoreG = (s) => s >= 82 ? 'good' : s >= 70 ? 'warn' : 'bad';
 function groupStats() {
   const p = af().p; const F = af();
-  return GROUPS.filter((g) => F.c === 'all' || g.country === F.c).map((g) => { const one = (fa, ta) => metrics(admData().recs.filter((x) => x.g === g.id && x.d >= now() - fa * DAY && x.d < now() - ta * DAY && (F.t === 'all' || x.cat === F.t)), [g], p); const m = one(p, 0), pm = one(p * 2, p);
+  return GROUPS.filter(inScope).map((g) => { const one = (fa, ta) => metrics(admData().recs.filter((x) => x.g === g.id && x.d >= now() - fa * DAY && x.d < now() - ta * DAY && (F.t === 'all' || x.cat === F.t)), [g], p); const m = one(p, 0), pm = one(p * 2, p);
     const weeks = Array.from({ length: 8 }, (_, i) => admData().recs.filter((x) => x.g === g.id && !x.cancelled && x.d >= now() - (8 - i) * 7 * DAY && x.d < now() - (7 - i) * 7 * DAY).length);
     const last = Math.max(0, ...admData().recs.filter((x) => x.g === g.id).map((x) => x.d)); return { g, m, pm, score: leadScore(m), weeks, quiet: Math.round((now() - last) / DAY) }; });
 }
 function alertsList() {
   const out = [];
-  groupStats().filter((x) => af().g === 'all' || x.g.id === af().g).forEach(({ g, m, pm, quiet }) => {
+  groupStats().forEach(({ g, m, pm, quiet }) => {
     if (quiet >= 14) out.push(['bad', `${g.name}: no seva for ${quiet} days`, `Check in with ${g.lead}`, g.id]);
     if (m.held && m.fill < 70) out.push(['bad', `${g.name}: only ${m.fill}% of places filled`, 'Seva are running short of sevadars', g.id]);
     if (m.held && m.att < 65) out.push(['warn', `${g.name}: attendance marked late`, `Only ${m.att}% marked within 24 h — sevadars wait for points`, g.id]);
@@ -1597,6 +1613,14 @@ function lineChart(data, target, aria) {
     <text x="${x(data.length - 1) + 9}" y="${y(vs[vs.length - 1]) + 4}" class="lbl">${vs[vs.length - 1]}%</text></svg>`;
 }
 const spark = (vs, c = 'var(--ch1)') => { const mx = Math.max(1, ...vs); const p = vs.map((v, i) => `${i * 8},${20 - v / mx * 18}`).join(' '); return `<svg viewBox="0 -1 56 22" class="spark" aria-hidden="true"><polyline points="${p}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${(vs.length - 1) * 8}" cy="${20 - vs[vs.length - 1] / mx * 18}" r="2.4" fill="${c}"/></svg>`; };
+function genderBar(label, f, sub) { return `<div class="gbar" data-tip="${label}: ${100 - f}% male · ${f}% female"><div class="row" style="justify-content:space-between"><span class="small" style="font-weight:650">${label}</span><span class="xs muted">${sub || ''}</span></div><div class="gtrack"><i style="width:${100 - f}%;background:var(--ch1)"><b>${100 - f}%</b></i><i style="width:${f}%;background:var(--ch2)"><b>${f}%</b></i></div></div>`; }
+function genderChart(m, cats) {
+  const rows = cats.filter((x) => x.mm.held).sort((a, b) => b.mm.femPct - a.mm.femPct);
+  return `<div class="legend" style="margin:8px 0 2px"><span><i style="background:var(--ch1)"></i>Male</span><span><i style="background:var(--ch2)"></i>Female</span></div>
+    ${genderBar('Members', m.memFemPct, `${num(m.members)} people`)}${genderBar('Came to seva', m.femPct, `${num(m.came)} sevadar visits`)}
+    <p class="xs muted" style="margin:12px 0 2px;font-weight:700;letter-spacing:.04em;text-transform:uppercase">By type of seva</p>
+    ${rows.map((x) => `<div class="gmini" data-tip="${CAT[x.c].label}: ${100 - x.mm.femPct}% male · ${x.mm.femPct}% female"><span class="hl ellipsis">${CAT[x.c].label}</span><div class="gtrack sm"><i style="width:${100 - x.mm.femPct}%;background:var(--ch1)"></i><i style="width:${x.mm.femPct}%;background:var(--ch2)"></i></div><span class="hv">${x.mm.femPct}%<small> F</small></span></div>`).join('')}`;
+}
 function heatmap() {
   const cells = []; const start = new Date(now() - 83 * DAY); start.setHours(0, 0, 0, 0); const off = (start.getDay() + 6) % 7;
   const counts = Array(84 + off).fill(null); recsIn(84, 0, (x) => !x.cancelled).forEach((x) => { const i = Math.floor((x.d - start.getTime()) / DAY) + off; if (i >= off && i < counts.length) counts[i] = (counts[i] || 0) + 1; });
@@ -1608,21 +1632,43 @@ function heatmap() {
 }
 const chartCard = (title, sub, body, more) => `<div class="card ichart"><div class="ich row" style="justify-content:space-between;align-items:flex-start"><div><h3>${title}</h3>${sub ? `<p class="xs muted">${sub}</p>` : ''}</div>${more ? `<button class="link" style="min-height:28px;padding:0" ${more}>Details${I.chev}</button>` : ''}</div>${body}<div class="ctip" hidden></div></div>`;
 // ----- filter bar -----
+function whereLabel(gs = af().gs) {
+  if (!gs.length) return '🌍 All places';
+  const full = COUNTRIES.filter((c) => GROUPS.filter((g) => g.country === c).every((g) => gs.includes(g.id)));
+  const loose = gs.filter((id) => !full.includes(gOf(id).country));
+  if (full.length === 1 && !loose.length) return `${FLAG[full[0]]} ${full[0]}`;
+  if (!full.length && loose.length === 1) return `${gOf(loose[0]).flag} ${gOf(loose[0]).name}`;
+  return !loose.length ? `${full.map((c) => FLAG[c]).join('')} ${full.length} countries` : `${[...new Set(gs.map((id) => gOf(id).flag))].join('')} ${gs.length} groups`;
+}
 function filterBar() {
-  const F = af(); const chip = (k, label, on) => `<button class="fchip2 ${on ? 'on' : ''}" data-act="af-open" data-k="${k}">${label}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>`;
-  return `<div class="fbar">${chip('p', AFP.find((x) => x[0] === F.p)[1], true)}${chip('c', F.c === 'all' ? 'All countries' : `${FLAG[F.c]} ${F.c}`, F.c !== 'all')}${chip('g', F.g === 'all' ? 'All groups' : gOf(F.g).name, F.g !== 'all')}${chip('t', F.t === 'all' ? 'All seva types' : CAT[F.t].label, F.t !== 'all')}${F.c !== 'all' || F.g !== 'all' || F.t !== 'all' ? `<button class="fchip2 reset" data-act="af-reset">Reset</button>` : ''}</div>`;
+  const F = af(); const chip = (k, label, on) => `<button class="fchip2 ${on ? 'on' : ''}" data-act="af-open" data-k="${k}"><span class="ellipsis">${label}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  return `<div class="fbar">${chip('p', AFP.find((x) => x[0] === F.p)[1], true)}${chip('w', whereLabel(), F.gs.length)}${chip('t', F.t === 'all' ? 'All seva types' : CAT[F.t].label, F.t !== 'all')}${F.gs.length || F.t !== 'all' ? `<button class="fchip2 reset" data-act="af-reset" aria-label="Reset filters">${I.close}</button>` : ''}</div>`;
+}
+// one sheet: countries with their groups inside; tick a whole country or single groups
+let wDraft = null, wTarget = 'stats';
+const pgs = () => (S.pgs = S.pgs || []);
+function whereSheet() {
+  if (!wDraft) wDraft = new Set(wTarget === 'people' ? pgs() : af().gs);
+  const all = !wDraft.size;
+  openSheet(`${sheetHead('Where', 'Tick a whole country, or one or more groups')}
+    <button class="wrow top ${all ? 'on' : ''}" data-act="w-all"><span class="ck2">${all ? I.check : ''}</span><b class="grow">🌍 All places</b><span class="xs muted">${GROUPS.length} groups</span></button>
+    ${COUNTRIES.map((c) => { const gr = GROUPS.filter((g) => g.country === c); const n = gr.filter((g) => wDraft.has(g.id)).length; const st = n === gr.length ? 'on' : n ? 'some' : '';
+      return `<div class="wbox"><button class="wrow ${st}" data-act="w-country" data-c="${c}"><span class="ck2">${st === 'on' ? I.check : st === 'some' ? '<i></i>' : ''}</span><b class="grow">${FLAG[c]} ${c}</b><span class="xs muted">${n ? `${n} of ${gr.length}` : `${gr.length} group${gr.length > 1 ? 's' : ''}`}</span></button>
+        ${gr.map((g) => `<button class="wrow sub ${wDraft.has(g.id) ? 'on' : ''}" data-act="w-group" data-g="${g.id}"><span class="ck2">${wDraft.has(g.id) ? I.check : ''}</span><span class="grow small">${esc(g.name)}</span><span class="xs muted">${num(g.members)}</span></button>`).join('')}</div>`; }).join('')}
+    <div class="stickyact" style="position:sticky;bottom:-24px;padding:12px 0 calc(12px + var(--safe-b))"><div class="btn-row"><button class="btn ghost" data-act="w-clear">Clear</button><button class="btn" data-act="w-apply">Show ${wDraft.size ? `${wDraft.size} group${wDraft.size > 1 ? 's' : ''}` : 'all places'}</button></div></div>`);
 }
 function afSheet(k) {
-  const F = af(); const opts = k === 'p' ? AFP.map(([v, l]) => [v, l]) : k === 'c' ? [['all', '🌍 All countries'], ...COUNTRIES.map((c) => [c, `${FLAG[c]} ${c}`])] : k === 'g' ? [['all', 'All groups'], ...GROUPS.filter((g) => F.c === 'all' || g.country === F.c).map((g) => [g.id, `${g.flag} ${g.name}`])] : [['all', 'All seva types'], ...Object.keys(CAT).filter((x) => x !== 'event').map((c) => [c, CAT[c].label])];
-  openSheet(`${sheetHead({ p: 'Time period', c: 'Country', g: 'Group', t: 'Seva type' }[k])}<div class="card list">${opts.map(([v, l]) => `<button class="lrow" data-act="af-set" data-k="${k}" data-v="${v}"><b class="small grow">${l}</b>${String(F[k]) === String(v) ? I.check.replace('<svg', '<svg style="width:20px;height:20px;color:var(--p)"') : ''}</button>`).join('')}</div>`);
+  if (k === 'w') { wDraft = null; wTarget = 'stats'; return whereSheet(); }
+  const F = af(); const opts = k === 'p' ? AFP.map(([v, l]) => [v, l]) : [['all', 'All seva types'], ...Object.keys(CAT).filter((x) => x !== 'event').map((c) => [c, CAT[c].label])];
+  openSheet(`${sheetHead({ p: 'Time period', t: 'Seva type' }[k])}<div class="card list">${opts.map(([v, l]) => `<button class="lrow" data-act="af-set" data-k="${k}" data-v="${v}"><b class="small grow">${l}</b>${String(F[k]) === String(v) ? I.check.replace('<svg', '<svg style="width:20px;height:20px;color:var(--p)"') : ''}</button>`).join('')}</div>`);
 }
 // ----- Stats home -----
 function AdminStats() {
-  const m = cur(), pm = prev(); const al = alertsList(); const gs = groupStats().filter((x) => af().g === 'all' || x.g.id === af().g).sort((a, b) => b.score - a.score);
+  const m = cur(), pm = prev(); const al = alertsList(); const gs = groupStats().sort((a, b) => b.score - a.score);
   const liveG = scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0); const liveC = new Set(liveG.map((g) => g.country)).size;
   const tiles = ['held', 'fill', 'turn', 'active', 'ontime', 'att'];
   const higherBetter = (k) => true;
-  const ctry = COUNTRIES.filter((c) => af().c === 'all' || c === af().c).map((c) => { const gr = GROUPS.filter((g) => g.country === c && (af().g === 'all' || g.id === af().g)); const F = af(); const mm = metrics(admData().recs.filter((x) => gr.some((g) => g.id === x.g) && x.d >= now() - F.p * DAY && (F.t === 'all' || x.cat === F.t)), gr, F.p); return { c, mm, n: gr.length }; }).filter((x) => x.n);
+  const ctry = COUNTRIES.filter(ctryInScope).map((c) => { const gr = GROUPS.filter((g) => g.country === c && inScope(g)); const F = af(); const mm = metrics(admData().recs.filter((x) => gr.some((g) => g.id === x.g) && x.d >= now() - F.p * DAY && (F.t === 'all' || x.cat === F.t)), gr, F.p); return { c, mm, n: gr.length }; }).filter((x) => x.n);
   const maxH = Math.max(1, ...ctry.map((x) => x.mm.held));
   const cats = Object.keys(CAT).filter((x) => x !== 'event').map((c) => { const rs = recsIn(af().p, 0, (x) => x.cat === c); return { c, mm: metrics(rs, scopeGroups(), af().p) }; });
   const open = (S.adm.blockers || []).filter((b) => b.st === 'open' && inScope(gOf(b.g)));
@@ -1640,6 +1686,7 @@ function AdminStats() {
       ${gs.map((x, i) => `<button class="lrow" data-open="grp:${x.g.id}"><span class="rank">${i + 1}</span><div class="grow" style="min-width:0"><b class="small ellipsis" style="display:block">${x.g.flag} ${esc(x.g.name)}</b><p class="xs muted ellipsis">${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])} · ${x.m.held} seva · ${x.m.fill}% filled</p></div>${spark(x.weeks)}<span class="score" style="color:${STL[scoreG(x.score)][1]};background:${STL[scoreG(x.score)][2]}">${x.score}</span></button>`).join('')}
       <p class="xs muted" style="margin-top:8px"><span class="score" style="color:var(--done);background:var(--done-bg)">82+</span> on track · <span class="score" style="color:var(--action);background:var(--action-bg)">70–81</span> watch · <span class="score" style="color:var(--live);background:var(--live-bg)">&lt;70</span> needs support</p></div>
     ${chartCard('Seva types', 'How many · and how well filled', `<div class="hbars">${cats.sort((a, b) => b.mm.held - a.mm.held).map(({ c, mm }) => { const g = KPI.fill.g(mm); return `<div class="hb" data-act="af-set" data-k="t" data-v="${c}" data-tip="${CAT[c].label}: ${mm.held} seva · ${mm.fill}% filled"><span class="hl"><i class="sdot" style="background:var(--c-${c});margin:0 6px 0 0"></i>${CAT[c].label}</span><span class="track"><i style="width:${mm.held / Math.max(1, ...cats.map((x) => x.mm.held)) * 100}%;background:var(--ch1)"></i></span><span class="hv" style="color:${g === 'good' ? 'var(--ink)' : STL[g][1]}">${mm.fill}%</span></div>`; }).join('')}</div>`)}
+    ${chartCard('Sevadars: male & female', 'Who is in the sangat · who comes to seva · by type', genderChart(m, cats))}
     ${chartCard('When seva happen', 'Last 12 weeks · each square is a day', heatmap())}
     <div class="card ichart"><div class="row" style="justify-content:space-between"><h3 style="font-size:16px">Blockers reported by leads</h3><span class="xs muted">${open.length} open</span></div>
       ${(S.adm.blockers || []).filter((b) => inScope(gOf(b.g))).map((b) => `<div class="lrow" style="align-items:flex-start;${b.st === 'resolved' ? 'opacity:.55' : ''}"><span class="av2" style="width:32px;height:32px;background:${STL[b.st === 'resolved' ? 'good' : b.sev][2]};color:${STL[b.st === 'resolved' ? 'good' : b.sev][1]}">${STL[b.st === 'resolved' ? 'good' : b.sev][3].replace('<svg', '<svg style="width:18px;height:18px"')}</span><div class="grow"><b class="small">${esc(b.t)}</b><p class="xs muted">${gOf(b.g).flag} ${esc(gOf(b.g).name)} · ${ago(b.d)}${ago(b.d) === 'just now' ? '' : ' ago'}${b.st === 'resolved' ? ' · resolved' : ''}</p></div>${b.st === 'open' ? `<button class="btn soft sm" data-act="blk-done" data-id="${b.id}">Resolved</button>` : ''}</div>`).join('') || '<p class="small muted" style="padding:10px 0">No blockers reported.</p>'}</div>
@@ -1649,11 +1696,11 @@ function allAlertsSheet() { const al = alertsList(); openSheet(`${sheetHead('All
 // ----- Detailed report for one KPI -----
 function ReportView({ id }) {
   const K = KPI[id]; const m = cur(), pm = prev(); const g = K.g(m); const pct = ['fill', 'turn', 'ontime', 'att'].includes(id);
-  const gs = groupStats().filter((x) => af().g === 'all' || x.g.id === af().g); const vals = gs.map((x) => ({ x, v: K.v(x.m), gr: K.g(x.m) })).sort((a, b) => a.v - b.v);
+  const gs = groupStats(); const vals = gs.map((x) => ({ x, v: K.v(x.m), gr: K.g(x.m) })).sort((a, b) => a.v - b.v);
   const max = Math.max(1, ...vals.map((v) => v.v)); const best = vals[vals.length - 1], worst = vals[0];
-  const ctry = COUNTRIES.filter((c) => af().c === 'all' || c === af().c).map((c) => { const gr = gs.filter((x) => x.g.country === c).map((x) => x.g); const F = af(); const mm = metrics(admData().recs.filter((x) => gr.some((gg) => gg.id === x.g) && x.d >= now() - F.p * DAY && (F.t === 'all' || x.cat === F.t)), gr, F.p); return { c, v: K.v(mm), gr: K.g(mm), n: gr.length }; }).filter((x) => x.n);
+  const ctry = COUNTRIES.filter(ctryInScope).map((c) => { const gr = gs.filter((x) => x.g.country === c).map((x) => x.g); const F = af(); const mm = metrics(admData().recs.filter((x) => gr.some((gg) => gg.id === x.g) && x.d >= now() - F.p * DAY && (F.t === 'all' || x.cat === F.t)), gr, F.p); return { c, v: K.v(mm), gr: K.g(mm), n: gr.length }; }).filter((x) => x.n);
   return `${dtop(K.l)}${filterBar()}
-    <div class="card" style="margin-top:12px;background:linear-gradient(135deg,${STL[g][2]},var(--surface) 75%)"><div class="row" style="justify-content:space-between"><span class="xs muted">${AFP.find((x) => x[0] === af().p)[1]} · ${af().c === 'all' ? 'all countries' : af().c}</span>${spill(g)}</div><div class="row" style="align-items:baseline;gap:10px;margin-top:6px"><b style="font-size:40px;font-weight:800;letter-spacing:-.03em">${K.fmt(m)}</b>${delta(K.v(m), K.v(pm), pct)}</div><p class="small muted">${K.sub(m)} · previous period ${K.fmt(pm)}</p></div>
+    <div class="card" style="margin-top:12px;background:linear-gradient(135deg,${STL[g][2]},var(--surface) 75%)"><div class="row" style="justify-content:space-between"><span class="xs muted">${AFP.find((x) => x[0] === af().p)[1]} · ${whereLabel()}</span>${spill(g)}</div><div class="row" style="align-items:baseline;gap:10px;margin-top:6px"><b style="font-size:40px;font-weight:800;letter-spacing:-.03em">${K.fmt(m)}</b>${delta(K.v(m), K.v(pm), pct)}</div><p class="small muted">${K.sub(m)} · previous period ${K.fmt(pm)}</p></div>
     ${chartCard('Over time', '', pct ? lineChart(trend(id), K.tgt, K.l + ' over time') : barChart(trend(id), 0, K.l + ' over time'))}
     ${ctry.length > 1 ? chartCard('By country', '', `<div class="hbars">${ctry.sort((a, b) => a.v - b.v).map((c) => `<div class="hb" data-tip="${c.c}: ${K.fmt({ ...m, [id]: c.v, held: c.v, active: c.v })}"><span class="hl">${FLAG[c.c]} ${c.c}</span><span class="track"><i style="width:${pct ? c.v : c.v / Math.max(1, ...ctry.map((x) => x.v)) * 100}%;background:${pct ? STL[c.gr][1] : 'var(--ch1)'}"></i>${pct && K.tgt ? `<b class="tmark" style="left:${K.tgt}%"></b>` : ''}</span><span class="hv">${pct ? c.v + '%' : num(c.v)}</span></div>`).join('')}</div>`) : ''}
     ${chartCard('By group', pct ? 'Worst first · line = target' : 'Lowest first', `<div class="hbars">${vals.map(({ x, v, gr }) => `<div class="hb" data-open="grp:${x.g.id}" data-tip="${x.g.name}: ${pct ? v + '%' : num(v)}"><span class="hl ellipsis">${x.g.flag} ${esc(x.g.name.replace(/ (Sangat|Jatha|Central|Southall)$/, ''))}</span><span class="track"><i style="width:${pct ? v : v / max * 100}%;background:${STL[gr][1]}"></i>${pct && K.tgt ? `<b class="tmark" style="left:${K.tgt}%"></b>` : ''}</span><span class="hv" style="color:${gr === 'good' ? 'var(--ink)' : STL[gr][1]}">${gr !== 'good' ? STL[gr][3] : ''}${pct ? v + '%' : num(v)}</span></div>`).join('')}</div>`)}
@@ -1678,16 +1725,20 @@ const FN = ['Aman', 'Baljeet', 'Charanjit', 'Davinder', 'Gagan', 'Harnoor', 'Iqb
 function membersOf(gid) { if (gid === 'delhi') return [...NAMES]; let h = [...gid].reduce((a, c) => a * 31 + c.charCodeAt(0), 3) >>> 0; const r = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); return Array.from({ length: 16 }, () => `${FN[Math.floor(r() * FN.length)]} ${r() < .5 ? 'Singh' : 'Kaur'}`).filter((v, i, a) => a.indexOf(v) === i); }
 let pSeg = 'groups', pQ = '', pG = 'all';
 function AdminPeople() {
-  const segs = [['groups', 'Groups'], ['members', 'Members'], ['leads', 'Team leads']]; let body = '';
-  if (pSeg === 'groups') body = COUNTRIES.map((c) => `<div class="section-h" style="margin:16px 0 8px"><h2 style="font-size:15px">${FLAG[c]} ${c}</h2><span class="xs muted">${GROUPS.filter((g) => g.country === c).reduce((a, g) => a + g.members, 0)} members</span></div><div class="card list">${groupStats().filter((x) => x.g.country === c).map((x) => `<button class="lrow" data-open="grp:${x.g.id}"><div class="grow"><b class="small">${esc(x.g.name)}</b><p class="xs muted ellipsis">${num(x.g.members)} members · ${(S.adm.leads[x.g.id] || []).map(first).join(', ') || 'No lead'}</p></div><span class="score" style="color:${STL[scoreG(x.score)][1]};background:${STL[scoreG(x.score)][2]}">${x.score}</span>${chev}</button>`).join('')}</div>`).join('');
-  else if (pSeg === 'members') { const q = pQ.trim().toLowerCase(); const list = GROUPS.filter((g) => pG === 'all' || g.id === pG).flatMap((g) => membersOf(g.id).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q)).slice(0, 60);
-    body = `<label class="search" style="margin-top:12px">${I.search}<input id="adm-q" placeholder="Search ${num(GROUPS.reduce((a, g) => a + g.members, 0))} members" value="${esc(pQ)}" autocomplete="off"></label>
-      <div class="chips" style="margin-top:10px"><button class="chip2" data-pg="all" aria-pressed="${pG === 'all'}">All groups</button>${GROUPS.map((g) => `<button class="chip2" data-pg="${g.id}" aria-pressed="${pG === g.id}">${g.flag} ${g.name.split(' ')[0]}</button>`).join('')}</div>
-      <div class="card list" style="margin-top:10px">${list.map((m) => { const isL = (S.adm.leads[m.g.id] || []).includes(m.n); return `<button class="lrow" data-act="adm-member" data-n="${esc(m.n)}" data-g="${m.g.id}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${isL ? '<span class="leadtag">Lead</span>' : ''}<p class="xs muted">${m.g.flag} ${esc(m.g.name)}</p></div>${chev}</button>`; }).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div><p class="xs faint" style="text-align:center;margin-top:10px">Showing ${list.length} · search to find anyone</p>`; }
-  else body = `<div class="card list" style="margin-top:12px">${GROUPS.flatMap((g) => (S.adm.leads[g.id] || []).map((n) => ({ n, g }))).map(({ n, g }) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${esc(n)}</b><p class="xs muted">${g.flag} ${esc(g.name)}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message" style="color:#25A35A">${I.wa}</button><button class="iconbtn" data-act="lead-remove" data-g="${g.id}" data-n="${esc(n)}" aria-label="Remove lead role" style="color:var(--live)">${I.trash}</button></div>`).join('')}</div>`;
+  const segs = [['groups', 'Groups'], ['members', 'Members'], ['leads', 'Team leads']]; const sel = pgs(); const inP = (g) => !sel.length || sel.includes(g.id);
+  const q = pQ.trim().toLowerCase();
+  const tools = `<div class="ptools"><button class="fchip2 ${sel.length ? 'on' : ''}" data-act="pw-open" style="flex:1"><span class="ellipsis">${whereLabel(sel)}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>${sel.length ? `<button class="fchip2 reset" data-act="pw-reset" aria-label="Show all places">${I.close}</button>` : ''}</div>
+    ${pSeg !== 'groups' ? `<label class="search" style="margin-top:10px">${I.search}<input id="adm-q" placeholder="Search ${pSeg === 'leads' ? 'team leads' : 'members'} by name" value="${esc(pQ)}" autocomplete="off"></label>` : ''}`;
+  let body = '';
+  if (pSeg === 'groups') body = COUNTRIES.filter((c) => GROUPS.some((g) => g.country === c && inP(g))).map((c) => `<div class="section-h" style="margin:16px 0 8px"><h2 style="font-size:15px">${FLAG[c]} ${c}</h2><span class="xs muted">${num(GROUPS.filter((g) => g.country === c && inP(g)).reduce((a, g) => a + g.members, 0))} members</span></div><div class="card list">${groupStats().filter((x) => x.g.country === c && inP(x.g)).map((x) => `<button class="lrow" data-open="grp:${x.g.id}"><div class="grow"><b class="small">${esc(x.g.name)}</b><p class="xs muted ellipsis">${num(x.g.members)} members · ${(S.adm.leads[x.g.id] || []).map(first).join(', ') || 'No lead'}</p></div><span class="score" style="color:${STL[scoreG(x.score)][1]};background:${STL[scoreG(x.score)][2]}">${x.score}</span>${chev}</button>`).join('')}</div>`).join('');
+  else if (pSeg === 'members') { const all = GROUPS.filter(inP).flatMap((g) => membersOf(g.id).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q)); const list = all.slice(0, 60);
+    body = `<p class="xs muted" style="margin:10px 2px 0">${num(all.length)} shown · ${num(GROUPS.filter(inP).reduce((a, g) => a + g.members, 0))} members in ${whereLabel(sel).replace('🌍 ', '').toLowerCase()}</p>
+      <div class="card list" style="margin-top:8px">${list.map((m) => { const isL = (S.adm.leads[m.g.id] || []).includes(m.n); return `<button class="lrow" data-act="adm-member" data-n="${esc(m.n)}" data-g="${m.g.id}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${isL ? '<span class="leadtag">Lead</span>' : ''}<p class="xs muted">${m.g.flag} ${esc(m.g.name)}</p></div>${chev}</button>`; }).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>`; }
+  else { const L = GROUPS.filter(inP).flatMap((g) => (S.adm.leads[g.id] || []).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q));
+    body = `<p class="xs muted" style="margin:10px 2px 0">${L.length} team lead${L.length === 1 ? '' : 's'}</p><div class="card list" style="margin-top:8px">${L.map(({ n, g }) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${esc(n)}</b><p class="xs muted">${g.flag} ${esc(g.name)}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message" style="color:#25A35A">${I.wa}</button><button class="iconbtn" data-act="lead-remove" data-g="${g.id}" data-n="${esc(n)}" aria-label="Remove lead role" style="color:var(--live)">${I.trash}</button></div>`).join('') || '<p class="small muted" style="padding:14px 0">No team leads match.</p>'}</div>`; }
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">People</h1><span class="sp"></span>${bellBtn()}</header>
-    <div class="tstats four"><div class="tstat" style="--tc:var(--p)"><b>${num(GROUPS.reduce((a, g) => a + g.members, 0))}</b><span>Members</span></div><div class="tstat"><b>${GROUPS.length}</b><span>Groups</span></div><div class="tstat"><b>${COUNTRIES.length}</b><span>Countries</span></div><div class="tstat" style="--tc:var(--done)"><b>${Object.values(S.adm.leads).flat().length}</b><span>Leads</span></div></div>
-    <div class="seg" style="margin-top:12px">${segs.map(([k, l]) => `<button data-pseg="${k}" aria-pressed="${pSeg === k}">${l}</button>`).join('')}</div>${body}`;
+    <div class="tstats four"><div class="tstat" style="--tc:var(--p)"><b>${num(GROUPS.filter(inP).reduce((a, g) => a + g.members, 0))}</b><span>Members</span></div><div class="tstat"><b>${GROUPS.filter(inP).length}</b><span>Groups</span></div><div class="tstat"><b>${new Set(GROUPS.filter(inP).map((g) => g.country)).size}</b><span>Countries</span></div><div class="tstat" style="--tc:var(--done)"><b>${GROUPS.filter(inP).reduce((a, g) => a + (S.adm.leads[g.id] || []).length, 0)}</b><span>Leads</span></div></div>
+    <div class="seg" style="margin-top:12px">${segs.map(([k, l]) => `<button data-pseg="${k}" aria-pressed="${pSeg === k}">${l}</button>`).join('')}</div>${tools}${body}`;
 }
 function admMemberSheet(n, gid) {
   const g = gOf(gid); const isL = (S.adm.leads[gid] || []).includes(n); const c = (n.length * 7) % 23;
@@ -1700,13 +1751,13 @@ function leadAssignSheet(gid) { const g = gOf(gid); const L = S.adm.leads[gid] |
 // ----- Admin: all seva -----
 let aSeg = 'live';
 function AdminSeva() {
-  const F = af(); const others = GROUPS.filter((g) => g.id !== 'delhi' && (F.c === 'all' || g.country === F.c));
+  const F = af(); const others = GROUPS.filter((g) => g.id !== 'delhi' && inScope(g));
   const syn = (k) => others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 5][0]].label} Seva`, cat: CATW[i % 5][0], when: k === 'live' ? 'Live now' : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12) }));
-  const real = S.seva.filter((s) => (F.c === 'all' || F.c === 'India') && (aSeg === 'live' ? isLive(s) : aSeg === 'upcoming' ? isFuture(s) : needsAttend(s)));
+  const real = S.seva.filter((s) => (s.hq || inScope(gOf('delhi'))) && (aSeg === 'live' ? isLive(s) : aSeg === 'upcoming' ? isFuture(s) : needsAttend(s)));
   const list = aSeg === 'attention' ? [] : syn(aSeg);
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">All seva</h1><span class="sp"></span>${bellBtn()}</header>${filterBar()}
     <div class="chips fill tight" style="margin-top:12px">${[['live', 'Live'], ['upcoming', 'Upcoming'], ['attention', 'Needs attention']].map(([k, l]) => `<button class="chip2" data-aseg="${k}" aria-pressed="${aSeg === k}">${k === 'live' ? '<i class="ld"></i>' : ''}${l}</button>`).join('')}</div>
-    <div style="margin-top:12px">${aSeg === 'upcoming' ? (S.otherSeva || []).filter((s) => F.c === 'all' || gOf(s.gid).country === F.c).map((s) => `<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip">${gOf(s.gid).flag} ${esc(gOf(s.gid).name)}</span><h3>${esc(s.title)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`).join('') : ''}${real.map((s) => s.hq ? sevaCard(s) : leadCard(s)).join('')}
+    <div style="margin-top:12px">${aSeg === 'upcoming' ? (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).map((s) => `<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip">${gOf(s.gid).flag} ${esc(gOf(s.gid).name)}</span><h3>${esc(s.title)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`).join('') : ''}${real.map((s) => s.hq ? sevaCard(s) : leadCard(s)).join('')}
       ${list.map((x) => `<button class="scard tap ${aSeg === 'live' ? 'live' : ''}" data-open="grp:${x.g.id}">${dblock(at(1, 9), x.cat, aSeg === 'live', at(0, 23))}<div class="grow"><span class="chip">${x.g.flag} ${esc(x.g.name)}</span><h3>${x.title}</h3><p class="m">${x.when} · lead ${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])}</p><div class="mini"><i style="width:${x.fill}%;background:${STL[KPI.fill.g({ fill: x.fill })][1]}"></i></div><p class="xs muted" style="margin-top:4px">${x.fill}% places filled · ${x.going} going</p></div></button>`).join('')}
       ${aSeg === 'attention' ? alertsList().map(([g, t, s2, gid]) => `<button class="banner tap" data-open="grp:${gid}" style="margin-bottom:8px;background:${STL[g][2]};border-color:${STL[g][1]}">${STL[g][3]}<span class="grow"><b>${esc(t)}</b><br><span class="xs">${esc(s2)}</span></span>${chev}</button>`).join('') : ''}</div>
     <button class="fab" data-act="seva-new" aria-label="Create seva">${I.plus}<span>New seva</span></button>`;
@@ -1737,7 +1788,7 @@ function AdminProfile() {
 const roleSwitch = () => `<div class="card rolesw"><b class="small">Viewing as</b><p class="xs muted">Prototype switch — try every side</p><div class="seg" style="margin-top:10px"><button data-role="member" aria-pressed="${S.role === 'member'}">Member</button><button data-role="lead" aria-pressed="${S.role === 'lead'}">Team Lead</button><button data-role="admin" aria-pressed="${S.role === 'admin'}">Admin</button></div></div>`;
 
 // ---------- Sheets ----------
-function openSheet(html) { $('#sheet-root').innerHTML = `<div class="scrim" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${html}</div>`; document.body.style.overflow = 'hidden'; }
+function openSheet(html) { const keep = $('#sheet-root .sheet')?.scrollTop || 0; $('#sheet-root').innerHTML = `<div class="scrim" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${html}</div>`; document.body.style.overflow = 'hidden'; if (keep) { const sh = $('#sheet-root .sheet'); sh.style.animation = 'none'; sh.scrollTop = keep; } }
 function closeSheet() { $('#sheet-root').innerHTML = ''; document.body.style.overflow = ''; }
 function install() {
   if (window.__dp) { window.__dp.prompt(); return; }
@@ -1780,7 +1831,7 @@ function handle(el) {
   const act = el.dataset.act, id = el.dataset.id; buzz();
   switch (act) {
     case 'story-new': if (SV) closeStory(); openComposer(); break;
-    case 'story-mine': { closeSheet(); const g = grp('g-delhi'); const k = g.stories.findIndex((x) => x.by === '@me'); if (k < 0) { openComposer(); break; } openStory('g-delhi'); SV.i = k; buildCube(); showStory(); break; }
+    case 'story-mine': { closeSheet(); const g = grp(SG()); const k = g.stories.findIndex((x) => x.by === '@me'); if (k < 0) { openComposer(); break; } openStory(SG()); SV.i = k; buildCube(); showStory(); break; }
     case 'story-del': pauseStory(); if (confirm('Delete this story? Members will no longer see it.')) deleteMyStory(id); else resumeStory(); break;
     case 'sc-close': if (!(SC.text || '').trim() && !SC.img) closeComposer(); else if (confirm('Discard this story?')) closeComposer(); break;
     case 'sc-font': SC.font = FONTS[(FONTS.findIndex((f) => f[0] === SC.font) + 1) % FONTS.length][0]; scPatch(); scHint(FONTS.find((f) => f[0] === SC.font)[1]); break;
@@ -1859,8 +1910,15 @@ function handle(el) {
     case 'nb-open': { const n = S.notifs.find((x) => x.id === id); hideBanner(); if (n) { n.read = true; save(); openRef(n.ref); } break; }
     case 'live-demo': S.liveDemo = S.liveDemo === false; save(); if (S.liveDemo !== false) { liveIdx = 0; scheduleLive(4000); } toast(S.liveDemo === false ? 'Live demo updates off' : 'Live demo updates on — watch for a banner'); closeSheet(); break;
     case 'af-open': afSheet(el.dataset.k); break;
-    case 'af-set': { const F = af(); const k = el.dataset.k; F[k] = k === 'p' ? +el.dataset.v : el.dataset.v; if (k === 'c' && F.g !== 'all' && F.c !== 'all' && gOf(F.g).country !== F.c) F.g = 'all'; save(); closeSheet(); rerender(); break; }
-    case 'af-reset': S.af = { p: af().p, c: 'all', g: 'all', t: 'all' }; save(); rerender(); break;
+    case 'af-set': { const F = af(); const k = el.dataset.k; if (k === 'c') F.gs = GROUPS.filter((g) => g.country === el.dataset.v).map((g) => g.id); else F[k] = k === 'p' ? +el.dataset.v : el.dataset.v; save(); closeSheet(); rerender(); break; }
+    case 'w-all': wDraft = new Set(); whereSheet(); break;
+    case 'w-clear': wDraft = new Set(); whereSheet(); break;
+    case 'w-country': { const gr = GROUPS.filter((g) => g.country === el.dataset.c).map((g) => g.id); const allOn = gr.every((id) => wDraft.has(id)); gr.forEach((id) => allOn ? wDraft.delete(id) : wDraft.add(id)); if (wDraft.size === GROUPS.length) wDraft = new Set(); whereSheet(); break; }
+    case 'w-group': { const g = el.dataset.g; wDraft.has(g) ? wDraft.delete(g) : wDraft.add(g); if (wDraft.size === GROUPS.length) wDraft = new Set(); whereSheet(); break; }
+    case 'w-apply': if (wTarget === 'people') S.pgs = [...wDraft]; else af().gs = [...wDraft]; wDraft = null; save(); closeSheet(); rerender(); break;
+    case 'pw-open': wDraft = null; wTarget = 'people'; whereSheet(); break;
+    case 'pw-reset': S.pgs = []; save(); rerender(); break;
+    case 'af-reset': S.af = { p: af().p, t: 'all', gs: [] }; save(); rerender(); break;
     case 'all-alerts': allAlertsSheet(); break;
     case 'blk-done': { const b = S.adm.blockers.find((x) => x.id === id); b.st = 'resolved'; save(); rerender(); toast('Marked resolved — the lead is told'); break; }
     case 'lead-assign': leadAssignSheet(el.dataset.g); break;
@@ -1873,7 +1931,9 @@ function handle(el) {
     case 'post-del': if (!confirm('Delete this post for everyone?')) return; S.feed = S.feed.filter((p) => p.id !== id); save(); closeSheet(); rerender(); toast('Post deleted'); break;
     case 'more-text': { const pEl = el.previousElementSibling; pEl.classList.remove('clamp'); el.remove(); break; }
     case 'd-target': syncDraft(); draft.target = el.dataset.v; rerender(); break;
-    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
+    case 'set-gender': S.gender = el.dataset.v; save(); $$('[data-act=set-gender]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.gender)); break;
+    case 'onb-gender': S.gender = el.dataset.v; $$('[data-act=onb-gender]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.gender)); break;
+    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } if (!S.gender) { toast('Please choose Male or Female'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
     case 'back': pop(); break;
     case 'close-sheet': closeSheet(); if (S.justPlanted) { rerender(); S.justPlanted = null; } break;
     case 'inbox': push({ v: 'inbox' }); break;
