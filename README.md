@@ -47,3 +47,12 @@ Plain HTML/CSS/JS, no build step. `garden3d.js` and three.js load only when you 
   - A "What needs attention" list with one-tap actions.
   - Simple charts: seva per week against the target, places filled by seva type, came vs said going, start delays, and active members over time. Tap any bar or dot for details.
 - **Fixes:** the story progress bar and the move to the next story now run on one clock, so they always match. Story composer options apply in place: no flicker, and the keyboard stays open.
+
+## v8
+- **Stories:** when a lead posts a new story, the group's ring lights up again and moves to the front. Unseen groups come first, newest first. Each viewer has their own "seen" state. The header shows "Posted by <lead>", and tapping the name opens their profile. View counts are removed.
+- **Profiles:** tap any member's name (team list, seva team, story poster, lead's people list) to see their profile and their garden, view-only, in 2D or 3D.
+- **Garden as a 6×6 plot of boxes:** the 2D view is an isometric board of squares; 3D uses the same layout.
+  - **Arrange:** tap an item to move it or put it away; pick from your items to place them; lay stone paths for free.
+  - **Preview before you buy:** "Try" puts a ghost item in your garden. "Add to cart" keeps that spot, and after purchase the item lands there.
+  - New purchases are placed automatically. Anything without a free box waits in storage.
+- **Day by default:** 2D and 3D gardens stay in daylight whatever the app theme. A sun/moon button switches to night.

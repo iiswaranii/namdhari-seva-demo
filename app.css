@@ -449,8 +449,8 @@ svg { flex-shrink: 0; }
 .onb h1 { font-size: 32px; line-height: 1.1; letter-spacing: -.03em; font-weight: 800; }
 label.f { display: block; font-size: 13.5px; font-weight: 650; margin: 14px 0 6px; color: var(--muted); }
 input.in, select.in { width: 100%; min-height: 48px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); padding: 12px 14px; font: inherit; font-size: 16px; }
-.g3d { position: relative; height: min(60vh, 500px); border-radius: 22px; overflow: hidden; background: linear-gradient(#DDE6EE, #F0F2EE); touch-action: none; }
-[data-mode="dark"] .g3d { background: linear-gradient(#0E1218, #131315); }
+.g3d { position: relative; height: min(60vh, 500px); border-radius: 22px; overflow: hidden; background: linear-gradient(#A8DBF5, #E3F1F6 70%, #EEF3EC); touch-action: none; }
+.g3d.night { background: linear-gradient(#0E1218, #131315); }
 .g3d canvas { display: block; width: 100%; height: 100%; }
 .g3d .loading { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 650; color: var(--muted); }
 :focus-visible { outline: 3px solid var(--p); outline-offset: 2px; }
@@ -585,3 +585,31 @@ textarea.in { resize: none; line-height: 1.4; }
 .tmark, .tkey { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); opacity: .6; border-radius: 1px; }
 .tkey { position: relative; display: inline-block; height: 12px; top: 2px; vertical-align: baseline; margin-right: 4px; }
 .ctip { position: absolute; z-index: 5; padding: 7px 10px; border-radius: 10px; background: var(--ink); color: var(--canvas); font-size: 12.5px; font-weight: 650; pointer-events: none; max-width: 240px; box-shadow: var(--shadow-lg); }
+
+/* v8 — garden board, arrange mode, profiles, story poster */
+.gscene .board, .phead .board { display: block; width: 100%; height: auto; }
+.arrbtn { position: absolute; right: 14px; bottom: 40px; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 19px; border: 0; background: rgba(255,255,255,.92); color: #16151A; font-weight: 750; font-size: 13.5px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.arrbtn svg { width: 16px; height: 16px; }
+.bob { animation: bob 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px) rotate(-2deg); } }
+.trybtn { position: absolute; top: 76px; right: 18px; display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 9px; border-radius: 13px; border: 0; background: var(--surface); color: var(--ink); font-size: 11.5px; font-weight: 750; box-shadow: var(--shadow); }
+.trybtn svg { width: 14px; height: 14px; }
+.arrange { padding-bottom: 20px; }
+.arrange .ahead { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(8px + var(--safe-t)) 16px 8px; background: var(--canvas); }
+.arrange .ahead b { font-size: 16px; }
+.arrange .gscene { margin: 0; border-radius: 0; }
+.ahint { text-align: center; font-size: 13.5px; font-weight: 650; color: var(--muted); padding: 10px 16px 4px; }
+.abar { display: flex; align-items: center; gap: 10px; margin: 8px 16px; padding: 8px 10px; border-radius: 16px; background: var(--surface); border: 1.5px solid #FFC93C; box-shadow: var(--shadow); }
+.abar .art { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(#EAF5E4, #F8F3E7); display: grid; place-items: center; flex: none; }
+.abar .art svg { width: 40px; height: 40px; }
+.tray2 { display: flex; gap: 8px; overflow-x: auto; padding: 10px 16px 6px; scrollbar-width: none; }
+.tray2::-webkit-scrollbar { display: none; }
+.titem2 { flex: none; width: 76px; border: 1.5px solid var(--border); background: var(--surface); border-radius: 16px; padding: 6px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; color: var(--ink); }
+.titem2 .art { width: 54px; height: 50px; display: grid; place-items: center; } .titem2 .art svg { width: 50px; height: 48px; }
+.titem2 small { font-size: 11px; color: var(--muted); font-weight: 700; }
+.titem2.on { border-color: var(--p); background: var(--p-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p) 25%, transparent); }
+.ugarden { margin-top: 10px; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+.ugarden .board { display: block; width: 100%; height: auto; }
+.ugarden .g3d { border-radius: 0; height: 360px; }
+.sv .top .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.sv .top button.poster { margin: 0; width: auto; height: auto; padding: 0; display: block; font-size: 11.5px; font-weight: 600; opacity: .8; text-align: left; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.25); }
