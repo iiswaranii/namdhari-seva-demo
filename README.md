@@ -89,3 +89,16 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - **Admin stories:** the Super Admin can post stories under "Seva HQ" (up to 5 a day).
 - **Alert cards** are now clearly red.
 - **Admin seva list (v9.2):** every seva card shows a location strip (🇮🇳 India › Delhi › Delhi Central), with an "HQ · all sangat" tag on HQ seva. The list is grouped by country with counts. Needs-attention items and the seva detail also show country · state · group.
+
+## v10
+- **Yes / No only:** "Maybe" is gone. "Yes, I'll come" asks for your arrival and leaving time (required), with quick picks for the whole seva or either half.
+- **Hours:** members check in and check out at a live seva. Team leads (or the creator, or the admin) set or correct each person's in/out times when marking attendance, and total hours are recorded.
+- **Live "Who's here":** live seva show who is here (since when, until when) and who is still coming, for members, leads and admin.
+- **Post-seva report:** after attendance, the lead writes a short report: 🟢 good things, 🟡 feedback, 🔴 challenges, plus tags. It stays on record and is editable by the creator/leads.
+- **Tags:** every seva has tags, picked when it is created and in the report.
+- **Main events:** Darshan, a big mela or gathering. They get a glowing animated outline and a "✨ MAIN EVENT" ribbon on seva cards, events, feed posts and the detail page, plus a banner on Home. The admin can mark a seva or post as a main event.
+- **Admin:**
+  - The Stats top row shows Live now · Pending · Next 7 days. Pending opens a list of reported challenges, attendance due and reports due.
+  - **Seva → Past:** every past seva, with who came (with times), hours, the team lead and the report.
+  - **Seva → Reports:** every good thing, feedback and challenge, filtered by state and tag, with a by-tag chart.
+- Editing a seva is limited to the creator, that area's team leads and the Main Admin.
