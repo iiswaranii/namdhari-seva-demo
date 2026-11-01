@@ -109,3 +109,10 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - Team Lead creates seva → members say Yes and pick times → after it ends the lead marks attendance and writes the report → Admin stats, Past and Reports fill from that real data.
 - Admin Stats shows a 4-step *Get started* checklist until the first seva is closed.
 - Profile › Settings › Prototype data: *Clean* (start from scratch) or the old demo data (*Demo new / busy / quiet*). *Reset prototype* also starts clean.
+
+## v12 — Create: Seva / Event / Meeting
+- One **Create** button stays at the bottom on every Seva tab (Manage, My Sevas, All · Live, Upcoming, Past, Reports) for team leads and admin.
+- Create starts with **Seva · Event · Meeting**.
+- Type is a **dropdown** with colour + icon. Seva types: Langar, Cleaning, Donation, Nasha Mukti, Social service, Education, Medical camp, Gau seva, Tree planting, Relief, Clothes for needy, Langar stall.
+- **Main events** sit in their own gold section at the top: Satguru Ji Darshan, Hola Mohalla Mela, Basant Panchami Mela, Shaheedi Samagam, Main Samagam. The name is fixed (so HQ can group them) with an optional extra line, e.g. "Delhi visit". For a main seva you also pick what seva happens at it.
+- Meetings can be **Team leads only** or **Everyone**; members never see leads-only meetings. Events and meetings show in lead Upcoming and admin Upcoming.

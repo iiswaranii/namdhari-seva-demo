@@ -104,6 +104,8 @@ const CAT = {
   stall: { label: 'Langar stall', ic: svg('<path d="M3 10l2-6h14l2 6"/><path d="M3 10h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 14v7h14v-7"/>') },
   clothes: { label: 'Clothes for needy', ic: svg('<path d="M8 3l-5 4 3 3 2-1v12h8V9l2 1 3-3-5-4c0 1.7-1.3 3-4 3S8 4.7 8 3z"/>') },
   social: { label: 'Social service', ic: svg('<path d="M11 17l2 2a1.4 1.4 0 0 0 2-2"/><path d="M14 14l2.5 2.5a1.4 1.4 0 0 0 2-2L15 11l-1.5 1.5a2 2 0 0 1-3-3L13 7h3l5 5"/><path d="M3 11l5-5 3 1"/><path d="M3 11l5 5 1.5-1.5"/>') },
+  medical: { label: 'Medical camp', ic: svg('<path d="M12 20s-7-4.4-7-9.5A3.5 3.5 0 0 1 12 8a3.5 3.5 0 0 1 7 2.5C19 15.6 12 20 12 20z"/><path d="M12 11v4M10 13h4"/>') },
+  gau: { label: 'Gau seva', ic: svg('<path d="M5 6l2 3h10l2-3"/><path d="M7 9v4a5 5 0 0 0 10 0V9"/><circle cx="10" cy="13" r=".6" fill="currentColor"/><circle cx="14" cy="13" r=".6" fill="currentColor"/><path d="M10.5 16.5h3"/>') },
   event: { label: 'Event', ic: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>') },
 };
 
@@ -686,13 +688,13 @@ function sevaCard(s) {
   const live = isLive(s); const ppl = peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here'); const n = unreadUpd(s).length + newTasks(s).length; const pend = pendingMine(s).length;
   return `<button class="scard tap ${live ? 'live' : ''} ${s.hq ? 'hq' : ''} ${s.special ? 'special' : ''}" data-open="seva:${s.id}">${s.special ? specialRib : ''}${s.hq && !isAdmin() ? `<span class="hqrib">${I.globe}${esc(s.region)} seva · not your area</span>` : ''}${dblock(s.start, s.cat, live, s.end)}
     <div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span>
-      <h3>${esc(s.title)}</h3><p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${fmtTime(s.start)} – ${fmtTime(s.end)}`}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(s.place)}</p>
+      <h3>${ttl(s)}</h3><p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${fmtTime(s.start)} – ${fmtTime(s.end)}`}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(s.place)}</p>
       <div class="foot">${faceRow(ppl.map((p) => p.n), ppl.length, 3)}${pend ? `<span class="status st-plan">${I.checkc}${pend} to tick</span>` : needsPick(s) ? `<span class="status st-plan">${I.alert}Pick a task</span>` : live && going(s) ? `<span class="status st-done">${I.check}You're here</span>` : statusPill(s)}</div></div>
     ${n && going(s) ? `<span class="newbadge" style="right:10px;${s.hq ? 'top:38px' : ''}">${n} new</span>` : ''}</button>`;
 }
 function eventCard(e) {
   const r = S.rsvp[e.id];
-  return `<button class="scard tap ${e.special ? 'special' : ''}" data-open="event:${e.id}">${e.special ? specialRib : ''}${dblock(e.start, 'event')}<div class="grow"><span class="chip event">${e.kind}</span><h3>${esc(e.title)}</h3><p class="m ellipsis">${fmtTime(e.start)} – ${fmtTime(e.end)}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(e.place)}</p><div class="foot">${faceRow(NAMES.slice(5, 8), e.going, 3)}${r === 'going' ? `<span class="status st-done">${I.check}Going</span>` : r === 'maybe' ? `<span class="status st-maybe">Maybe</span>` : `<span class="status st-event">RSVP</span>`}</div></div></button>`;
+  return `<button class="scard tap ${e.special ? 'special' : ''}" data-open="event:${e.id}">${e.special ? specialRib : ''}${dblock(e.start, 'event')}<div class="grow"><span class="chip event">${esc(e.kind)}</span>${e.aud === 'leads' ? '<span class="chip" style="background:var(--surface2);color:var(--muted);margin-left:4px">Leads only</span>' : ''}<h3>${ttl(e)}</h3><p class="m ellipsis">${fmtTime(e.start)} – ${fmtTime(e.end)}</p><p class="m ellipsis">${I.pin.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} ${esc(e.place)}</p><div class="foot">${e.going ? faceRow(NAMES.slice(5, 8), e.going, 3) : ''}${r === 'going' ? `<span class="status st-done">${I.check}Going</span>` : r === 'maybe' ? `<span class="status st-maybe">Maybe</span>` : `<span class="status st-event">RSVP</span>`}</div></div></button>`;
 }
 function doneCard(h) {
   return `<button class="scard tap" data-open="history:${h.id}">${dblock(h.date, h.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${h.cat}) 13%,transparent);color:var(--c-${h.cat})">${CAT[h.cat].label}</span><h3>${esc(h.title)}</h3><p class="m ellipsis">${esc(h.role)}</p><div class="foot"><span class="status st-done">${I.checkc}Completed</span>${seed('+3')}</div></div></button>`;
@@ -701,11 +703,12 @@ function sevaLists() {
   const mine = sevaSeg === 'mine';
   const ongoing = (mine ? liveMine() : liveAll()).map((s) => ({ t: T(s.start), h: sevaCard(s) }));
   const upS = S.seva.filter((s) => isFuture(s) && (!mine || ['going', 'maybe', 'invited'].includes(st(s))));
-  const upE = S.events.filter((e) => isFuture(e) && (!mine || ['going', 'maybe'].includes(S.rsvp[e.id])));
+  const upE = visEvents().filter((e) => isFuture(e) && (!mine || ['going', 'maybe'].includes(S.rsvp[e.id])));
   const upcoming = [...upS.map((s) => ({ t: T(s.start), hq: !!s.hq, h: sevaCard(s) })), ...upE.map((e) => ({ t: T(e.start), h: eventCard(e) }))].sort((a, b) => (!mine && (b.hq ? 1 : 0) - (a.hq ? 1 : 0)) || a.t - b.t); // HQ seva pinned on top in All
   const done = contributions().map((h) => ({ h: doneCard(h) }));
   return { ongoing, upcoming, done };
 }
+const createFab = () => `<button class="fab" data-act="seva-new" aria-label="Create seva, event or meeting">${I.plus}<span>Create</span></button>`;
 function SevaTab() {
   if (sevaSeg === 'manage' && !isLead()) sevaSeg = 'mine';
   const L = sevaLists();
@@ -714,12 +717,12 @@ function SevaTab() {
   const chips = [['ongoing', 'Ongoing', L.ongoing.length], ['upcoming', 'Upcoming', L.upcoming.length], ['done', 'Completed', L.done.length]];
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">Seva</h1><span class="sp"></span><button class="iconbtn solid" data-act="seva-view" aria-label="${sevaView === 'list' ? 'Calendar view' : 'List view'}">${sevaView === 'list' ? I.cal : I.list}</button>${bellBtn()}</header>
     <div class="seg" style="margin-top:10px" role="group">${isLead() ? `<button data-seg="manage" aria-pressed="${sevaSeg === 'manage'}">${I.shield}Manage</button>` : ''}<button data-seg="mine" aria-pressed="${sevaSeg === 'mine'}">My Sevas</button><button data-seg="all" aria-pressed="${sevaSeg === 'all'}">${isLead() ? 'All' : 'All Opportunities'}</button></div>
-    ${sevaSeg === 'manage' && isLead() ? LeadSeva() : sevaView === 'cal' ? calendar() : `<div class="chips fill" style="margin-top:12px">${chips.map(([k, l, n]) => `<button class="chip2" data-chip="${k}" aria-pressed="${sevaChip === k}">${k === 'ongoing' && n ? '<i class="ld"></i>' : ''}${l}<span class="n">${n}</span></button>`).join('')}</div>
+    ${isLead() ? createFab() : ''}${sevaSeg === 'manage' && isLead() ? LeadSeva() : sevaView === 'cal' ? calendar() : `<div class="chips fill" style="margin-top:12px">${chips.map(([k, l, n]) => `<button class="chip2" data-chip="${k}" aria-pressed="${sevaChip === k}">${k === 'ongoing' && n ? '<i class="ld"></i>' : ''}${l}<span class="n">${n}</span></button>`).join('')}</div>
     <div style="margin-top:12px">${list.length ? list.map((x) => x.h).join('') : sevaChip === 'ongoing' ? emptyState('No seva live right now', 'When a seva you joined starts, it appears here with a big LIVE label.', `<button class="btn soft sm" style="margin-top:12px" data-chip="upcoming">See upcoming</button>`) : sevaChip === 'upcoming' ? emptyState('Nothing planned yet', 'Find a seva that suits you in All Opportunities.', `<button class="btn soft sm" style="margin-top:12px" data-seg="all">Browse seva</button>`) : emptyState('Your first seva is waiting', 'Completed seva show up here and grow your garden.')}</div>`}`;
 }
 function calItems() {
   const mine = sevaSeg === 'mine';
-  return [...S.seva.filter((s) => !mine || ['going', 'maybe', 'invited'].includes(st(s))).map((s) => ({ k: 'seva', x: s, cat: s.cat, me: ['going', 'maybe'].includes(st(s)) })), ...S.events.filter((e) => !mine || S.rsvp[e.id]).map((e) => ({ k: 'event', x: e, cat: 'event', me: !!S.rsvp[e.id] }))];
+  return [...S.seva.filter((s) => !mine || ['going', 'maybe', 'invited'].includes(st(s))).map((s) => ({ k: 'seva', x: s, cat: s.cat, me: ['going', 'maybe'].includes(st(s)) })), ...visEvents().filter((e) => !mine || S.rsvp[e.id]).map((e) => ({ k: 'event', x: e, cat: 'event', me: !!S.rsvp[e.id] }))];
 }
 function calendar() {
   const items = calItems(); const byDay = {}; items.forEach((i) => { (byDay[ymd(i.x.start)] = byDay[ymd(i.x.start)] || []).push(i); });
@@ -751,7 +754,7 @@ function SevaDetail({ id }) {
   const hero = `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''} ${s.special ? 'special' : ''}">${s.special ? specialRib : ''}<svg class="bgart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice"><circle cx="350" cy="40" r="110" fill="#fff" opacity=".18"/><circle cx="30" cy="250" r="90" fill="#fff" opacity=".12"/></svg>
     <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}${s.recur ? `<span class="chip" style="background:rgba(255,255,255,.18);color:#fff">${s.recur}</span>` : ''}</div>
     ${s.hq ? `<div class="hqband">${I.globe}<span><b>${esc(s.region)} seva</b> · organised by Seva HQ for the whole sangat — not in your area</span></div>` : ''}
-    <h1>${esc(s.title)}</h1>
+    <h1>${ttl(s)}</h1>
     <div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div><div>${I.user}Lead: ${esc(s.lead)}</div></div>
     <div class="row" style="margin-top:14px">${faceRow(here.map((p) => p.n), here.length, 5)}<span class="small" style="opacity:.95">${here.length} ${live ? 'sevadars here' : 'going'}</span></div>
     ${live ? `<div class="tbar"><i style="width:${progress(s)}%"></i></div>` : ''}
@@ -825,12 +828,13 @@ function updatesTab(s) {
 }
 function EventDetail({ id }) {
   const e = ev(id); markSeen(e.id); const r = S.rsvp[e.id]; const k = r === 'no' ? 'cant' : r;
-  return `${dtop('Event', `<button class="iconbtn" data-act="wa-e" data-id="${e.id}" aria-label="Share">${I.share}</button>`)}
+  return `${dtop(e.meeting ? 'Meeting' : 'Event', `<button class="iconbtn" data-act="wa-e" data-id="${e.id}" aria-label="Share">${I.share}</button>`)}
     <div class="dhero cc-event ${e.special ? 'special' : ''}">${e.special ? specialRib : ''}<div class="row" style="gap:14px;align-items:flex-end"><span style="display:inline-grid;place-items:center;background:rgba(255,255,255,.9);color:#4C1D95;border-radius:16px;width:68px;height:74px;line-height:1"><span><b style="font-size:28px;display:block">${new Date(e.start).getDate()}</b><span style="font-size:11px;font-weight:800;letter-spacing:.1em">${new Date(e.start).toLocaleDateString(undefined, { month: 'short' }).toUpperCase()}</span></span></span><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">${e.kind}</span></div>
-      <h1>${esc(e.title)}</h1><div class="meta"><div>${I.clock}${relDay(e.start)}, ${fmtTime(e.start)} – ${fmtTime(e.end)}</div><div>${I.pin}${esc(e.place)}</div><div>${I.users}${num(e.going)} going · ${esc(e.organizer)}</div></div>
+      <h1>${ttl(e)}</h1><div class="meta"><div>${I.clock}${relDay(e.start)}, ${fmtTime(e.start)} – ${fmtTime(e.end)}</div><div>${I.pin}${esc(e.place)}</div><div>${I.users}${num(e.going)} going · ${esc(e.organizer)}</div></div>
       ${r === 'going' ? `<div class="partpill">${I.checkc}You're going</div>` : ''}</div>
     <div class="stack" style="margin-top:16px"><div class="resp two" role="group"><button class="r-go" data-act="rsvp" data-v="going" data-id="${e.id}" aria-pressed="${k === 'going'}">${I.checkc}Going</button><button class="r-cant" data-act="rsvp" data-v="cant" data-id="${e.id}" aria-pressed="${k === 'cant'}">${I.xc}Can't go</button></div>
-    <div class="card"><h2 style="font-size:17px;margin-bottom:6px">Programme</h2>${e.agenda.map((a2, i) => `<div class="lrow" style="min-height:44px"><span class="av2" style="width:28px;height:28px;font-size:12px;background:var(--event)">${i + 1}</span><span class="small" style="font-weight:600">${esc(a2)}</span></div>`).join('')}</div>
+    ${e.about ? `<div class="card"><p class="small">${esc(e.about)}</p></div>` : ''}${e.aud === 'leads' ? `<div class="banner">${I.shield}<span>Only team leads and Seva HQ see this meeting.</span></div>` : ''}
+    ${!e.agenda.length ? '' : `<div class="card"><h2 style="font-size:17px;margin-bottom:6px">${e.meeting ? 'Agenda' : 'Programme'}</h2>${e.agenda.map((a2, i) => `<div class="lrow" style="min-height:44px"><span class="av2" style="width:28px;height:28px;font-size:12px;background:var(--event)">${i + 1}</span><span class="small" style="font-weight:600">${esc(a2)}</span></div>`).join('')}</div>`}
     <button class="btn ghost block" data-act="cal-e" data-id="${e.id}">${I.cal}Add to calendar</button></div>`;
 }
 function HistoryDetail({ id }) {
@@ -1113,6 +1117,7 @@ const SG = () => (isAdmin() ? 'g-hq' : 'g-delhi');
 const storyLimit = () => (isAdmin() ? 5 : STORY_LIMIT);
 function ensureHQGroup() { if (!S.groups.some((g) => g.id === 'g-hq')) S.groups.unshift({ id: 'g-hq', name: 'Seva HQ', code: 'HQ', full: 'Namdhari Seva HQ', hue: ['#6A5AE0', '#3F2F99'], stories: [] }); }
 const localSeva = () => S.seva.filter((s) => !s.hq);
+const visEvents = () => S.events.filter((e) => (!e.gid || e.gid === 'delhi' || isAdmin()) && (e.aud !== 'leads' || isLead() || isAdmin()));
 const needsAttend = (s) => !s.hq && T(s.end) < now() && !s.att && !s.cancelled;
 const recipients = (s) => peopleOf(s).filter((p) => ['going', 'maybe', 'here'].includes(p.st));
 const noReply = (s) => s.people.filter((p) => p.st === 'invited');
@@ -1237,7 +1242,7 @@ function leadCard(s) {
   const live = isLive(s); const r = recipients(s); const nob = s.points.filter((p) => !p.takers.length).length; const nr = noReply(s).length;
   const need = s.points.reduce((a, p) => a + p.need, 0), got = s.points.reduce((a, p) => a + Math.min(p.need, p.takers.length), 0);
   const flags = needsAttend(s) ? `<span class="status st-plan">${I.clip}Mark attendance</span>` : needsReport(s) ? `<span class="status st-plan">${I.edit}Write report</span><span class="status st-done">${I.check}${s.att.present.length} attended</span>` : s.att ? `<span class="status st-done">${I.check}${s.att.present.length} attended · ${s.att.present.length * s.att.pts} pts given</span>` : `${nob ? `<span class="status st-plan">${I.alert}${nob} task${nob > 1 ? 's' : ''} with no one</span>` : `<span class="status st-done">${I.check}All tasks covered</span>`}${nr ? `<span class="status" style="background:var(--surface2);color:var(--muted)">${nr} no reply</span>` : ''}`;
-  return `<button class="scard tap ${live ? 'live' : ''}" data-open="seva:${s.id}">${dblock(s.start, s.cat, live, s.end)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${esc(s.title)}</h3>
+  return `<button class="scard tap ${live ? 'live' : ''}" data-open="seva:${s.id}">${dblock(s.start, s.cat, live, s.end)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3>
     <p class="m ellipsis">${live ? `Ends ${fmtTime(s.end)} · ${progress(s)}% done` : `${relDay(s.start)} · ${fmtTime(s.start)}`}</p>
     ${s.att || needsAttend(s) ? '' : `<div class="mini"><i style="width:${need ? got / need * 100 : 0}%"></i></div><p class="xs muted" style="margin-top:4px">${got}/${need} places · ${r.length} going</p>`}
     <div class="foot">${flags}</div></div></button>`;
@@ -1247,8 +1252,9 @@ function LeadSeva() {
   const chips = [['live', 'Live', L.live.length], ['upcoming', 'Upcoming', L.upcoming.length], ['attend', 'To close', L.attend.length], ['done', 'Done', L.done.length]];
   const list = L[leadChip];
   return `<div class="chips fill tight" style="margin-top:12px">${chips.map(([k, l, n]) => `<button class="chip2" data-lchip="${k}" aria-pressed="${leadChip === k}">${k === 'live' && n ? '<i class="ld"></i>' : ''}${l}<span class="n" ${k === 'attend' && n ? 'style="background:var(--action-c);color:#2A1A00"' : ''}>${n}</span></button>`).join('')}</div>
+    ${leadChip === 'upcoming' && visEvents().some(isFuture) ? `<div class="chead"><b>Events & meetings</b><span>${visEvents().filter(isFuture).length}</span></div>${visEvents().filter(isFuture).sort((a, b) => T(a.start) - T(b.start)).map(eventCard).join('')}<div class="chead"><b>Seva</b><span>${list.length}</span></div>` : ''}
     <div style="margin-top:12px">${list.length ? list.map(leadCard).join('') : emptyState({ live: 'Nothing live right now', upcoming: 'No seva planned', attend: 'All attendance is done', done: 'No completed seva yet' }[leadChip], leadChip === 'attend' ? 'Sevadars have their points. 🙏' : 'Create a seva and members get notified.', leadChip === 'upcoming' ? '<button class="btn soft sm" style="margin-top:12px" data-act="seva-new">Create seva</button>' : '')}</div>
-    <button class="fab" data-act="seva-new" aria-label="Create seva">${I.plus}<span>New seva</span></button>`;
+`;
 }
 
 // ----- Lead: seva detail (manage) -----
@@ -1260,7 +1266,7 @@ function LeadSevaDetail({ id }) {
   if (!tabs.find((t) => t[0] === dtab)) dtab = 'overview';
   const hero = `<div class="dhero cc-${s.cat} ${live ? 'islive' : ''} ${s.special ? 'special' : ''}">${s.special ? specialRib : ''}<svg class="bgart" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice"><circle cx="350" cy="40" r="110" fill="#fff" opacity=".18"/></svg>
     <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}<span class="chip" style="background:rgba(0,0,0,.18);color:#fff">${I.shield}You manage this</span></div>
-    <h1>${esc(s.title)}</h1><div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div>${isAdmin() ? (() => { const g = sevaGroup(s); return `<div>${I.globe}${g.flag} ${g.country} · ${g.state} · ${esc(g.name)}${s.hq ? ' · HQ seva for all sangat' : ''}</div>`; })() : ''}</div>
+    <h1>${ttl(s)}</h1><div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div>${isAdmin() ? (() => { const g = sevaGroup(s); return `<div>${I.globe}${g.flag} ${g.country} · ${g.state} · ${esc(g.name)}${s.hq ? ' · HQ seva for all sangat' : ''}</div>`; })() : ''}</div>
     ${!ended ? `<button class="partpill" style="background:rgba(255,255,255,.95);color:#16151A" data-act="seva-edit" data-id="${s.id}">${I.edit}Edit details</button><p class="xs" style="opacity:.85;margin-top:6px;text-align:center">Only the creator, ${s.hq ? 'Seva HQ' : 'Delhi Central team leads'} and the Main Admin can edit</p>` : ''}</div>`;
   let body = '';
   if (dtab === 'overview') {
@@ -1325,29 +1331,76 @@ function inviteSheet(sid) {
     <button class="btn block" style="margin-top:14px" data-act="invite-send" data-id="${sid}">${I.userplus}Send invites</button>`);
 }
 // ----- Seva creation -----
-const TEMPLATES = { nasha: ['Nasha Mukti Awareness Camp', [['Set up the stall and banners', 3], ['Talk with visitors', 4], ['Hand out leaflets', 4], ['Counselling desk', 2]]], donation: ['Donation Drive', [['Collection desk', 2], ['Count and record', 2], ['Pack items for delivery', 4]]], stall: ['Roadside Langar Stall', [['Set up the stall', 4], ['Cook', 4], ['Serve passers-by', 6], ['Clean up after', 3]]], clothes: ['Clothes for the Needy', [['Sort clothes by size', 4], ['Pack bundles', 4], ['Hand out clothes', 6]]], social: ['Social Service Day', [['Visit the elderly home', 4], ['Help with errands', 3], ['Hospital visit', 3]]], cleanup: ['Gurdwara Hall Cleaning', [['Lay carpets', 4], ['Sweep and mop', 3], ['Windows and fans', 2], ['Shoe racks', 2]]], langar: ['Langar Seva', [['Cook dal and sabzi', 3], ['Make rotis', 4], ['Serve langar', 6], ['Wash utensils', 3]]], tree: ['Tree Planting Drive', [['Dig pits', 6], ['Plant saplings', 6], ['Carry water', 4]]], education: ['Reading Circle', [['Read with a group', 4], ['Set up the room', 1]]], blanket: ['Blanket Distribution', [['Load the vans', 4], ['Hand out blankets', 8], ['Drive a van', 3]]] };
+const TEMPLATES = { medical: ['Free Medical Camp', [['Registration desk', 2], ['Help doctors with patients', 4], ['Medicine counter', 2], ['Guide visitors', 2]]], gau: ['Gau Seva', [['Clean the gaushala', 4], ['Feed and water', 3], ['Bring fodder', 3]]], nasha: ['Nasha Mukti Awareness Camp', [['Set up the stall and banners', 3], ['Talk with visitors', 4], ['Hand out leaflets', 4], ['Counselling desk', 2]]], donation: ['Donation Drive', [['Collection desk', 2], ['Count and record', 2], ['Pack items for delivery', 4]]], stall: ['Roadside Langar Stall', [['Set up the stall', 4], ['Cook', 4], ['Serve passers-by', 6], ['Clean up after', 3]]], clothes: ['Clothes for the Needy', [['Sort clothes by size', 4], ['Pack bundles', 4], ['Hand out clothes', 6]]], social: ['Social Service Day', [['Visit the elderly home', 4], ['Help with errands', 3], ['Hospital visit', 3]]], cleanup: ['Gurdwara Hall Cleaning', [['Lay carpets', 4], ['Sweep and mop', 3], ['Windows and fans', 2], ['Shoe racks', 2]]], langar: ['Langar Seva', [['Cook dal and sabzi', 3], ['Make rotis', 4], ['Serve langar', 6], ['Wash utensils', 3]]], tree: ['Tree Planting Drive', [['Dig pits', 6], ['Plant saplings', 6], ['Carry water', 4]]], education: ['Reading Circle', [['Read with a group', 4], ['Set up the room', 1]]], blanket: ['Blanket Distribution', [['Load the vans', 4], ['Hand out blankets', 8], ['Drive a van', 3]]] };
 let draft = null;
-function newDraft(cat = 'cleanup') { const t = TEMPLATES[cat]; return { cat, title: t[0], date: ymd(now() + 3 * DAY), start: '09:00', end: '12:00', place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Main entrance', about: '', repeat: false, tasks: t[1].map(([x, n]) => ({ t: x, n })) }; }
-function syncDraft() { if (!draft || !$('#d-title')) return; draft.title = $('#d-title').value; draft.date = $('#d-date').value; draft.start = $('#d-start').value; draft.end = $('#d-end').value; draft.place = $('#d-place').value; draft.meet = $('#d-meet').value; draft.about = $('#d-about').value; draft.repeat = $('#d-repeat').checked; if ($('#d-special')) draft.special = $('#d-special').checked; $$('[data-dt]').forEach((i) => { const tk = draft.tasks[+i.dataset.dt]; if (tk) tk.t = i.value; }); }
+// fixed names so the admin can group every Darshan or mela together in reports
+const MAIN = {
+  darshan: { name: 'Satguru Ji Darshan', sub: 'Darshan Diwan · Satguru Ji visiting', cat: 'langar' },
+  hola: { name: 'Hola Mohalla Mela', sub: 'Yearly mela at Sri Bhaini Sahib', cat: 'langar' },
+  basant: { name: 'Basant Panchami Mela', sub: 'Yearly mela', cat: 'langar' },
+  shaheedi: { name: 'Shaheedi Samagam', sub: 'Remembrance gathering', cat: 'langar' },
+  samagam: { name: 'Main Samagam', sub: 'Any other big gathering', cat: 'langar' },
+};
+const SEVA_TYPES = ['langar', 'cleanup', 'donation', 'nasha', 'social', 'education', 'medical', 'gau', 'tree', 'blanket', 'clothes', 'stall'];
+const EVK = { satsang: ['Satsang', 'Kirtan, katha, ardas', 'Monthly Satsang'], kirtan: ['Kirtan Darbar', 'Evening of kirtan', 'Kirtan Darbar'], gathering: ['Gathering', 'Sangat coming together', 'Sangat Gathering'], celebration: ['Celebration', 'Gurpurab, festival', 'Celebration'], online: ['Online session', 'Video call for the sangat', 'Online Session'], other: ['Other event', '', 'Event'] };
+const MTK = { planning: ['Seva planning', 'Plan the next seva together', 'Seva Planning Meeting'], leads: ['Team leads meeting', 'Leads and HQ only', 'Team Leads Meeting'], online: ['Online meeting', 'Video call', 'Online Meeting'] };
+const KINDS = [['seva', 'Seva', I.seva], ['event', 'Event', I.cal], ['meeting', 'Meeting', I.users]];
+function newDraft(cat = 'cleanup', kind = 'seva') {
+  const t = TEMPLATES[cat]; const ek = kind === 'event' ? 'satsang' : kind === 'meeting' ? 'planning' : null;
+  return { kind, cat, ek, main: null, sub: '', aud: kind === 'meeting' ? 'leads' : 'all', agenda: '', title: kind === 'seva' ? t[0] : (kind === 'event' ? EVK : MTK)[ek][2], date: ymd(now() + 3 * DAY), start: kind === 'seva' ? '09:00' : '18:00', end: kind === 'seva' ? '12:00' : '19:30', place: kind === 'meeting' ? 'Community Hall, Karol Bagh' : 'Namdhari Gurdwara, Karol Bagh', meet: 'Main entrance', about: '', repeat: false, tasks: t[1].map(([x, n]) => ({ t: x, n })) };
+}
+function syncDraft() {
+  if (!draft || !$('#d-date')) return; const v = (id) => $('#' + id)?.value;
+  ['title', 'date', 'start', 'end', 'place', 'meet', 'about', 'sub', 'agenda'].forEach((k) => { const x = v('d-' + k); if (x !== undefined) draft[k] = x; });
+  if ($('#d-repeat')) draft.repeat = $('#d-repeat').checked;
+  $$('[data-dt]').forEach((i) => { const tk = draft.tasks[+i.dataset.dt]; if (tk) tk.t = i.value; });
+}
+const ddChev = '<svg class="ddchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
+function typeInfo() {
+  const d = draft; if (d.main) return { dot: 'var(--gold)', ic: I.sparkle, label: MAIN[d.main].name, sub: 'Main event' };
+  if (d.kind === 'seva') return { dot: `var(--c-${d.cat})`, ic: CAT[d.cat].ic, label: CAT[d.cat].label };
+  const K = (d.kind === 'event' ? EVK : MTK)[d.ek]; return { dot: 'var(--c-event)', ic: d.kind === 'event' ? I.cal : I.users, label: K[0] };
+}
+const ddBtn = (act, cap, x, main) => `<button class="ddbtn ${main ? 'main' : ''}" data-act="${act}"><span class="ddic" style="--dc:${x.dot}">${x.ic}</span><span class="grow"><span class="ddcap">${cap}</span><b>${esc(x.label)}</b></span>${main ? '<span class="mainpill">✨ Main event</span>' : ''}${ddChev}</button>`;
+function typeSheet(mode) {
+  const K = draft.kind; const row = (act, v, on, dot, ic, label, sub) => `<button class="ddrow ${on ? 'on' : ''}" data-act="${act}" data-v="${v}"><span class="ddic" style="--dc:${dot}">${ic}</span><span class="grow"><b>${esc(label)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</span>${on ? I.check : ''}</button>`;
+  const main = mode === 'type' && K !== 'meeting' ? `<div class="ddmain"><p class="ddh">✨ Main events<span>Same name every time · glows everywhere</span></p>${Object.entries(MAIN).map(([k, m]) => row('d-main', k, draft.main === k, 'var(--gold)', I.sparkle, m.name, m.sub)).join('')}</div>` : '';
+  const seva = mode === 'work' || K === 'seva';
+  const list = seva ? SEVA_TYPES.map((k) => row(mode === 'work' ? 'd-work' : 'd-cat', k, (mode === 'work' || !draft.main) && draft.cat === k, `var(--c-${k})`, CAT[k].ic, CAT[k].label, '')).join('')
+    : Object.entries(K === 'event' ? EVK : MTK).map(([k, x]) => row('d-ek', k, !draft.main && draft.ek === k, 'var(--c-event)', K === 'event' ? I.cal : I.users, x[0], x[1])).join('');
+  openSheet(`${sheetHead(mode === 'work' ? 'What seva at the event?' : K === 'seva' ? 'Type of seva' : K === 'event' ? 'Type of event' : 'Type of meeting', mode === 'work' ? 'Sets the colour and the starting tasks' : '')}${main}${main ? `<p class="ddh">${seva ? 'Seva types' : 'Event types'}</p>` : ''}<div class="ddlist">${list}</div>`);
+}
 function CreateSeva() {
   if (!draft) draft = newDraft();
   if (isAdmin() && !draft.target) draft.target = 'hq';
-  return `${dtop('New seva')}${isAdmin() ? `<label class="f">Who is it for?</label><div class="chips" style="flex-wrap:wrap"><button class="chip2" data-act="d-target" data-v="hq" aria-pressed="${draft.target === 'hq'}">${I.globe}Whole sangat (HQ)</button>${GROUPS.map((g) => `<button class="chip2" data-act="d-target" data-v="${g.id}" aria-pressed="${draft.target === g.id}">${g.flag} ${g.name.split(' ')[0]}</button>`).join('')}</div><p class="xs muted" style="margin-top:6px">${draft.target === 'hq' ? 'Shown to every member everywhere, highlighted as an HQ seva, and posted to the feed.' : `Only members of ${gOf(draft.target).name} are notified.`}</p>` : '<p class="small muted">Members of Delhi Central get notified and see it marked NEW.</p>'}
-    <label class="f">Type of seva</label><div class="chips" style="flex-wrap:wrap">${Object.keys(TEMPLATES).map((k) => `<button class="chip2" data-dcat="${k}" aria-pressed="${draft.cat === k}"><i class="dotc" style="background:var(--c-${k})"></i>${CAT[k].label}</button>`).join('')}</div>
-    <label class="f" for="d-title">Title</label><input class="in" id="d-title" value="${esc(draft.title)}">
-    <label class="f" for="d-date">Date</label><input class="in" type="date" id="d-date" value="${draft.date}">
+  const K = draft.kind; const noun = K === 'seva' ? 'seva' : K === 'event' ? 'event' : 'meeting';
+  const target = isAdmin() ? `<label class="f">Who is it for?</label><div class="chips" style="flex-wrap:wrap"><button class="chip2" data-act="d-target" data-v="hq" aria-pressed="${draft.target === 'hq'}">${I.globe}Whole sangat (HQ)</button>${GROUPS.map((g) => `<button class="chip2" data-act="d-target" data-v="${g.id}" aria-pressed="${draft.target === g.id}">${g.flag} ${g.name.split(' ')[0]}</button>`).join('')}</div><p class="xs muted" style="margin-top:6px">${draft.target === 'hq' ? `Shown to every member everywhere${K === 'meeting' ? '' : ', highlighted as HQ and posted to the feed'}.` : `Only members of ${gOf(draft.target).name} are notified.`}</p>` : `<p class="small muted" style="margin-top:4px">Members of Delhi Central are notified.</p>`;
+  const title = draft.main ? `<label class="f">Name</label><div class="lockt">${I.lock}<b class="grow">${esc(MAIN[draft.main].name)}</b><span class="xs muted">Fixed name</span></div><p class="xs muted" style="margin-top:6px">Kept the same every time so Seva HQ can see all of them together.</p>
+      <label class="f" for="d-sub">Add a line (optional)</label><input class="in" id="d-sub" value="${esc(draft.sub)}" placeholder="e.g. Delhi visit · Day 2">`
+    : `<label class="f" for="d-title">Title</label><input class="in" id="d-title" value="${esc(draft.title)}">`;
+  const when = `<label class="f" for="d-date">Date</label><input class="in" type="date" id="d-date" value="${draft.date}">
     <div class="btn-row"><div style="flex:1"><label class="f" for="d-start">Starts</label><input class="in" type="time" id="d-start" value="${draft.start}"></div><div style="flex:1"><label class="f" for="d-end">Ends</label><input class="in" type="time" id="d-end" value="${draft.end}"></div></div>
-    <label class="f" for="d-place">Place</label><input class="in" id="d-place" value="${esc(draft.place)}">
-    <label class="f" for="d-meet">Meeting point</label><input class="in" id="d-meet" value="${esc(draft.meet)}">
+    <label class="f" for="d-place">${K === 'meeting' ? 'Place or video link' : 'Place'}</label><input class="in" id="d-place" value="${esc(draft.place)}">`;
+  let rest = '';
+  if (K === 'seva') rest = `<label class="f" for="d-meet">Meeting point</label><input class="in" id="d-meet" value="${esc(draft.meet)}">
     <label class="f" for="d-about">Why this seva (optional)</label><textarea class="in" id="d-about" rows="2" placeholder="A line for the sangat">${esc(draft.about)}</textarea>
     <label class="lrow" style="margin-top:6px;cursor:pointer"><span class="grow small"><b>Repeat every week</b><br><span class="xs muted">Same day and time</span></span><input type="checkbox" id="d-repeat" class="ck" ${draft.repeat ? 'checked' : ''}></label>
-    <label class="f">Tags</label><div class="chips" style="flex-wrap:wrap">${ALL_TAGS().map((t) => `<button class="chip2" data-act="d-tag" data-t="${esc(t)}" aria-pressed="${(draft.tags || [CAT[draft.cat].label]).includes(t)}" style="min-height:32px;font-size:12.5px">#${esc(t)}</button>`).join('')}</div>
-    ${isAdmin() ? `<label class="lrow special-toggle" style="margin-top:10px;cursor:pointer"><span class="grow small"><b>✨ Main event</b><br><span class="xs muted">Darshan, a big mela or gathering — shown with a glowing highlight everywhere</span></span><input type="checkbox" id="d-special" class="ck" ${draft.special ? 'checked' : ''}></label>` : ''}
+    <label class="f">Tags</label><div class="chips" style="flex-wrap:wrap">${ALL_TAGS().map((t) => `<button class="chip2" data-act="d-tag" data-t="${esc(t)}" aria-pressed="${dTags().includes(t)}" style="min-height:32px;font-size:12.5px">#${esc(t)}</button>`).join('')}</div>
     <div class="section-h" style="margin-top:16px"><h2 style="font-size:17px">Tasks</h2><span class="xs muted">Members pick these</span></div>
     <div class="card">${draft.tasks.map((t, i) => `<div class="row" style="padding:6px 0"><input class="in" data-dt="${i}" value="${esc(t.t)}" placeholder="Task" style="flex:1;min-height:42px;padding:8px 12px"><div class="qty"><button data-act="d-need" data-i="${i}" data-d="-1" aria-label="Fewer">−</button><span>${t.n}</span><button data-act="d-need" data-i="${i}" data-d="1" aria-label="More">+</button></div><button class="iconbtn" data-act="d-del" data-i="${i}" aria-label="Remove task" style="width:36px;color:var(--faint)">${I.close}</button></div>`).join('')}
-      <button class="link" data-act="d-add">${I.plus}Add task</button></div>
-    <div class="stickyact"><div><button class="btn block" data-act="d-publish">${I.megaphone}Publish & notify members</button></div></div>`;
+      <button class="link" data-act="d-add">${I.plus}Add task</button></div>`;
+  else rest = `${K === 'meeting' ? `<label class="f">Who should come?</label><div class="seg"><button data-act="d-aud" data-v="leads" aria-pressed="${draft.aud === 'leads'}">${I.shield}Team leads only</button><button data-act="d-aud" data-v="all" aria-pressed="${draft.aud === 'all'}">${I.users}Everyone</button></div>` : ''}
+    <label class="f" for="d-about">About (optional)</label><textarea class="in" id="d-about" rows="2" placeholder="${K === 'meeting' ? 'What we will decide' : 'A line for the sangat'}">${esc(draft.about)}</textarea>
+    <label class="f" for="d-agenda">${K === 'meeting' ? 'Agenda' : 'Programme'} · one per line</label><textarea class="in" id="d-agenda" rows="4" placeholder="${K === 'meeting' ? 'Next month\'s seva\nWho leads what\nQuestions' : 'Kirtan\nKatha\nArdas\nLangar'}">${esc(draft.agenda)}</textarea>`;
+  return `${dtop('Create')}
+    <div class="seg kindseg" role="group">${KINDS.map(([k, l, ic]) => `<button data-act="d-kind" data-v="${k}" aria-pressed="${K === k}">${ic}${l}</button>`).join('')}</div>
+    ${target}
+    <label class="f">${K === 'seva' ? 'Type of seva' : K === 'event' ? 'Type of event' : 'Type of meeting'}</label>${ddBtn('d-type', 'Tap to change', typeInfo(), !!draft.main)}
+    ${draft.main && K === 'seva' ? `<label class="f">Seva at the event</label>${ddBtn('d-workopen', 'Colour and starting tasks', { dot: `var(--c-${draft.cat})`, ic: CAT[draft.cat].ic, label: CAT[draft.cat].label }, false)}` : ''}
+    ${title}${when}${rest}
+    <div class="stickyact"><div><button class="btn block" data-act="d-publish">${I.megaphone}Publish ${noun} & notify</button></div></div>`;
 }
+const dTags = () => draft.tags || [CAT[draft.cat].label, ...(draft.main ? [MAIN[draft.main].name] : [])];
 // ----- Attendance -----
 let attState = null;
 function AttendScreen({ id }) {
@@ -1833,7 +1886,7 @@ function AdminSeva() {
     const P = aSeg === 'past' ? pastItems() : [];
     return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">All seva</h1><span class="sp"></span>${bellBtn()}</header>${aSeg === 'past' ? filterBar() : `<div class="fbar" style="grid-template-columns:auto 1fr"><button class="fchip2 on" data-act="af-open" data-k="p"><span>${AFP.find((x) => x[0] === af().p)[1]}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="xs muted" style="align-self:center">What leads reported after each seva</span></div>`}${segs}
       ${aSeg === 'past' ? `<p class="xs muted" style="margin:10px 2px 0">${num(P.length)} seva · tap one to see who came, the lead and the report</p><div style="margin-top:6px">${P.slice(0, pastN).map(pastCard).join('') || emptyState('No past seva here', 'Try a longer period or another place.')}</div>${P.length > pastN ? `<button class="btn ghost block" style="margin-top:10px" data-act="past-more">Show more (${P.length - pastN} left)</button>` : ''}` : ReportsPanel()}
-      <button class="fab" data-act="seva-new" aria-label="Create seva">${I.plus}<span>New seva</span></button>`;
+      ${createFab()}`;
   }
   return AdminSevaCore();
 }
@@ -1843,7 +1896,8 @@ function AdminSevaCore() {
   const items = [];
   if (aSeg !== 'attention') {
     S.seva.filter((s) => inScope(sevaGroup(s)) && (aSeg === 'live' ? isLive(s) : isFuture(s))).forEach((s) => items.push({ g: sevaGroup(s), d: T(s.start), html: withLoc(s.hq ? sevaCard(s) : leadCard(s), sevaGroup(s), s.hq) }));
-    if (aSeg === 'upcoming') (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).forEach((s) => items.push({ g: gOf(s.gid), d: T(s.start), html: withLoc(`<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${esc(s.title)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`, gOf(s.gid)) }));
+    if (aSeg === 'upcoming') S.events.filter((e) => isFuture(e) && inScope(gOf(e.gid || (e.hq ? 'bhaini' : 'delhi')))).forEach((e) => { const g = gOf(e.gid || (e.hq ? 'bhaini' : 'delhi')); items.push({ g, d: T(e.start), html: withLoc(eventCard(e), g, !!e.hq) }); });
+    if (aSeg === 'upcoming') (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).forEach((s) => items.push({ g: gOf(s.gid), d: T(s.start), html: withLoc(`<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`, gOf(s.gid)) }));
     syn(aSeg).forEach((x) => items.push({ g: x.g, d: x.d, html: withLoc(`<button class="scard tap ${aSeg === 'live' ? 'live' : ''}" data-open="grp:${x.g.id}">${dblock(at(1 + (x.g.id.length % 6), 9), x.cat, aSeg === 'live', at(0, 13))}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${x.cat}) 13%,transparent);color:var(--c-${x.cat})">${CAT[x.cat].label}</span><h3>${x.title}</h3><p class="m">${x.when} · lead ${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])}</p><div class="mini"><i style="width:${x.fill}%;background:${STL[KPI.fill.g({ fill: x.fill })][1]}"></i></div><p class="xs muted" style="margin-top:4px">${x.fill}% places filled · ${x.going} going</p></div></button>`, x.g) }));
   }
   // grouped by country so the admin always knows where each seva is
@@ -1854,7 +1908,7 @@ function AdminSevaCore() {
     <div style="margin-top:4px">${aSeg === 'attention'
       ? (alerts.length ? alerts.map(([g, t, s2, gid]) => { const gg = gOf(gid); return `<button class="banner tap" data-open="grp:${gid}" style="margin-top:8px;background:${STL[g][2]};border-color:${STL[g][1]};flex-wrap:wrap">${STL[g][3]}<span class="grow"><span class="xs" style="font-weight:700;opacity:.8">${gg.flag} ${gg.country} · ${esc(gg.state)} · ${esc(gg.name)}</span><br><b>${esc(t)}</b><br><span class="xs">${esc(s2)}</span></span>${chev}</button>`; }).join('') : emptyState('Nothing needs attention', 'All groups in this filter are on track.'))
       : byC.length ? byC.map(({ c, list }) => `<div class="chead"><b>${FLAG[c]} ${c}</b><span>${list.length} seva · ${[...new Set(list.map((x) => x.g.name))].length} group${[...new Set(list.map((x) => x.g.name))].length > 1 ? 's' : ''}</span></div>${list.map((x) => x.html).join('')}`).join('') : emptyState(aSeg === 'live' ? 'Nothing live here right now' : 'No upcoming seva here', 'Try another place in the filter.')}</div>
-    <button class="fab" data-act="seva-new" aria-label="Create seva">${I.plus}<span>New seva</span></button>`;
+    ${createFab()}`;
 }
 // ----- Admin: feed composer (designed cards, no images) -----
 const CP_TYPES = [['thought', 'Thought of the Day'], ['hukam', 'Satguru Ji\'s Hukam'], ['alert', 'Alert'], ['info', 'Information'], ['appreciation', 'Appreciation'], ['event', 'Event'], ['text', 'Plain text']];
@@ -1888,7 +1942,7 @@ const atHM = (day, v) => { const x = new Date(day); const [h, m] = (v || '00:00'
 const hrs = (a, b) => Math.max(0, Math.round((T(b) - T(a)) / HOUR * 10) / 10);
 const hrsTxt = (h) => `${h % 1 ? h.toFixed(1) : h} h`;
 const TAG_EXTRA = ['Gurdwara', 'Outdoor', 'Youth', 'Winter', 'Hola Mohalla', 'Darshan', 'HQ'];
-const ALL_TAGS = () => [...Object.keys(CAT).filter((c) => c !== 'event').map((c) => CAT[c].label), ...TAG_EXTRA];
+const ALL_TAGS = () => [...Object.values(MAIN).map((m) => m.name), ...Object.keys(CAT).filter((c) => c !== 'event').map((c) => CAT[c].label), ...TAG_EXTRA];
 const sevaTags = (s) => s.tags || [CAT[s.cat].label, ...(s.hq ? ['HQ'] : []), ...(s.special ? ['Hola Mohalla'] : [])];
 const tagChips = (tags) => `<span class="tags">${tags.map((t) => `<span class="tag">#${esc(t)}</span>`).join('')}</span>`;
 const RT = { good: ['Good things', 'var(--done)', 'var(--done-bg)', I.checkc, 'Went well'], feedback: ['Feedback', 'var(--action)', 'var(--action-bg)', I.msg, 'Could be better'], challenge: ['Challenges', 'var(--live)', 'var(--live-bg)', I.alert, 'Problems we faced'] };
@@ -1946,6 +2000,7 @@ function reportView(rep, tags) {
 }
 // ----- special (main) events: glowing outline everywhere -----
 const isSpecial = (x) => !!(x && x.special);
+const ttl = (x) => `${esc(x.title)}${x.sub ? ` <small class="subt">· ${esc(x.sub)}</small>` : ''}`;
 const specialRib = '<span class="sprib">✨ MAIN EVENT</span>';
 function specialBanner() {
   const items = [...S.seva.filter((s) => s.special && T(s.end) > now()).map((s) => ({ k: 'seva', x: s })), ...S.events.filter((e) => e.special && T(e.end) > now()).map((e) => ({ k: 'event', x: e }))].sort((a, b) => T(a.x.start) - T(b.x.start));
@@ -1975,7 +2030,7 @@ function pastItems() {
   return out.sort((a, b) => b.d - a.d);
 }
 function pastCard(x) {
-  if (x.s) { const s = x.s; const rep = s.report; return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${esc(s.title)}</h3><p class="m">${s.att ? `${s.att.present.length} came · ${hrsTxt(s.att.hours || 0)}` : 'Attendance not marked yet'} · lead ${esc(s.lead)}</p><div class="foot">${repDots(rep)}${!s.att ? '<span class="status st-plan">Attendance due</span>' : !rep ? '<span class="status st-plan">Report due</span>' : ''}</div></div></button>`, x.g); }
+  if (x.s) { const s = x.s; const rep = s.report; return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${s.att ? `${s.att.present.length} came · ${hrsTxt(s.att.hours || 0)}` : 'Attendance not marked yet'} · lead ${esc(s.lead)}</p><div class="foot">${repDots(rep)}${!s.att ? '<span class="status st-plan">Attendance due</span>' : !rep ? '<span class="status st-plan">Report due</span>' : ''}</div></div></button>`, x.g); }
   const r = x.r, d = recDetail(r);
   return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(iso(r.d), r.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${r.cat}) 13%,transparent);color:var(--c-${r.cat})">${CAT[r.cat].label}</span><h3>${d.title}</h3><p class="m">${r.cancelled ? `Cancelled · ${esc(r.reason)}` : `${r.came} came · ${hrsTxt(d.hours)} · lead ${esc(d.lead)}`}</p><div class="foot">${r.cancelled ? '<span class="status" style="background:var(--live-bg);color:var(--live)">Cancelled</span>' : repDots(d.rep) || '<span class="status" style="background:var(--surface2);color:var(--muted)">No report</span>'}</div></div></button>`, x.g);
 }
@@ -2099,9 +2154,18 @@ function handle(el) {
     case 'd-del': syncDraft(); draft.tasks.splice(+el.dataset.i, 1); rerender(); break;
     case 'd-add': syncDraft(); draft.tasks.push({ t: '', n: 2 }); rerender(); setTimeout(() => { const ins = $$('[data-dt]'); ins[ins.length - 1]?.focus(); }, 50); break;
     case 'd-publish': {
-      syncDraft(); const tasks = draft.tasks.filter((x) => x.t.trim()); if (!draft.title.trim()) { toast('Please add a title'); return; } if (!tasks.length) { toast('Add at least one task'); return; }
+      syncDraft(); if (draft.main) draft.title = MAIN[draft.main].name; const tasks = draft.tasks.filter((x) => x.t.trim()); if (!draft.title.trim()) { toast('Please add a title'); return; } if (draft.kind === 'seva' && !tasks.length) { toast('Add at least one task'); return; }
       const st0 = new Date(`${draft.date}T${draft.start || '09:00'}`), en0 = new Date(`${draft.date}T${draft.end || '12:00'}`); if (en0 <= st0) en0.setTime(st0.getTime() + 2 * HOUR);
-      const ns = { id: 's' + uid(), title: draft.title.trim(), cat: draft.cat, start: iso(st0), end: iso(en0), place: draft.place, meet: draft.meet, lead: ME(), purpose: draft.about || 'Seva for the sangat of Delhi Central.', instructions: 'Head covered. Your lead will brief you on the day.', created: iso(now()), recur: draft.repeat ? 'Every ' + st0.toLocaleDateString(undefined, { weekday: 'long' }) : '', tags: draft.tags || [CAT[draft.cat].label], special: !!draft.special, createdBy: ME(), people: [], points: tasks.map((x) => ({ id: 't' + uid(), text: x.t.trim(), need: x.n, takers: [], at: iso(now()) })), updates: [] };
+      if (draft.kind !== 'seva') {
+        const K = draft.kind === 'event' ? EVK : MTK; const hq = isAdmin() && draft.target === 'hq'; const gid = isAdmin() ? (hq ? null : draft.target) : 'delhi';
+        const e = { id: 'e' + uid(), title: draft.title.trim(), sub: (draft.sub || '').trim(), kind: draft.main ? MAIN[draft.main].name.split(' ').slice(-1)[0].replace('Darshan', 'Darshan') : K[draft.ek][0], ek: draft.ek, main: draft.main, start: iso(st0), end: iso(en0), place: draft.place, organizer: hq ? 'Seva HQ' : gOf(gid || 'delhi').name, about: draft.about, agenda: (draft.agenda || '').split('\n').map((x) => x.trim()).filter(Boolean), going: 0, maybe: 0, cant: 0, created: iso(now()), special: !!draft.main, meeting: draft.kind === 'meeting', aud: draft.kind === 'meeting' ? draft.aud : 'all', createdBy: ME(), gid, hq };
+        if (draft.main) e.kind = draft.main === 'darshan' ? 'Darshan' : 'Main event';
+        S.events.push(e);
+        if (hq && !e.meeting) S.feed.unshift({ id: 'f' + uid(), type: 'event', special: e.special, d: iso(now()), title: e.title, text: e.about || `${fmtLong(e.start)} · ${e.place}`, link: 'event:' + e.id, ev: e.id, cta: 'RSVP', r: { g: 0, s: 0 } });
+        if (!gid || gid === 'delhi') S.notifs.unshift({ id: 'n' + uid(), level: 'p', t: `New ${e.meeting ? 'meeting' : 'event'}: ${e.title} · ${relDay(e.start)} ${fmtTime(e.start)}`, d: iso(now()), ref: 'event:' + e.id, ...(e.aud === 'leads' ? { role: 'lead' } : {}) });
+        save(); draft = null; stack[stack.length - 1] = { v: 'event', id: e.id }; render(); window.scrollTo(0, 0); toast(`${e.meeting ? 'Meeting' : 'Event'} published${e.aud === 'leads' ? ' — team leads notified' : ' — sangat notified'}`); break;
+      }
+      const ns = { id: 's' + uid(), title: draft.title.trim(), cat: draft.cat, start: iso(st0), end: iso(en0), place: draft.place, meet: draft.meet, lead: ME(), purpose: draft.about || 'Seva for the sangat of Delhi Central.', instructions: 'Head covered. Your lead will brief you on the day.', created: iso(now()), recur: draft.repeat ? 'Every ' + st0.toLocaleDateString(undefined, { weekday: 'long' }) : '', tags: dTags(), special: !!draft.main, main: draft.main, sub: (draft.sub || '').trim(), createdBy: ME(), people: [], points: tasks.map((x) => ({ id: 't' + uid(), text: x.t.trim(), need: x.n, takers: [], at: iso(now()) })), updates: [] };
       if (isAdmin() && draft.target !== 'hq' && draft.target !== 'delhi') { const g = gOf(draft.target); (S.otherSeva = S.otherSeva || []).push({ ...ns, gid: g.id }); save(); draft = null; pop(); toast(`Published — ${num(g.members)} members of ${g.name} notified`); break; }
       if (isAdmin() && draft.target === 'hq') { ns.hq = true; ns.region = (draft.place.split(',')[0] || 'Sri Bhaini Sahib').trim(); ns.lead = 'Seva HQ team'; S.feed.unshift({ id: 'f' + uid(), type: 'seva', d: iso(now()), sid: ns.id, title: ns.title, text: ns.purpose, r: { g: 0, s: 0 } }); }
       S.seva.push(ns); S.notifs.unshift({ id: 'n' + uid(), level: 'p', t: `New seva: ${ns.title} · ${relDay(ns.start)} ${fmtTime(ns.start)}`, d: iso(now()), ref: 'seva:' + ns.id });
@@ -2184,6 +2248,13 @@ function handle(el) {
     case 'post-del': if (!confirm('Delete this post for everyone?')) return; S.feed = S.feed.filter((p) => p.id !== id); save(); closeSheet(); rerender(); toast('Post deleted'); break;
     case 'more-text': { const pEl = el.previousElementSibling; pEl.classList.remove('clamp'); el.remove(); break; }
     case 'd-target': syncDraft(); draft.target = el.dataset.v; rerender(); break;
+    case 'd-kind': { syncDraft(); const k = el.dataset.v; if (k === draft.kind) break; const keep = { date: draft.date, target: draft.target }; draft = { ...newDraft('cleanup', k), ...keep }; rerender(); break; }
+    case 'd-type': syncDraft(); typeSheet('type'); break;
+    case 'd-workopen': syncDraft(); typeSheet('work'); break;
+    case 'd-aud': draft.aud = el.dataset.v; syncDraft(); rerender(); break;
+    case 'd-main': { const m = MAIN[el.dataset.v]; draft.main = el.dataset.v; draft.title = m.name; draft.tags = null; if (draft.kind === 'seva') { const t = TEMPLATES[draft.cat] ? draft.cat : m.cat; draft.cat = t; } closeSheet(); rerender(); break; }
+    case 'd-cat': case 'd-work': { const was = draft.cat; const tt = draft.tasks.some((x, i) => x.t !== (TEMPLATES[was][1][i] || [])[0]); draft.cat = el.dataset.v; if (act === 'd-cat') { draft.main = null; draft.title = TEMPLATES[draft.cat][0]; } draft.tags = null; if (!tt) draft.tasks = TEMPLATES[draft.cat][1].map(([x, n]) => ({ t: x, n })); closeSheet(); rerender(); break; }
+    case 'd-ek': { const K = draft.kind === 'event' ? EVK : MTK; const wasDefault = !draft.main && Object.values(K).some((x) => x[2] === draft.title); draft.ek = el.dataset.v; if (draft.main || wasDefault || !draft.title.trim()) draft.title = K[draft.ek][2]; draft.main = null; if (draft.kind === 'meeting') draft.aud = draft.ek === 'leads' ? 'leads' : draft.aud; closeSheet(); rerender(); break; }
     case 'set-gender': S.gender = el.dataset.v; save(); $$('[data-act=set-gender]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.gender)); break;
     case 'onb-gender': S.gender = el.dataset.v; $$('[data-act=onb-gender]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.gender)); break;
     case 'say-yes': timeSheet(id); break;
@@ -2199,7 +2270,7 @@ function handle(el) {
     case 'rep-del': repDraft[el.dataset.k].splice(+el.dataset.i, 1); rerender(); break;
     case 'rep-tag': { const t = el.dataset.t; repDraft.tags = repDraft.tags.includes(t) ? repDraft.tags.filter((x) => x !== t) : [...repDraft.tags, t]; rerender(); break; }
     case 'rep-save': { const s = sv(id); ['good', 'feedback', 'challenge'].forEach((k) => { const v = $('#rep-' + k)?.value.trim(); if (v) repDraft[k].push(v); }); if (!repDraft.good.length && !repDraft.feedback.length && !repDraft.challenge.length) { toast('Add at least one point'); return; } s.report = { good: repDraft.good, feedback: repDraft.feedback, challenge: repDraft.challenge, tags: repDraft.tags, by: ME(), at: iso(now()) }; repDraft = null; save(); dtab = 'overview'; if (stack[stack.length - 2]?.v === 'seva' && stack[stack.length - 2].id === s.id) pop(); else { stack[stack.length - 1] = { v: 'seva', id: s.id }; render(); window.scrollTo(0, 0); } toast('Report sent to Seva HQ 🙏'); break; }
-    case 'd-tag': { syncDraft(); const t = el.dataset.t; draft.tags = draft.tags || [CAT[draft.cat].label]; draft.tags = draft.tags.includes(t) ? draft.tags.filter((x) => x !== t) : [...draft.tags, t]; rerender(); break; }
+    case 'd-tag': { syncDraft(); const t = el.dataset.t; draft.tags = dTags(); draft.tags = draft.tags.includes(t) ? draft.tags.filter((x) => x !== t) : [...draft.tags, t]; rerender(); break; }
     case 'past-more': pastN += 25; rerender(); break;
     case 'now-live': aSeg = 'live'; go('seva'); break;
     case 'now-next': aSeg = 'upcoming'; go('seva'); break;

@@ -6,7 +6,7 @@
   --action: #B45309; --action-c: #F59E0B; --action-bg: #FEF3C7;
   --done: #15803D; --done-c: #22C55E; --done-bg: #DCFCE7;
   --event: #6D3FD8; --event-bg: #EEE8FD;
-  --c-langar: #F2780C; --c-cleanup: #0E9F97; --c-tree: #2E9A4B; --c-education: #3B7BE0; --c-blanket: #E0458F; --c-event: #7B4FE0; --c-nasha: #475569; --c-donation: #CA8A04; --c-stall: #B45309; --c-clothes: #9333EA; --c-social: #0891B2;
+  --c-langar: #F2780C; --c-cleanup: #0E9F97; --c-tree: #2E9A4B; --c-education: #3B7BE0; --c-blanket: #E0458F; --c-event: #7B4FE0; --c-nasha: #475569; --c-donation: #CA8A04; --c-stall: #B45309; --c-clothes: #9333EA; --c-social: #0891B2; --c-medical: #E11D48; --c-gau: #65A30D;
   --seg-bg: #ECEAE6; --seg-ink: #5A5862;
   --gold: #E7A93A;
   --shadow: 0 1px 2px rgba(30,20,10,.04), 0 6px 18px rgba(30,20,10,.06);
@@ -661,7 +661,7 @@ html, body { overscroll-behavior-y: contain; }
 .ptext .clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* v9.1 — merged Where filter, gender, more seva types */
-.cc-nasha { --cc: var(--c-nasha); } .cc-donation { --cc: var(--c-donation); } .cc-stall { --cc: var(--c-stall); } .cc-clothes { --cc: var(--c-clothes); } .cc-social { --cc: var(--c-social); }
+.cc-nasha { --cc: var(--c-nasha); } .cc-donation { --cc: var(--c-donation); } .cc-stall { --cc: var(--c-stall); } .cc-clothes { --cc: var(--c-clothes); } .cc-social { --cc: var(--c-social); } .cc-medical { --cc: var(--c-medical); } .cc-gau { --cc: var(--c-gau); }
 [data-mode="dark"] { --c-nasha: #94A3B8; }
 .fbar { overflow: visible; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; }
 .fchip2 { min-width: 0; justify-content: space-between; }
@@ -747,3 +747,31 @@ html, body { overscroll-behavior-y: contain; }
 .attime input { font: inherit; font-size: 14px; padding: 6px 6px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); width: 118px; min-width: 0; }
 .attime b { margin-left: auto; font-size: 13px; white-space: nowrap; }
 .card.list .lrow:has(.attime) { flex-wrap: wrap; }
+
+/* v12: create — kind switch + type dropdown with main events */
+.kindseg { margin-top: 4px; }
+.kindseg button svg { width: 18px; height: 18px; }
+.ddbtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 10px 14px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--border); text-align: left; color: var(--ink); cursor: pointer; }
+.ddbtn:active { transform: scale(.99); }
+.ddbtn.main { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 10%, var(--surface)), var(--surface)); }
+.ddbtn b { display: block; font-size: 15.5px; line-height: 1.25; }
+.ddcap { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.ddchev { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.ddic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--dc) 15%, transparent); color: var(--dc); flex: none; }
+.ddic svg { width: 21px; height: 21px; }
+.mainpill { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px; background: color-mix(in srgb, var(--gold) 22%, transparent); color: #9A5B00; white-space: nowrap; }
+[data-mode="dark"] .mainpill { color: #FFD48A; }
+.ddlist { display: flex; flex-direction: column; gap: 2px; }
+.ddrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border: 0; border-radius: 14px; background: transparent; text-align: left; color: var(--ink); cursor: pointer; }
+.ddrow b { display: block; font-size: 15px; }
+.ddrow span.grow > span { display: block; font-size: 12.5px; color: var(--muted); }
+.ddrow.on { background: color-mix(in srgb, var(--p) 9%, transparent); }
+.ddrow > svg { width: 20px; height: 20px; color: var(--p); flex: none; }
+.ddmain { border-radius: 18px; padding: 4px 4px 6px; margin-bottom: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 16%, transparent), color-mix(in srgb, #F97316 9%, transparent)); border: 1px solid color-mix(in srgb, var(--gold) 50%, transparent); }
+.ddh { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 8px 10px 6px; }
+.ddmain .ddh { color: #9A5B00; } [data-mode="dark"] .ddmain .ddh { color: #FFD48A; }
+.ddh span { display: block; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; margin-top: 2px; opacity: .85; }
+.lockt { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 14px; border-radius: 14px; background: var(--surface2); border: 1px solid var(--border); }
+.lockt svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+.subt { font-weight: 600; opacity: .72; font-size: .78em; }
+.chips .chip2 > svg { width: 16px; height: 16px; flex: none; }
