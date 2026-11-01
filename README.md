@@ -116,3 +116,8 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - Type is a **dropdown** with colour + icon. Seva types: Langar, Cleaning, Donation, Nasha Mukti, Social service, Education, Medical camp, Gau seva, Tree planting, Relief, Clothes for needy, Langar stall.
 - **Main events** sit in their own gold section at the top: Satguru Ji Darshan, Hola Mohalla Mela, Basant Panchami Mela, Parkash Purab, Jyoti Jyot Diwas, Shaheedi Samagam, Main Samagam. The name is fixed (so HQ can group them) with an optional extra line, e.g. "Delhi visit". For a main seva you also pick what seva happens at it.
 - Meetings can be **Team leads only** or **Everyone**; members never see leads-only meetings. Events and meetings show in lead Upcoming and admin Upcoming.
+
+## v13 — Special + Urgent
+- The fixed main-event list is gone. Each kind has **one highlighted special type** at the top of the type dropdown: *Special program* (seva), *Special event*, *Special meeting*. It glows everywhere; the **name is typed freely** by whoever creates it.
+- New **Urgent / important** toggle on seva, events and meetings: red frame + red URGENT tag on cards and detail pages, a red banner on Home and admin Stats, and red notifications.
+- Titles are always editable.

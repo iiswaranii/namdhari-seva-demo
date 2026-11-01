@@ -775,3 +775,19 @@ html, body { overscroll-behavior-y: contain; }
 .lockt svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
 .subt { font-weight: 600; opacity: .72; font-size: .78em; }
 .chips .chip2 > svg { width: 16px; height: 16px; flex: none; }
+/* v13: urgent / important — red mark everywhere */
+.urgrib { position: absolute; top: -1px; right: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 0 0 9px 9px; background: #E0263F; color: #fff; font-size: 10.5px; font-weight: 900; letter-spacing: .08em; box-shadow: 0 4px 10px rgba(224,38,63,.35); }
+.urgrib svg { width: 12px; height: 12px; stroke-width: 2.6; }
+.dhero .urgrib { top: -2px; }
+.scard.urgent { position: relative; border: 2px solid var(--live) !important; box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 14%, transparent); }
+.scard.urgent.special { border-color: var(--live) !important; }
+.urgbanner { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 14px; border-radius: 20px; text-align: left; color: var(--ink); background: var(--live-bg); border: 2px solid var(--live); cursor: pointer; }
+.urgbanner .ub-ic { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--live); color: #fff; flex: none; animation: ubp 1.6s ease-in-out infinite; }
+.urgbanner .ub-ic svg { width: 22px; height: 22px; }
+.urgbanner .ub-tag { display: block; font-size: 11px; font-weight: 900; letter-spacing: .08em; color: var(--live); }
+.urgbanner b { display: block; font-size: 15.5px; } .urgbanner .xs { display: block; color: var(--muted); }
+@keyframes ubp { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--live) 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .urgbanner .ub-ic { animation: none; } }
+.urgtoggle { margin-top: 12px; padding: 10px 12px !important; border-radius: 16px; border: 1.5px solid var(--border); background: var(--surface); gap: 12px; }
+.urgtoggle.on { border-color: var(--live); background: var(--live-bg); }
+.dhero > .urgrib { position: absolute; top: -2px; right: 14px; left: auto; }
