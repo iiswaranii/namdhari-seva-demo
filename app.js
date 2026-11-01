@@ -204,7 +204,21 @@ function baseStories() {
       { id: 'st9', d: rel(-650), kind: 'Winter relief', title: '200 blankets packed', msg: 'Distribution starts this weekend.', theme: 'river' } ] },
   ];
 }
+// Clean start: no seva, posts or history — just a few real people to work with
+const CLEAN_USERS = [['Harpreet Kaur', 'delhi', 'f'], ['Gurpreet Singh', 'delhi', 'm'], ['Simran Kaur', 'delhi', 'f'], ['Jaspreet Singh', 'delhi', 'm'], ['Manjit Kaur', 'delhi', 'f'], ['Amrit Singh', 'delhi', 'm'],
+  ['Jagdeep Singh', 'ludhiana', 'm'], ['Navneet Kaur', 'ludhiana', 'f'], ['Kuldeep Singh', 'ludhiana', 'm'], ['Harbans Singh', 'bhaini', 'm'], ['Kamaljeet Kaur', 'bhaini', 'f'], ['Ranjit Singh', 'london', 'm'], ['Jasleen Kaur', 'london', 'f']];
+function cleanScenario() {
+  const d = { seenTasks: {}, seva: [], events: [], feed: [], assign: {}, rsvp: {}, history: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0, clean: true, liveDemo: false, otherSeva: [],
+    groups: baseStories().filter((g) => ['g-delhi', 'g-ludhiana', 'g-bhaini', 'g-london'].includes(g.id)).map((g) => ({ ...g, stories: [] })),
+    users: CLEAN_USERS.map(([n, g, sex]) => ({ n, g, sex, joined: iso(now()) })), requests: [] };
+  d.team = d.users.filter((u) => u.g === 'delhi').map((u) => ({ n: u.n, joined: u.joined, contrib: 0, last: 0 }));
+  d.adm = { leads: { delhi: [], ludhiana: [], bhaini: [], london: [] }, blockers: [] };
+  d.notifs = [{ id: 'nc1', level: 'done', t: 'Welcome to Delhi Central 🙏 No seva yet — your team lead will add one soon.', d: iso(now()), ref: 'tab:seva' },
+    { id: 'nc2', role: 'admin', level: 'action', t: 'Fresh start: open People and make someone a team lead (you can make yourself one too).', d: iso(now()), ref: 'tab:people' }];
+  return d;
+}
 function scenario(kind) {
+  if (kind === 'clean') return cleanScenario();
   const d = { seenTasks: {}, seva: baseSeva(kind), events: baseEvents(), feed: baseFeed(), groups: baseStories(), assign: {}, rsvp: {}, history: [], notifs: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0 };
   if (kind === 'active') {
     d.assign = { s0: { state: 'going' }, s5: { state: 'going' }, s1: { state: 'going' }, s2: { state: 'going' }, s3: { state: 'invited' } };
@@ -240,16 +254,33 @@ function scenario(kind) {
   return d;
 }
 
-const KEY = 'namdhari-seva-v10';
+const KEY = 'namdhari-seva-v11';
 let S;
-function fresh(kind = 'active') { return { v: 10, role: 'member', onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
+function fresh(kind = 'clean') { return { v: 11, role: 'member', onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
 try {
   S = JSON.parse(localStorage.getItem(KEY));
-  if (!S || S.v !== 10) { const old = JSON.parse(localStorage.getItem('namdhari-seva-v9') || localStorage.getItem('namdhari-seva-v8') || 'null'); S = fresh(old?.scenario || 'active'); if (old) Object.assign(S, { onboarded: old.onboarded, name: old.name, mode: old.mode, gview: old.gview, gender: old.gender }); }
+  if (!S || S.v !== 11) S = fresh('clean');
+  // switching prototype data happens on a fresh page load, so every list starts from its original values
+  const nx = localStorage.getItem('seva-next-scn');
+  if (nx) { localStorage.removeItem('seva-next-scn'); S = { ...fresh(nx), onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview, gender: S.gender, scenario: nx }; localStorage.setItem(KEY, JSON.stringify(S)); }
 } catch (e) { S = fresh(); }
 // notifications created by your own actions in this role count as already seen
 const seenIds = new Set();
 const save = () => { (S.notifs || []).forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); }); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+// clean mode: only the groups that have people, with real member counts and the leads the admin assigned
+if (S.clean) {
+  const keep = ['delhi', 'ludhiana', 'bhaini', 'london'];
+  for (let i = GROUPS.length - 1; i >= 0; i--) if (!keep.includes(GROUPS[i].id)) GROUPS.splice(i, 1);
+  GROUPS.forEach((g) => { g.q = { fill: .85, turn: .9, delay: 0, lag: 0, freq: 0, trend: 0 }; Object.defineProperty(g, 'members', { get: () => S.users.filter((u) => u.g === g.id).length + (g.id === 'delhi' ? 1 : 0), configurable: true }); Object.defineProperty(g, 'lead', { get: () => (S.adm.leads[g.id] || [])[0] || 'no lead yet', configurable: true }); });
+}
+// the people lists the member and lead screens use follow the real data in clean mode
+function syncPeople() {
+  if (!S.clean) return;
+  NAMES.splice(0, NAMES.length, ...S.users.filter((u) => u.g === 'delhi').map((u) => u.n));
+  LEADS.splice(0, LEADS.length, ...(S.adm.leads.delhi || []).filter((n) => n !== ME()));
+}
+const sexOf = (n) => n === ME() ? (S.gender || 'm') : (S.users || []).find((u) => u.n === n)?.sex;
+const meIsLead = () => !S.clean || (S.adm.leads.delhi || []).includes(ME());
 function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview, role: S.role }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
 
 // ---------- Derived model ----------
@@ -383,7 +414,7 @@ function render() {
 }
 function rerender() { const y = window.scrollY; render(); window.scrollTo(0, y); }
 function tabbar() {
-  if (isAdmin()) { const al = alertsList().filter((a) => a[0] === 'bad').length; const items = [['stats', 'Stats', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), al ? `<span class="nb" style="background:var(--live)">${al}</span>` : ''], ['seva', 'Seva', I.seva, '<span class="livetag">LIVE</span>'], ['feed', 'Feed', I.megaphone, ''], ['people', 'People', I.team, ''], ['profile', 'Profile', I.profile, '']];
+  if (isAdmin()) { const al = alertsList().filter((a) => a[0] === 'bad').length; const items = [['stats', 'Stats', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), al ? `<span class="nb" style="background:var(--live)">${al}</span>` : ''], ['seva', 'Seva', I.seva, !S.clean || S.seva.some(isLive) ? '<span class="livetag">LIVE</span>' : ''], ['feed', 'Feed', I.megaphone, ''], ['people', 'People', I.team, ''], ['profile', 'Profile', I.profile, '']];
     return `<div class="tabbar"><nav aria-label="Main">${items.map(([id, l, ic, b]) => `<button data-tab="${id}" ${tab === id ? 'aria-current="page"' : ''} aria-label="${l}"><span class="ic">${ic}${b}</span>${l}</button>`).join('')}</nav></div>`; }
   const live = liveMine().length; const upd = liveMine().reduce((a, s) => a + unreadUpd(s).length, 0);
   const att = isLead() ? localSeva().filter(needsAttend).length : 0;
@@ -427,7 +458,7 @@ function Home() {
     ${next ? `<button class="livebanner tap" style="background:var(--surface);border-color:var(--border)" data-open="seva:${next.id}"><span class="art cc-${next.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[next.cat].ic}</span><div class="grow"><span class="status st-up">${I.clock}Your next seva</span><h3 class="ellipsis">${esc(next.title)}</h3><p class="m ellipsis">${relDay(next.start)} · ${fmtTime(next.start)}</p></div>${chev}</button>` : ''}
     ${isAdmin() ? `<button class="fab" data-act="compose" aria-label="New post">${I.plus}<span>New post</span></button>` : ''}
     <div style="margin-top:18px" id="feed">${S.feed.slice(0, feedShown).map(postCard).join('')}</div>
-    ${feedShown < S.feed.length ? feedMore() : caughtUp()}`;
+    ${!S.feed.length ? emptyState('No posts yet', isAdmin() ? 'Tap New post to share the first update with all sangat.' : 'Updates from Seva HQ will show here.') : feedShown < S.feed.length ? feedMore() : caughtUp()}`;
 }
 // Feed loads a few posts at a time as you scroll (keeps server and database load low)
 const FEED_PAGE = 3;
@@ -831,6 +862,7 @@ const unplaced = (id, L = S.layout) => Math.max(0, owned(id) - placedN(L, id));
 // a believable garden for any member, from their name
 function genLayout(n) {
   if (n === ME()) return ensureLayout();
+  if (S.clean) { const L = layoutFromOwned({}, false); L.contrib = (S.team.find((m) => m.n === n) || {}).contrib || 0; return L; }
   let h = [...n].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7); const rnd = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296);
   const contrib = 3 + Math.floor(rnd() * 18); const own = {};
   SHOP_ORDER.filter((id) => !SHOP[id].sp ? SHOP[id].ord <= contrib : rnd() < .4).forEach((id) => { if (rnd() < .75) own[id] = Math.max(1, Math.min(SHOP[id].max, Math.floor(rnd() * 3))); });
@@ -1007,7 +1039,7 @@ function Profile() {
     ['journey', I.journey, 'My Seva Journey', `${nContrib()} contributions`, 'open'],
     ['garden', I.garden, 'My Garden', `${ownedTotal()} planted`, 'tab'],
     ['commit', I.cal, 'My Commitments', `${up} upcoming`, 'act'],
-    ['team', I.team, 'My Team', 'Delhi Central · 248', 'open'],
+    ['team', I.team, 'My Team', `Delhi Central · ${gOf('delhi').members}`, 'open'],
     ['inbox', I.bell, 'Notifications', unread() ? `${unread()} new` : '', 'open'],
     ['settings', I.settings, 'App Settings', '', 'act'],
   ];
@@ -1024,13 +1056,13 @@ function TeamScreen() {
   const all = [{ n: ME(), me: true }, ...members.map((n) => ({ n }))].filter((m) => !q || m.n.toLowerCase().includes(q));
   return `${dtop('My Team')}
     <div class="dhero" style="--cc:#4C3FA8;background:linear-gradient(140deg,#6A5AE0,#3F2F99)"><svg class="bgart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice"><circle cx="340" cy="30" r="100" fill="#fff" opacity=".15"/></svg><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">${I.pin}Delhi</span><h1>Delhi Central</h1><p style="opacity:.9;margin-top:6px" class="small">Karol Bagh · since 1998</p>
-      <div class="row" style="margin-top:14px">${faceRow(NAMES.slice(0, 6), 248, 6)}<span class="small">248 members</span></div></div>
-    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--p)"><b>248</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>112</b><span>Active this month</span></div><div class="tstat" style="--tc:var(--c-langar)"><b>14</b><span>Seva this month</span></div></div>
-    <div class="section"><div class="section-h"><h2>Team leads</h2><span class="xs muted">${LEADS.length}</span></div><div class="card list">${LEADS.map((n, i) => `<div class="lrow tap" data-open="user:${n}" style="cursor:pointer"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span><p class="xs muted">${['Langar & kitchen', 'Clean-ups', 'Langar & kitchen', 'Tree planting', 'Education', 'Relief'][i]}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div></div>
-    <div class="section"><div class="section-h"><h2>Members</h2><span class="xs muted">248</span></div>
+      <div class="row" style="margin-top:14px">${faceRow(NAMES.slice(0, 6), gOf('delhi').members, 6)}<span class="small">${gOf('delhi').members} members</span></div></div>
+    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--p)"><b>${gOf('delhi').members}</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>${S.clean ? new Set(localSeva().filter((s) => s.att && T(s.start) > now() - 30 * DAY).flatMap((s) => s.att.present)).size : 112}</b><span>Active this month</span></div><div class="tstat" style="--tc:var(--c-langar)"><b>${S.clean ? localSeva().filter((s) => T(s.end) < now() && T(s.start) > now() - 30 * DAY).length : 14}</b><span>Seva this month</span></div></div>
+    <div class="section"><div class="section-h"><h2>Team leads</h2><span class="xs muted">${LEADS.length}</span></div><div class="card list">${LEADS.length ? '' : '<p class="small muted" style="padding:12px 0">No team lead yet.</p>'}${LEADS.map((n, i) => `<div class="lrow tap" data-open="user:${n}" style="cursor:pointer"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span><p class="xs muted">${S.clean ? 'Team lead' : ['Langar & kitchen', 'Clean-ups', 'Langar & kitchen', 'Tree planting', 'Education', 'Relief'][i]}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div></div>
+    <div class="section"><div class="section-h"><h2>Members</h2><span class="xs muted">${gOf('delhi').members}</span></div>
       <label class="search">${I.search}<input id="team-q" placeholder="Search members" value="${esc(teamQ)}" autocomplete="off"></label>
       <div class="card list" style="margin-top:10px" id="team-list">${all.map((m) => `<div class="lrow tap" data-open="user:${esc(m.n)}" style="cursor:pointer"><span class="av2" style="background:${m.me ? 'var(--p)' : avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}${m.me ? ' (you)' : ''}</b><p class="xs muted">${m.me ? `${nContrib()} contributions` : `${3 + (m.n.length % 9)} contributions`}</p></div></div>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
-      <p class="xs faint" style="text-align:center;margin-top:10px">Showing ${all.length} of 248 · the full list loads in the real app</p></div>`;
+      <p class="xs faint" style="text-align:center;margin-top:10px">${S.clean ? `${all.length} members` : `Showing ${all.length} of 248 · the full list loads in the real app`}</p></div>`;
 }
 function JourneyScreen() {
   const h = contributions(); const by = {}; h.forEach((x) => { by[x.cat] = (by[x.cat] || 0) + 1; });
@@ -1049,9 +1081,9 @@ function settingsSheet() {
     <label class="f">Appearance</label><div class="seg">${[['auto', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => `<button data-setmode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join('')}</div>
     <label class="f">Your name</label><input class="in" id="set-name" value="${esc(S.name)}" placeholder="Your name">
     <label class="f">You are</label><div class="seg"><button data-act="set-gender" data-v="m" aria-pressed="${S.gender === 'm'}">Male</button><button data-act="set-gender" data-v="f" aria-pressed="${S.gender === 'f'}">Female</button></div>
-    <button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
-    <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>
-    <div class="demo"><p class="h">Prototype: member state</p><div class="seg">${[['new', 'New'], ['active', 'Active'], ['less', 'Less active']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
+    ${S.clean ? '' : `<button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
+    <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>`}
+    <div class="demo"><p class="h">Prototype data · Clean = start from scratch</p><div class="seg">${[['clean', 'Clean'], ['new', 'Demo new'], ['active', 'Demo busy'], ['less', 'Demo quiet']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
     <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
     <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
 }
@@ -1338,7 +1370,7 @@ function LeadTeam() {
   const segs = [['insights', 'Insights'], ['members', 'Members'], ['requests', `Requests${S.requests.length ? ` · ${S.requests.length}` : ''}`], ['leads', 'Leads']];
   let body = '';
   if (teamSeg === 'insights') body = Insights();
-  else if (teamSeg === 'members') body = `<label class="search" style="margin-top:12px">${I.search}<input id="team-q" placeholder="Search ${S.team.length + 218} members" value="${esc(teamQ)}" autocomplete="off"></label>
+  else if (teamSeg === 'members') body = `<label class="search" style="margin-top:12px">${I.search}<input id="team-q" placeholder="Search ${S.team.length + (S.clean ? 0 : 218)} members" value="${esc(teamQ)}" autocomplete="off"></label>
     <div class="chips" style="margin-top:10px">${[['all', 'All'], ['active', 'Active'], ['new', 'New'], ['inactive', 'Inactive']].map(([k, l]) => `<button class="chip2" data-tfil="${k}" aria-pressed="${teamF === k}">${l}<span class="n">${k === 'all' ? S.team.length : S.team.filter((m) => tStatus(m) === k).length}</span></button>`).join('')}</div>
     ${teamF === 'inactive' && inact.length ? `<button class="banner tap" style="margin-top:10px" data-act="nudge-inactive">${I.bell}<span class="grow"><b>Send a gentle reminder to ${inact.length} inactive members</b><br><span class="xs">"We miss you at seva — here's what's coming up."</span></span>${chev}</button>` : ''}
     <div class="card list" style="margin-top:10px">${list.map((m) => `<button class="lrow" data-act="member" data-n="${esc(m.n)}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${tStatus(m) === 'new' ? '<span class="leadtag" style="background:var(--done-bg);color:var(--done)">New</span>' : ''}<p class="xs muted">${m.contrib} contributions · last seva ${m.last === 1 ? 'yesterday' : `${m.last} days ago`}</p></div>${tStatus(m) === 'inactive' ? '<span class="status st-plan">Inactive</span>' : ''}${chev}</button>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
@@ -1346,7 +1378,7 @@ function LeadTeam() {
   else if (teamSeg === 'requests') body = S.requests.length ? `<div class="card list" style="margin-top:12px">${S.requests.map((r, i) => `<div class="lrow" style="flex-wrap:wrap"><span class="av2" style="background:${avColor(r.n)}">${initials(r.n)}</span><div class="grow"><b class="small">${esc(r.n)}</b><p class="xs muted">${ago(r.d)}${ago(r.d) === 'just now' ? '' : ' ago'}${r.note ? ' · ' + esc(r.note) : ''}</p></div><div class="btn-row" style="flex:0 0 100%;padding-left:52px"><button class="btn sm" data-act="req" data-i="${i}" data-v="1">${I.check}Approve</button><button class="btn ghost sm" data-act="req" data-i="${i}" data-v="0">Decline</button></div></div>`).join('')}</div>` : `<div style="margin-top:12px">${emptyState('No pending requests', 'New join requests for Delhi Central appear here.')}</div>`;
   else body = `<div class="card list" style="margin-top:12px"><div class="lrow"><span class="av2" style="background:var(--p)">${initials(ME())}</span><div class="grow"><b class="small">${esc(ME())} (you)</b><span class="leadtag">Lead</span></div></div>${LEADS.map((n) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div><p class="xs muted" style="text-align:center;margin-top:10px">${I.shield.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')} Only the Main Admin can add or remove team leads.</p>`;
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">Team</h1><span class="sp"></span><button class="btn sm" data-act="team-invite">${I.userplus}Invite</button>${bellBtn()}</header>
-    <div class="tstats four" style="margin-top:8px"><div class="tstat" style="--tc:var(--p)"><b>248</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>112</b><span>Active</span></div><div class="tstat" style="--tc:var(--action)"><b>41</b><span>Inactive</span></div><div class="tstat" style="--tc:var(--live)"><b>${S.requests.length}</b><span>Requests</span></div></div>
+    <div class="tstats four" style="margin-top:8px"><div class="tstat" style="--tc:var(--p)"><b>${S.clean ? S.team.length : 248}</b><span>Members</span></div><div class="tstat" style="--tc:var(--done)"><b>${S.clean ? S.team.filter((m) => m.contrib).length : 112}</b><span>Active</span></div><div class="tstat" style="--tc:var(--action)"><b>${S.clean ? S.team.filter((m) => !m.contrib).length : 41}</b><span>${S.clean ? 'No seva yet' : 'Inactive'}</span></div><div class="tstat" style="--tc:var(--live)"><b>${S.requests.length}</b><span>Requests</span></div></div>
     <div class="seg" style="margin-top:12px">${segs.map(([k, l]) => `<button data-tseg="${k}" aria-pressed="${teamSeg === k}">${l}</button>`).join('')}</div>${body}`;
 }
 function memberSheet(n) {
@@ -1416,7 +1448,15 @@ function activeChart(d) {
     ${d.active.map(([l, v], i) => `<g data-tip="${l}: ${v} active members"><rect x="${x(i) - 22}" y="${T}" width="44" height="${H - T - B}" fill="transparent"/><circle cx="${x(i)}" cy="${y(v)}" r="${i === vs.length - 1 ? 5 : 3}" fill="${i === vs.length - 1 ? 'var(--ch1)' : 'var(--surface)'}" stroke="var(--ch1)" stroke-width="2"/><text x="${x(i)}" y="${H - 5}" class="ax" text-anchor="middle">${l}</text></g>`).join('')}
     <text x="${x(vs.length - 1) + 9}" y="${y(vs[vs.length - 1]) + 4}" class="lbl">${vs[vs.length - 1]}</text></svg>`;
 }
+function cleanInsights() {
+  const done = localSeva().filter((s) => s.att); if (!done.length) return `<div style="margin-top:12px">${emptyState('No insights yet', 'Create a seva, mark attendance after it ends, and the numbers start here.')}</div><button class="btn block" style="margin-top:12px" data-act="seva-new">${I.plus}Create a seva</button>`;
+  const came = done.reduce((a, s) => a + s.att.present.length, 0), hours = Math.round(done.reduce((a, s) => a + (s.att.hours || 0), 0) * 10) / 10, said = done.reduce((a, s) => a + recipients(s).length, 0);
+  const t = (v, l, c) => `<div class="tstat" style="--tc:${c}"><b>${v}</b><span>${l}</span></div>`;
+  return `<div class="tstats four" style="margin-top:12px">${t(done.length, 'Seva held', 'var(--p)')}${t(came, 'Came', 'var(--done)')}${t(said ? Math.min(100, Math.round(came / said * 100)) + '%' : '—', 'Turn-up', 'var(--action)')}${t(hrsTxt(hours), 'Hours', 'var(--c-langar)')}</div>
+    <div class="card list" style="margin-top:12px">${done.sort((a, b) => T(b.start) - T(a.start)).map((s) => `<button class="lrow" data-open="seva:${s.id}"><div class="grow"><b class="small">${esc(s.title)}</b><p class="xs muted">${fmtLong(s.start)} · ${s.att.present.length} came · ${hrsTxt(s.att.hours || 0)}</p></div>${repDots(s.report) || '<span class="status st-plan">Report due</span>'}</button>`).join('')}</div>`;
+}
 function Insights() {
+  if (S.clean) return cleanInsights();
   const d = INS[insP]; const att = localSeva().filter(needsAttend).length; const inact = S.team.filter((m) => tStatus(m) === 'inactive').length;
   const tiles = [
     ['Seva held', Math.round(d.held[0] / d.held[1] * 100), `${d.held[0]}<small>/${d.held[1]}</small>`, `Target ${d.held[1]}`, grade(d.held[0], d.held[1], .85)],
@@ -1518,7 +1558,7 @@ document.addEventListener('touchend', () => {
 }, { passive: true });
 function doRefresh() {
   return new Promise((res) => setTimeout(() => { // stands in for re-fetching from the server
-    try { const fresh = JSON.parse(localStorage.getItem(KEY)); if (fresh) { fresh.role = S.role; S = fresh; } } catch (e) {}
+    try { const fresh = JSON.parse(localStorage.getItem(KEY)); if (fresh) { fresh.role = S.role; S = fresh; syncPeople(); } } catch (e) {}
     feedShown = FEED_PAGE; render(); window.scrollTo(0, 0); announceNew(); toast('Up to date'); res();
   }, 750));
 }
@@ -1537,6 +1577,8 @@ const GFEM = { delhi: .02, ludhiana: -.04, bhaini: 0, mumbai: .06, jammu: -.05, 
 GROUPS.forEach((g) => { g.fem = GFEM[g.id] || 0; });
 let ADM = null;
 function admData() {
+  if (S.clean) return { recs: S.seva.filter((s) => !s.hq && s.att).map((s) => { const p = s.att.present; const g = sevaGroup(s); const need = s.points.reduce((a, x) => a + x.need, 0) || p.length;
+    return { sid: s.id, d: T(s.start), g: g.id, cat: s.cat, need, filled: Math.min(need, recipients(s).length), going: Math.max(p.length, recipients(s).length), came: p.length, fem: p.filter((n) => sexOf(n) === 'f').length, cancelled: false, reason: '', delay: 0, lag: Math.round((T(s.att.at) - T(s.end)) / HOUR), newm: 0 }; }) };
   if (ADM) return ADM; let h = 20261028; const r = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
   const recs = []; const t0 = new Date(); t0.setHours(9, 0, 0, 0);
   GROUPS.forEach((g) => { const q = g.q; for (let a = 365; a >= 1; a--) {
@@ -1568,14 +1610,14 @@ function metrics(rs, groups, days) {
   const came = sum('came'); const active = Math.min(members, Math.round(came / Math.max(1.4, Math.min(4, days / 9))));
   return { held: ok.length, target, cancelled: rs.length - ok.length, fill: ok.length ? Math.round(sum('filled') / sum('need') * 100) : 0, turn: ok.length ? Math.round(came / Math.max(1, sum('going')) * 100) : 0,
     ontime: ok.length ? Math.round(ok.filter((x) => x.delay <= 10).length / ok.length * 100) : 0, att: ok.length ? Math.round(ok.filter((x) => x.lag <= 24).length / ok.length * 100) : 0,
-    active, activePct: members ? Math.round(active / members * 100) : 0, members, newm: sum('newm'), came, femPct: came ? Math.round(sum('fem') / came * 100) : 0, memFemPct: members ? Math.round(groups.reduce((a, g) => a + g.members * (.5 + g.fem * .6), 0) / members * 100) : 0 };
+    active, activePct: members ? Math.round(active / members * 100) : 0, members, newm: sum('newm'), came, femPct: came ? Math.round(sum('fem') / came * 100) : 0, memFemPct: S.clean ? (() => { const ids = groups.map((g) => g.id); const ppl = [...S.users.filter((u) => ids.includes(u.g)).map((u) => u.n), ...(ids.includes('delhi') ? [ME()] : [])]; return ppl.length ? Math.round(ppl.filter((n) => sexOf(n) === 'f').length / ppl.length * 100) : 0; })() : members ? Math.round(groups.reduce((a, g) => a + g.members * (.5 + g.fem * .6), 0) / members * 100) : 0 };
 }
 const scopeGroups = () => GROUPS.filter(inScope);
 function cur() { const p = af().p; return metrics(recsIn(p, 0), scopeGroups(), p); }
 function prev() { const p = af().p; return metrics(recsIn(p * 2, p), scopeGroups(), p); }
 // ----- status: red / amber / green, always with an icon and a word -----
 const KPI = {
-  held: { l: 'Seva held', fmt: (m) => m.held, sub: (m) => `of ${m.target} planned`, g: (m) => m.held >= m.target * .95 ? 'good' : m.held >= m.target * .8 ? 'warn' : 'bad', v: (m) => m.held, ic: I.seva },
+  held: { l: 'Seva held', fmt: (m) => m.held, sub: (m) => S.clean ? 'closed with attendance' : `of ${m.target} planned`, g: (m) => m.held >= m.target * .95 ? 'good' : m.held >= m.target * .8 ? 'warn' : 'bad', v: (m) => m.held, ic: I.seva },
   fill: { l: 'Places filled', fmt: (m) => m.fill + '%', sub: () => 'Target 85%', g: (m) => m.fill >= 85 ? 'good' : m.fill >= 70 ? 'warn' : 'bad', v: (m) => m.fill, ic: I.users, tgt: 85 },
   turn: { l: 'Turn-up', fmt: (m) => m.turn + '%', sub: () => 'Came vs said going', g: (m) => m.turn >= 85 ? 'good' : m.turn >= 75 ? 'warn' : 'bad', v: (m) => m.turn, ic: I.checkc, tgt: 85 },
   active: { l: 'Active members', fmt: (m) => num(m.active), sub: (m) => `${m.activePct}% of ${num(m.members)}`, g: (m) => m.activePct >= 45 ? 'good' : m.activePct >= 30 ? 'warn' : 'bad', v: (m) => m.active, ic: I.team },
@@ -1591,7 +1633,7 @@ function groupStats() {
   const p = af().p; const F = af();
   return GROUPS.filter(inScope).map((g) => { const one = (fa, ta) => metrics(admData().recs.filter((x) => x.g === g.id && x.d >= now() - fa * DAY && x.d < now() - ta * DAY && (F.t === 'all' || x.cat === F.t)), [g], p); const m = one(p, 0), pm = one(p * 2, p);
     const weeks = Array.from({ length: 8 }, (_, i) => admData().recs.filter((x) => x.g === g.id && !x.cancelled && x.d >= now() - (8 - i) * 7 * DAY && x.d < now() - (7 - i) * 7 * DAY).length);
-    const last = Math.max(0, ...admData().recs.filter((x) => x.g === g.id).map((x) => x.d)); return { g, m, pm, score: leadScore(m), weeks, quiet: Math.round((now() - last) / DAY) }; });
+    const ds = admData().recs.filter((x) => x.g === g.id).map((x) => x.d); return { g, m, pm, score: leadScore(m), weeks, quiet: ds.length ? Math.round((now() - Math.max(...ds)) / DAY) : null }; });
 }
 function alertsList() {
   const out = [];
@@ -1600,6 +1642,7 @@ function alertsList() {
     if (m.held && m.fill < 70) out.push(['bad', `${g.name}: only ${m.fill}% of places filled`, 'Seva are running short of sevadars', g.id]);
     if (m.held && m.att < 65) out.push(['warn', `${g.name}: attendance marked late`, `Only ${m.att}% marked within 24 h — sevadars wait for points`, g.id]);
     if (m.held && m.ontime < 70) out.push(['warn', `${g.name}: seva start late`, `${100 - m.ontime}% started more than 10 min late`, g.id]);
+    if (S.clean && !(S.adm.leads[g.id] || []).length) out.push(['warn', `${g.name}: no team lead yet`, 'Tap to open the group and assign one', g.id]);
     if (pm.held >= 4 && m.held < pm.held * .75 && quiet < 14) out.push(['warn', `${g.name}: ${Math.round((1 - m.held / pm.held) * 100)}% fewer seva`, 'Compared with the previous period', g.id]);
   });
   return out.sort((a, b) => (a[0] === 'bad' ? 0 : 1) - (b[0] === 'bad' ? 0 : 1));
@@ -1675,15 +1718,31 @@ function afSheet(k) {
   openSheet(`${sheetHead({ p: 'Time period', t: 'Seva type' }[k])}<div class="card list">${opts.map(([v, l]) => `<button class="lrow" data-act="af-set" data-k="${k}" data-v="${v}"><b class="small grow">${l}</b>${String(F[k]) === String(v) ? I.check.replace('<svg', '<svg style="width:20px;height:20px;color:var(--p)"') : ''}</button>`).join('')}</div>`);
 }
 // ----- Stats home -----
+// clean start: a short checklist until the first seva is closed, then the full dashboard
+function cleanStats(al) {
+  const leads = Object.values(S.adm.leads).flat().length; const any = S.seva.filter((s) => !s.hq).concat(S.otherSeva || []);
+  const steps = [[leads > 0, 'Make a team lead', 'People › Members › tap a name › Make team lead. You can make yourself one.', 'tab', 'people'],
+    [any.length > 0, 'Team lead creates a seva', 'Profile › Viewing as Team Lead › Seva › New seva. You can also create one here from All seva.', 'tab', 'seva'],
+    [S.seva.some((s) => recipients(s).length), 'Members say Yes', 'Profile › Viewing as Member › open the seva › Yes, and pick your times.', null],
+    [S.seva.some((s) => s.att), 'Lead marks attendance', 'After the seva ends: lead opens it › Mark attendance › short report. Stats start here.', null]];
+  const doneN = steps.filter((x) => x[0]).length;
+  return `<header class="apphdr">${LOGO}<div class="grow"><h1>Seva HQ</h1><p class="xs muted" style="margin-top:-2px">Fresh start · ${GROUPS.length} groups · ${num(GROUPS.reduce((a, g) => a + g.members, 0))} people</p></div>${bellBtn()}</header>
+    ${nowStrip()}
+    <div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between"><h3 style="font-size:16px">Get started</h3><span class="chip" style="background:var(--done-bg);color:var(--done)">${doneN} of 4 done</span></div>
+      ${steps.map(([ok, t, sub, k, v], i) => `<${k ? `button data-tab="${v}"` : 'div'} class="lrow ${k ? 'tap' : ''}" style="align-items:flex-start;text-align:left;width:100%"><span class="av2" style="width:30px;height:30px;font-size:13px;background:${ok ? 'var(--done-bg)' : 'var(--surface2)'};color:${ok ? 'var(--done)' : 'var(--muted)'}">${ok ? I.check.replace('<svg', '<svg style="width:16px;height:16px"') : i + 1}</span><div class="grow"><b class="small" style="${ok ? 'text-decoration:line-through;opacity:.6' : ''}">${t}</b><p class="xs muted">${sub}</p></div>${k ? chev : ''}</${k ? 'button' : 'div'}>`).join('')}</div>
+    ${al.length ? `<div class="card" style="margin-top:12px"><h3 style="font-size:16px">To do</h3>${al.map(([g, t, s2, gid]) => `<button class="lrow" data-open="grp:${gid}" style="align-items:flex-start"><span class="av2" style="width:32px;height:32px;background:${STL[g][2]};color:${STL[g][1]}">${STL[g][3].replace('<svg', '<svg style="width:18px;height:18px"')}</span><div class="grow"><b class="small">${esc(t)}</b><p class="xs muted">${esc(s2)}</p></div>${chev}</button>`).join('')}</div>` : ''}
+    <p class="xs faint" style="text-align:center;margin-top:14px">Charts, alerts and lead scores appear after the first seva is closed.<br>Want the full demo data? Profile › Settings › Prototype data.</p>`;
+}
 function AdminStats() {
   const m = cur(), pm = prev(); const al = alertsList(); const gs = groupStats().sort((a, b) => b.score - a.score);
-  const liveG = scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0); const liveC = new Set(liveG.map((g) => g.country)).size;
+  const liveG = S.clean ? [...new Set(S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).map((s) => sevaGroup(s)))] : scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = S.clean ? S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).length : liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0); const liveC = new Set(liveG.map((g) => g.country)).size;
   const tiles = ['held', 'fill', 'turn', 'active', 'ontime', 'att'];
   const higherBetter = (k) => true;
   const ctry = COUNTRIES.filter(ctryInScope).map((c) => { const gr = GROUPS.filter((g) => g.country === c && inScope(g)); const F = af(); const mm = metrics(admData().recs.filter((x) => gr.some((g) => g.id === x.g) && x.d >= now() - F.p * DAY && (F.t === 'all' || x.cat === F.t)), gr, F.p); return { c, mm, n: gr.length }; }).filter((x) => x.n);
   const maxH = Math.max(1, ...ctry.map((x) => x.mm.held));
   const cats = Object.keys(CAT).filter((x) => x !== 'event').map((c) => { const rs = recsIn(af().p, 0, (x) => x.cat === c); return { c, mm: metrics(rs, scopeGroups(), af().p) }; });
   const open = (S.adm.blockers || []).filter((b) => b.st === 'open' && inScope(gOf(b.g)));
+  if (S.clean && !admData().recs.length) return cleanStats(al);
   return `<header class="apphdr">${LOGO}<div class="grow"><h1>Seva HQ</h1><p class="xs muted" style="margin-top:-2px">Sangat at a glance</p></div>${bellBtn()}</header>
     ${filterBar()}
     ${nowStrip()}${specialBanner()}
@@ -1695,7 +1754,7 @@ function AdminStats() {
     ${chartCard('Places filled', 'Green band = on target (85%+)', lineChart(trend('fill'), 85, 'Places filled over time'), 'data-open="report:fill"')}
     ${chartCard('Countries', 'Seva held · dot shows places filled', `<div class="hbars">${ctry.sort((a, b) => b.mm.held - a.mm.held).map(({ c, mm }) => { const g = KPI.fill.g(mm); return `<div class="hb ctry" data-act="af-set" data-k="c" data-v="${c}" data-tip="${c}: ${mm.held} seva · ${mm.fill}% filled"><span class="hl">${FLAG[c]} ${c}</span><span class="track"><i style="width:${mm.held / maxH * 100}%;background:var(--ch1)"></i></span><span class="hv">${mm.held}<i class="sdot" style="background:${STL[g][1]}"></i></span></div>`; }).join('')}</div>`)}
     <div class="card ichart"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3 style="font-size:16px">Team lead performance</h3><p class="xs muted">Score from places filled, turn-up, timing and attendance</p></div></div>
-      ${gs.map((x, i) => `<button class="lrow" data-open="grp:${x.g.id}"><span class="rank">${i + 1}</span><div class="grow" style="min-width:0"><b class="small ellipsis" style="display:block">${x.g.flag} ${esc(x.g.name)}</b><p class="xs muted ellipsis">${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])} · ${x.m.held} seva · ${x.m.fill}% filled</p></div>${spark(x.weeks)}<span class="score" style="color:${STL[scoreG(x.score)][1]};background:${STL[scoreG(x.score)][2]}">${x.score}</span></button>`).join('')}
+      ${gs.map((x, i) => `<button class="lrow" data-open="grp:${x.g.id}"><span class="rank">${i + 1}</span><div class="grow" style="min-width:0"><b class="small ellipsis" style="display:block">${x.g.flag} ${esc(x.g.name)}</b><p class="xs muted ellipsis">${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])} · ${x.m.held} seva · ${x.m.fill}% filled</p></div>${spark(x.weeks)}<span class="score" style="color:${x.m.held ? STL[scoreG(x.score)][1] : 'var(--muted)'};background:${x.m.held ? STL[scoreG(x.score)][2] : 'var(--surface2)'}">${x.m.held ? x.score : '—'}</span></button>`).join('')}
       <p class="xs muted" style="margin-top:8px"><span class="score" style="color:var(--done);background:var(--done-bg)">82+</span> on track · <span class="score" style="color:var(--action);background:var(--action-bg)">70–81</span> watch · <span class="score" style="color:var(--live);background:var(--live-bg)">&lt;70</span> needs support</p></div>
     ${chartCard('Seva types', 'How many · and how well filled', `<div class="hbars">${cats.sort((a, b) => b.mm.held - a.mm.held).map(({ c, mm }) => { const g = KPI.fill.g(mm); return `<div class="hb" data-act="af-set" data-k="t" data-v="${c}" data-tip="${CAT[c].label}: ${mm.held} seva · ${mm.fill}% filled"><span class="hl"><i class="sdot" style="background:var(--c-${c});margin:0 6px 0 0"></i>${CAT[c].label}</span><span class="track"><i style="width:${mm.held / Math.max(1, ...cats.map((x) => x.mm.held)) * 100}%;background:var(--ch1)"></i></span><span class="hv" style="color:${g === 'good' ? 'var(--ink)' : STL[g][1]}">${mm.fill}%</span></div>`; }).join('')}</div>`)}
     ${chartCard('Sevadars: male & female', 'Who is in the sangat · who comes to seva · by type', genderChart(m, cats))}
@@ -1724,7 +1783,7 @@ function GroupView({ id }) {
   const leads = S.adm.leads[id] || [g.lead]; const rs = admData().recs.filter((r) => r.g === id).slice(-8).reverse();
   const tiles = ['held', 'fill', 'turn', 'ontime', 'att', 'active'];
   return `${dtop(g.name)}<div class="dhero" style="background:linear-gradient(140deg,#6A5AE0,#3F2F99)"><span class="chip" style="background:rgba(255,255,255,.2);color:#fff">${g.flag} ${g.country}</span><h1>${esc(g.name)}</h1><p class="small" style="opacity:.9;margin-top:6px">${num(g.members)} members · ${leads.length} team lead${leads.length > 1 ? 's' : ''}</p>
-      <div class="row" style="margin-top:14px;gap:10px"><span class="score big" style="color:${STL[scoreG(x.score)][1]};background:#fff">${x.score}</span><div><b>Lead score</b><p class="xs" style="opacity:.85">${STL[scoreG(x.score)][0]} · ${AFP.find((p) => p[0] === af().p)[1]}</p></div></div></div>
+      <div class="row" style="margin-top:14px;gap:10px"><span class="score big" style="color:${x.m.held ? STL[scoreG(x.score)][1] : 'var(--muted)'};background:#fff">${x.m.held ? x.score : '—'}</span><div><b>Lead score</b><p class="xs" style="opacity:.85">${STL[scoreG(x.score)][0]} · ${AFP.find((p) => p[0] === af().p)[1]}</p></div></div></div>
     ${x.quiet >= 14 ? `<div class="banner" style="margin-top:12px;background:var(--live-bg);border-color:var(--live)">${I.alert}<span><b>No seva for ${x.quiet} days.</b> Check in with the lead.</span></div>` : ''}
     <div class="ktiles">${tiles.map((k) => { const K = KPI[k]; const gr = K.g(x.m); return `<div class="ktile" style="--kc:${STL[gr][1]}"><div class="row" style="justify-content:space-between"><span class="kic">${K.ic}</span>${delta(K.v(x.m), K.v(x.pm), ['fill', 'turn', 'ontime', 'att'].includes(k))}</div><b class="kv">${K.fmt(x.m)}</b><span class="kl">${K.l}</span><div style="margin-top:6px">${spill(gr)}</div></div>`; }).join('')}</div>
     ${chartCard('Seva per week', 'Last 8 weeks', barChart(x.weeks.map((v, i) => ({ l: `W${i + 1}`, v })), Math.round(g.q.freq), 'Seva per week'))}
@@ -1734,7 +1793,7 @@ function GroupView({ id }) {
 }
 // ----- People: groups, members, leads -----
 const FN = ['Aman', 'Baljeet', 'Charanjit', 'Davinder', 'Gagan', 'Harnoor', 'Iqbal', 'Jaswinder', 'Karan', 'Lakhvir', 'Manpreet', 'Nirmal', 'Onkar', 'Pritpal', 'Rupinder', 'Sukhdeep', 'Tarlochan', 'Upkar', 'Varinder', 'Yadwinder'];
-function membersOf(gid) { if (gid === 'delhi') return [...NAMES]; let h = [...gid].reduce((a, c) => a * 31 + c.charCodeAt(0), 3) >>> 0; const r = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); return Array.from({ length: 16 }, () => `${FN[Math.floor(r() * FN.length)]} ${r() < .5 ? 'Singh' : 'Kaur'}`).filter((v, i, a) => a.indexOf(v) === i); }
+function membersOf(gid) { if (S.clean) return [...(gid === 'delhi' ? [ME()] : []), ...S.users.filter((u) => u.g === gid).map((u) => u.n)]; if (gid === 'delhi') return [...NAMES]; let h = [...gid].reduce((a, c) => a * 31 + c.charCodeAt(0), 3) >>> 0; const r = () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); return Array.from({ length: 16 }, () => `${FN[Math.floor(r() * FN.length)]} ${r() < .5 ? 'Singh' : 'Kaur'}`).filter((v, i, a) => a.indexOf(v) === i); }
 let pSeg = 'groups', pQ = '', pG = 'all';
 function AdminPeople() {
   const segs = [['groups', 'Groups'], ['members', 'Members'], ['leads', 'Team leads']]; const sel = pgs(); const inP = (g) => !sel.length || sel.includes(g.id);
@@ -1742,7 +1801,7 @@ function AdminPeople() {
   const tools = `<div class="ptools"><button class="fchip2 ${sel.length ? 'on' : ''}" data-act="pw-open" style="flex:1"><span class="ellipsis">${whereLabel(sel)}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>${sel.length ? `<button class="fchip2 reset" data-act="pw-reset" aria-label="Show all places">${I.close}</button>` : ''}</div>
     ${pSeg !== 'groups' ? `<label class="search" style="margin-top:10px">${I.search}<input id="adm-q" placeholder="Search ${pSeg === 'leads' ? 'team leads' : 'members'} by name" value="${esc(pQ)}" autocomplete="off"></label>` : ''}`;
   let body = '';
-  if (pSeg === 'groups') body = COUNTRIES.filter((c) => GROUPS.some((g) => g.country === c && inP(g))).map((c) => `<div class="section-h" style="margin:16px 0 8px"><h2 style="font-size:15px">${FLAG[c]} ${c}</h2><span class="xs muted">${num(GROUPS.filter((g) => g.country === c && inP(g)).reduce((a, g) => a + g.members, 0))} members</span></div><div class="card list">${groupStats().filter((x) => x.g.country === c && inP(x.g)).map((x) => `<button class="lrow" data-open="grp:${x.g.id}"><div class="grow"><b class="small">${esc(x.g.name)}</b><p class="xs muted ellipsis">${num(x.g.members)} members · ${(S.adm.leads[x.g.id] || []).map(first).join(', ') || 'No lead'}</p></div><span class="score" style="color:${STL[scoreG(x.score)][1]};background:${STL[scoreG(x.score)][2]}">${x.score}</span>${chev}</button>`).join('')}</div>`).join('');
+  if (pSeg === 'groups') body = COUNTRIES.filter((c) => GROUPS.some((g) => g.country === c && inP(g))).map((c) => `<div class="section-h" style="margin:16px 0 8px"><h2 style="font-size:15px">${FLAG[c]} ${c}</h2><span class="xs muted">${num(GROUPS.filter((g) => g.country === c && inP(g)).reduce((a, g) => a + g.members, 0))} members</span></div><div class="card list">${groupStats().filter((x) => x.g.country === c && inP(x.g)).map((x) => `<button class="lrow" data-open="grp:${x.g.id}"><div class="grow"><b class="small">${esc(x.g.name)}</b><p class="xs muted ellipsis">${num(x.g.members)} members · ${(S.adm.leads[x.g.id] || []).map(first).join(', ') || 'No lead'}</p></div><span class="score" style="color:${x.m.held ? STL[scoreG(x.score)][1] : 'var(--muted)'};background:${x.m.held ? STL[scoreG(x.score)][2] : 'var(--surface2)'}">${x.m.held ? x.score : '—'}</span>${chev}</button>`).join('')}</div>`).join('');
   else if (pSeg === 'members') { const all = GROUPS.filter(inP).flatMap((g) => membersOf(g.id).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q)); const list = all.slice(0, 60);
     body = `<p class="xs muted" style="margin:10px 2px 0">${num(all.length)} shown · ${num(GROUPS.filter(inP).reduce((a, g) => a + g.members, 0))} members in ${whereLabel(sel).replace('🌍 ', '').toLowerCase()}</p>
       <div class="card list" style="margin-top:8px">${list.map((m) => { const isL = (S.adm.leads[m.g.id] || []).includes(m.n); return `<button class="lrow" data-act="adm-member" data-n="${esc(m.n)}" data-g="${m.g.id}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${isL ? '<span class="leadtag">Lead</span>' : ''}<p class="xs muted">${m.g.flag} ${esc(m.g.name)}</p></div>${chev}</button>`; }).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>`; }
@@ -1753,10 +1812,10 @@ function AdminPeople() {
     <div class="seg" style="margin-top:12px">${segs.map(([k, l]) => `<button data-pseg="${k}" aria-pressed="${pSeg === k}">${l}</button>`).join('')}</div>${tools}${body}`;
 }
 function admMemberSheet(n, gid) {
-  const g = gOf(gid); const isL = (S.adm.leads[gid] || []).includes(n); const c = (n.length * 7) % 23;
-  openSheet(`<div style="text-align:center"><span class="av2" style="width:72px;height:72px;font-size:24px;margin:4px auto 0;background:${avColor(n)}">${initials(n)}</span><h2 style="font-size:21px;margin-top:10px">${esc(n)}</h2><p class="small muted">${isL ? 'Team Lead' : 'Member'} · ${g.flag} ${esc(g.name)}</p></div>
-    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--done)"><b>${c}</b><span>Contributions</span></div><div class="tstat"><b>${(n.length * 3) % 40}d</b><span>Since last seva</span></div><div class="tstat" style="--tc:var(--gold)"><b>${c * 3}</b><span>Points</span></div></div>
-    <div class="card list" style="margin-top:12px">${isL ? `<button class="lrow" data-act="lead-remove" data-g="${gid}" data-n="${esc(n)}" style="color:var(--live)">${I.shield}<b class="small grow">Remove team lead role</b></button>` : `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}" style="color:var(--p)">${I.shield}<b class="small grow">Make team lead of ${esc(g.name)}</b>${chev}</button>`}
+  const g = gOf(gid); const isL = (S.adm.leads[gid] || []).includes(n); const c = S.clean ? (n === ME() ? nContrib() : (S.team.find((m) => m.n === n) || {}).contrib || 0) : (n.length * 7) % 23;
+  openSheet(`<div style="text-align:center"><span class="av2" style="width:72px;height:72px;font-size:24px;margin:4px auto 0;background:${avColor(n)}">${initials(n)}</span><h2 style="font-size:21px;margin-top:10px">${esc(n)}${n === ME() ? ' (you)' : ''}</h2><p class="small muted">${isL ? 'Team Lead' : 'Member'} · ${g.flag} ${esc(g.name)}</p></div>
+    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--done)"><b>${c}</b><span>Contributions</span></div><div class="tstat"><b>${S.clean ? (c ? 'Yes' : '—') : (n.length * 3) % 40 + 'd'}</b><span>${S.clean ? 'Done seva' : 'Since last seva'}</span></div><div class="tstat" style="--tc:var(--gold)"><b>${c * 3}</b><span>Points</span></div></div>
+    <div class="card list" style="margin-top:12px">${isL ? `<button class="lrow" data-act="lead-remove" data-g="${gid}" data-n="${esc(n)}" style="color:var(--live)">${I.shield}<b class="small grow">Remove team lead role</b></button>` : `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}" style="color:var(--p)">${I.shield}<b class="small grow">Make ${n === ME() ? 'yourself' : ''} team lead of ${esc(g.name)}</b>${chev}</button>`}
       <button class="lrow" data-open="user:${esc(n)}">${I.garden}<b class="small grow">View profile</b>${chev}</button><button class="lrow" data-act="wa-person" data-n="${esc(n)}">${I.wa.replace('<svg', '<svg style="width:22px;height:22px;color:#25A35A"')}<b class="small grow">Message on WhatsApp</b>${chev}</button></div>`);
 }
 function leadAssignSheet(gid) { const g = gOf(gid); const L = S.adm.leads[gid] || []; openSheet(`${sheetHead('Assign a team lead', `${g.flag} ${esc(g.name)}`)}<div class="card list" style="max-height:56vh;overflow:auto">${membersOf(gid).filter((n) => !L.includes(n)).map((n) => `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><b class="small grow">${esc(n)}</b><span class="link" style="min-height:0">Make lead</span></button>`).join('')}</div>`); }
@@ -1780,7 +1839,7 @@ function AdminSeva() {
 }
 function AdminSevaCore() {
   const F = af(); const others = GROUPS.filter((g) => g.id !== 'delhi' && inScope(g));
-  const syn = (k) => others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 10][0]].label} Seva`, cat: CATW[i % 10][0], when: k === 'live' ? `Live now · ends ${fmtTime(at(0, 13))}` : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12), d: k === 'live' ? now() : T(at(1 + (i % 6), 9)) }));
+  const syn = (k) => S.clean ? [] : others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 10][0]].label} Seva`, cat: CATW[i % 10][0], when: k === 'live' ? `Live now · ends ${fmtTime(at(0, 13))}` : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12), d: k === 'live' ? now() : T(at(1 + (i % 6), 9)) }));
   const items = [];
   if (aSeg !== 'attention') {
     S.seva.filter((s) => inScope(sevaGroup(s)) && (aSeg === 'live' ? isLive(s) : isFuture(s))).forEach((s) => items.push({ g: sevaGroup(s), d: T(s.start), html: withLoc(s.hq ? sevaCard(s) : leadCard(s), sevaGroup(s), s.hq) }));
@@ -1911,7 +1970,7 @@ function recDetail(r) {
 }
 let pastN = 25;
 function pastItems() {
-  const F = af(); const out = admData().recs.filter((r) => r.d >= now() - F.p * DAY && inScope(gOf(r.g)) && (F.t === 'all' || r.cat === F.t)).map((r) => ({ id: recId(r), d: r.d, g: gOf(r.g), r }));
+  const F = af(); const out = admData().recs.filter((r) => !r.sid && r.d >= now() - F.p * DAY && inScope(gOf(r.g)) && (F.t === 'all' || r.cat === F.t)).map((r) => ({ id: recId(r), d: r.d, g: gOf(r.g), r }));
   S.seva.filter((s) => T(s.end) < now() && inScope(sevaGroup(s))).forEach((s) => out.push({ id: 's:' + s.id, d: T(s.start), g: sevaGroup(s), s }));
   return out.sort((a, b) => b.d - a.d);
 }
@@ -1936,7 +1995,7 @@ function PastView({ id }) {
 const rf = () => (S.rf = S.rf || { states: [], tags: [], type: 'all' });
 function reportEntries() {
   const F = af(), R = rf(); const out = [];
-  admData().recs.filter((r) => r.d >= now() - F.p * DAY && !r.cancelled).forEach((r) => { const d = recDetail(r); if (!d.rep) return; ['good', 'feedback', 'challenge'].forEach((k) => d.rep[k].forEach((t) => out.push({ k, t, tags: d.tags, g: d.g, d: r.d, ref: 'past:' + recId(r), title: d.title, lead: d.lead }))); });
+  admData().recs.filter((r) => !r.sid && r.d >= now() - F.p * DAY && !r.cancelled).forEach((r) => { const d = recDetail(r); if (!d.rep) return; ['good', 'feedback', 'challenge'].forEach((k) => d.rep[k].forEach((t) => out.push({ k, t, tags: d.tags, g: d.g, d: r.d, ref: 'past:' + recId(r), title: d.title, lead: d.lead }))); });
   S.seva.filter((s) => s.report).forEach((s) => ['good', 'feedback', 'challenge'].forEach((k) => s.report[k].forEach((t) => out.push({ k, t, tags: s.report.tags || sevaTags(s), g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id, title: s.title, lead: s.lead }))));
   return out.filter((e) => (!R.states.length || R.states.includes(e.g.state)) && (!R.tags.length || e.tags.some((t) => R.tags.includes(t)))).sort((a, b) => b.d - a.d);
 }
@@ -1960,17 +2019,18 @@ function rfSheet(k) {
 }
 // ----- admin: what's going on / what's pending -----
 function pendingItems() {
-  const out = []; const recent = admData().recs.filter((r) => r.d >= now() - 10 * DAY && !r.cancelled && inScope(gOf(r.g)));
+  const out = []; const recent = admData().recs.filter((r) => !r.sid && r.d >= now() - 10 * DAY && !r.cancelled && inScope(gOf(r.g)));
   recent.filter((r) => r.lag > 48).forEach((r) => out.push({ k: 'att', t: `Attendance not marked · ${CAT[r.cat].label} seva`, g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
   recent.filter((r) => !recDetail(r).rep && now() - r.d > DAY).slice(0, 6).forEach((r) => out.push({ k: 'rep', t: `Report not submitted · ${CAT[r.cat].label} seva`, g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
   recent.filter((r) => recDetail(r).rep?.challenge.length).forEach((r) => out.push({ k: 'chal', t: recDetail(r).rep.challenge[0], g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
+  S.seva.filter((s) => s.report?.challenge?.length && T(s.start) > now() - 10 * DAY && inScope(sevaGroup(s))).forEach((s) => out.push({ k: 'chal', t: s.report.challenge[0], g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
   S.seva.filter((s) => !s.hq && T(s.end) < now() && (!s.att || !s.report)).forEach((s) => out.push({ k: s.att ? 'rep' : 'att', t: `${s.att ? 'Report' : 'Attendance'} pending · ${s.title}`, g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
   return out.sort((a, b) => b.d - a.d);
 }
 const PK2 = { att: ['Attendance due', 'var(--action)', 'var(--action-bg)', I.clip], rep: ['Report due', 'var(--action)', 'var(--action-bg)', I.edit], chal: ['Challenge reported', 'var(--live)', 'var(--live-bg)', I.alert] };
 function nowStrip() {
-  const liveG = scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0);
-  const pend = pendingItems().length; const next = scopeGroups().filter((g) => g.id !== 'jaipur').length + S.seva.filter((s) => isFuture(s) && T(s.start) < now() + 7 * DAY).length;
+  const liveG = S.clean ? [...new Set(S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).map((s) => sevaGroup(s)))] : scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = S.clean ? S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).length : liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0);
+  const pend = pendingItems().length; const next = (S.clean ? (S.otherSeva || []).filter((s) => isFuture(s) && inScope(gOf(s.gid)) && T(s.start) < now() + 7 * DAY).length : scopeGroups().filter((g) => g.id !== 'jaipur').length) + S.seva.filter((s) => isFuture(s) && inScope(sevaGroup(s)) && T(s.start) < now() + 7 * DAY).length;
   return `<div class="nowrow"><button class="nowt live tap" data-act="now-live"><span class="livepill"><i></i>LIVE</span><b>${live}</b><span>happening now</span></button><button class="nowt pend tap" data-act="now-pend"><span class="ntag">${I.alert}PENDING</span><b>${pend}</b><span>need action</span></button><button class="nowt next tap" data-act="now-next"><span class="ntag">${I.cal}NEXT 7 DAYS</span><b>${next}</b><span>planned</span></button></div>`;
 }
 function pendingSheet() {
@@ -2045,7 +2105,7 @@ function handle(el) {
       if (isAdmin() && draft.target !== 'hq' && draft.target !== 'delhi') { const g = gOf(draft.target); (S.otherSeva = S.otherSeva || []).push({ ...ns, gid: g.id }); save(); draft = null; pop(); toast(`Published — ${num(g.members)} members of ${g.name} notified`); break; }
       if (isAdmin() && draft.target === 'hq') { ns.hq = true; ns.region = (draft.place.split(',')[0] || 'Sri Bhaini Sahib').trim(); ns.lead = 'Seva HQ team'; S.feed.unshift({ id: 'f' + uid(), type: 'seva', d: iso(now()), sid: ns.id, title: ns.title, text: ns.purpose, r: { g: 0, s: 0 } }); }
       S.seva.push(ns); S.notifs.unshift({ id: 'n' + uid(), level: 'p', t: `New seva: ${ns.title} · ${relDay(ns.start)} ${fmtTime(ns.start)}`, d: iso(now()), ref: 'seva:' + ns.id });
-      const reach = ns.hq ? num(GROUPS.reduce((a, g) => a + g.members, 0)) : '248';
+      const reach = ns.hq ? num(GROUPS.reduce((a, g) => a + g.members, 0)) : String(gOf('delhi').members - (S.clean ? 1 : 0));
       save(); draft = null; stack[stack.length - 1] = { v: 'seva', id: ns.id }; dtab = 'overview'; render(); window.scrollTo(0, 0); toast(`Published — ${reach} members notified`); break;
     }
     case 'seva-edit': editSheet(id); break;
@@ -2086,6 +2146,7 @@ function handle(el) {
       const s = sv(id); const A = attState; const present = A.rows.filter((r) => r.on); if (!confirm(`Save attendance? ${present.length} sevadars get ${A.pts} points each.`)) return;
       const times = Object.fromEntries(present.map((r) => [r.n, [atHM(s.start, r.from || hm(s.start)), atHM(s.start, r.to || hm(s.end))]]));
       s.att = { at: iso(now()), present: present.map((r) => r.n), pts: A.pts, times, hours: Math.round(Object.values(times).reduce((a, [x, y]) => a + hrs(x, y), 0) * 10) / 10 };
+      S.team.forEach((m) => { if (s.att.present.includes(m.n)) { m.contrib = (m.contrib || 0) + 1; m.last = 0; } });
       if (present.some((r) => r.me)) { const h = { id: 'h' + uid(), title: s.title, cat: s.cat, date: s.start, role: myPoints(s).map((p) => p.text).join(', ') || 'Sevadar' }; S.history.push(h); S.pts += A.pts; S.earned += A.pts; S.notifs.unshift({ id: 'n' + uid(), level: 'done', t: `Attendance marked for ${s.title} — +${A.pts} garden points`, d: iso(now()), ref: 'history:' + h.id }); }
       S.notifs = S.notifs.filter((n) => n.ref !== 'attend:' + s.id); attState = null; repDraft = null; save(); dtab = 'overview'; stack[stack.length - 1] = { v: 'repform', id: s.id }; render(); window.scrollTo(0, 0); toast(`Attendance saved — ${present.length} sevadars, ${hrsTxt(s.att.hours)}. Now a quick report.`); break;
     }
@@ -2114,8 +2175,8 @@ function handle(el) {
     case 'all-alerts': allAlertsSheet(); break;
     case 'blk-done': { const b = S.adm.blockers.find((x) => x.id === id); b.st = 'resolved'; save(); rerender(); toast('Marked resolved — the lead is told'); break; }
     case 'lead-assign': leadAssignSheet(el.dataset.g); break;
-    case 'lead-make': { const g = el.dataset.g, n = el.dataset.n; S.adm.leads[g] = S.adm.leads[g] || []; if (!S.adm.leads[g].includes(n)) S.adm.leads[g].push(n); save(); closeSheet(); rerender(); toast(`${first(n)} is now a team lead of ${gOf(g).name} — they've been notified`); break; }
-    case 'lead-remove': { const g = el.dataset.g, n = el.dataset.n; if ((S.adm.leads[g] || []).length <= 1) { toast('Every group needs at least one team lead — assign another first'); return; } if (!confirm(`Remove ${n} as team lead of ${gOf(g).name}?`)) return; S.adm.leads[g] = S.adm.leads[g].filter((x) => x !== n); save(); closeSheet(); rerender(); toast(`${first(n)} is now a member`); break; }
+    case 'lead-make': { const g = el.dataset.g, n = el.dataset.n; S.adm.leads[g] = S.adm.leads[g] || []; if (!S.adm.leads[g].includes(n)) S.adm.leads[g].push(n); syncPeople(); save(); closeSheet(); rerender(); toast(n === ME() ? `You are now a team lead of ${gOf(g).name} — switch to Team Lead in Profile` : `${first(n)} is now a team lead of ${gOf(g).name} — they've been notified`); break; }
+    case 'lead-remove': { const g = el.dataset.g, n = el.dataset.n; if (!S.clean && (S.adm.leads[g] || []).length <= 1) { toast('Every group needs at least one team lead — assign another first'); return; } if (!confirm(`Remove ${n} as team lead of ${gOf(g).name}?`)) return; S.adm.leads[g] = S.adm.leads[g].filter((x) => x !== n); syncPeople(); save(); closeSheet(); rerender(); toast(`${first(n)} is now a member`); break; }
     case 'adm-member': admMemberSheet(el.dataset.n, el.dataset.g); break;
     case 'compose': CP = null; push({ v: 'compose' }); break;
     case 'cp-publish': { cpSync(); if (!(CP.text || '').trim()) { toast('Write a message first'); $('#cp-text')?.focus(); return; } const p = { ...cpPost(), id: 'f' + uid(), title: CP.title || PK[CP.type].label }; S.feed.unshift(p); S.notifs.unshift({ id: 'n' + uid(), level: CP.type === 'alert' ? 'live' : 'p', t: `${PK[CP.type].label}: ${(CP.title || CP.text).slice(0, 70)}`, d: iso(now()), ref: 'tab:home' }); feedShown = FEED_PAGE; CP = null; save(); pop(); toast('Published to all members'); break; }
@@ -2188,7 +2249,7 @@ function handle(el) {
     case 'commit': sevaSeg = 'mine'; sevaChip = 'upcoming'; sevaView = 'list'; go('seva'); break;
     case 'settings': settingsSheet(); break;
     case 'save-settings': { const n = ($('#set-name')?.value || '').trim(); if (n) S.name = n; save(); closeSheet(); rerender(); break; }
-    case 'reset': if (confirm('Reset the prototype?')) { localStorage.removeItem(KEY); S = fresh(); stack = []; tab = 'home'; closeSheet(); render(); } break;
+    case 'reset': if (confirm('Reset the prototype? Everything is cleared and you start from scratch.')) { localStorage.removeItem(KEY); try { sessionStorage.removeItem('seva-role'); } catch (e) {} location.reload(); } break;
     case 'how-points': howSheet(); break;
     case 'gview': S.gview = S.gview === '3d' ? '2d' : '3d'; save(); rerender(); break;
     case 'gnight': S.gnight = !S.gnight; save(); rerender(); break;
@@ -2265,11 +2326,11 @@ document.addEventListener('click', (e) => {
   if (t.dataset.rft) { rf().type = t.dataset.rft; save(); rerender(); return; }
   if (t.dataset.cptype) { cpSync(); CP.type = t.dataset.cptype; rerender(); return; }
   if (t.dataset.tip) { const card = t.closest('.ichart'); const tip = card?.querySelector('.ctip'); if (!tip) return; const r = t.getBoundingClientRect(), c = card.getBoundingClientRect(); $$('.ichart [data-tip].on').forEach((x) => x.classList.remove('on')); t.classList.add('on'); tip.textContent = t.dataset.tip; tip.hidden = false; const w = tip.offsetWidth; tip.style.left = Math.max(8, Math.min(c.width - w - 8, r.left - c.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = Math.max(6, r.top - c.top - tip.offsetHeight - 6) + 'px'; buzz(); return; }
-  if (t.dataset.role) { S.role = t.dataset.role; try { sessionStorage.setItem('seva-role', S.role); } catch (e) {} sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = isAdmin() ? 'stats' : 'home'; render(); window.scrollTo(0, 0); toast(isAdmin() ? 'Viewing as Super Admin · Seva HQ' : isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); setTimeout(announceNew, 900); return; }
+  if (t.dataset.role) { if (t.dataset.role === 'lead' && !meIsLead()) { toast('You are not a team lead yet — switch to Super Admin › People and make yourself a team lead of Delhi Central'); return; } S.role = t.dataset.role; try { sessionStorage.setItem('seva-role', S.role); } catch (e) {} sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = isAdmin() ? 'stats' : 'home'; render(); window.scrollTo(0, 0); toast(isAdmin() ? 'Viewing as Super Admin · Seva HQ' : isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); setTimeout(announceNew, 900); return; }
   if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
   if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); applyTheme(); $$('[data-setmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.setmode === S.mode)); const y = window.scrollY; const sh = $('#sheet-root').innerHTML; render(); $('#sheet-root').innerHTML = sh; window.scrollTo(0, y); return; }
-  if (t.dataset.scn) { setScenario(t.dataset.scn); stack = []; tab = 'home'; sevaChip = null; closeSheet(); render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); }
+  if (t.dataset.scn) { if (t.dataset.scn !== S.scenario || S.clean) { if (t.dataset.scn === 'clean' && !confirm('Start from scratch? All seva, posts and history are cleared.')) return; try { localStorage.setItem('seva-next-scn', t.dataset.scn); } catch (e) {} location.reload(); return; } setScenario(t.dataset.scn); stack = []; tab = 'home'; sevaChip = null; closeSheet(); render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); }
 });
 document.addEventListener('change', (e) => { const ai = e.target.dataset?.attIn, ao = e.target.dataset?.attOut; if ((ai || ao) && attState) { attState.rows[+(ai || ao)][ai ? 'from' : 'to'] = e.target.value; rerender(); return; } if (e.target.id === 'cp-link' || e.target.id === 'cp-special') { cpSync(); const pv = $('#cp-prev'); if (pv) pv.innerHTML = postCard(cpPost()).replace(/data-react="[^"]*"/g, '').replace(/data-dbl="[^"]*"/g, ''); } });
 document.addEventListener('input', (e) => {
@@ -2299,6 +2360,7 @@ function deepLink() { const m = location.hash.match(/^#(seva|event)=(\w+)/); if 
 applyTheme();
 $('#app').innerHTML = `<main class="screen"><div class="skel" style="height:34px;width:55%;margin-top:14px"></div><div class="row" style="margin-top:18px">${'<div class="skel" style="width:70px;height:70px;border-radius:50%"></div>'.repeat(4)}</div><div class="skel" style="height:90px;margin-top:18px"></div><div class="skel" style="height:340px;margin-top:18px"></div></main>`;
 try { const r = sessionStorage.getItem('seva-role'); if (r) S.role = r; } catch (e) {} // role is per tab, so two tabs can be lead + member
+syncPeople(); if (S.role === 'lead' && !meIsLead()) S.role = 'member';
 S.notifs.forEach((n) => seenIds.add(n.id));
 setTimeout(() => { render(); deepLink(); scheduleLive(15000); }, 200);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

@@ -102,3 +102,10 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
   - **Seva → Past:** every past seva, with who came (with times), hours, the team lead and the report.
   - **Seva → Reports:** every good thing, feedback and challenge, filtered by state and tag, with a by-tag chart.
 - Editing a seva is limited to the creator, that area's team leads and the Main Admin.
+
+## v11 — Clean start
+- The app now starts **empty**: no seva, posts, stories, history or points. Only 13 people in 4 groups (Delhi Central, Ludhiana Jatha, Sri Bhaini Sahib, London Southall).
+- **No team leads at first.** Super Admin › People › Members › tap a name › *Make team lead*. You can make yourself a lead too; until then the Team Lead switch is locked.
+- Team Lead creates seva → members say Yes and pick times → after it ends the lead marks attendance and writes the report → Admin stats, Past and Reports fill from that real data.
+- Admin Stats shows a 4-step *Get started* checklist until the first seva is closed.
+- Profile › Settings › Prototype data: *Clean* (start from scratch) or the old demo data (*Demo new / busy / quiet*). *Reset prototype* also starts clean.
