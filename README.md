@@ -114,5 +114,5 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - One **Create** button stays at the bottom on every Seva tab (Manage, My Sevas, All · Live, Upcoming, Past, Reports) for team leads and admin.
 - Create starts with **Seva · Event · Meeting**.
 - Type is a **dropdown** with colour + icon. Seva types: Langar, Cleaning, Donation, Nasha Mukti, Social service, Education, Medical camp, Gau seva, Tree planting, Relief, Clothes for needy, Langar stall.
-- **Main events** sit in their own gold section at the top: Satguru Ji Darshan, Hola Mohalla Mela, Basant Panchami Mela, Shaheedi Samagam, Main Samagam. The name is fixed (so HQ can group them) with an optional extra line, e.g. "Delhi visit". For a main seva you also pick what seva happens at it.
+- **Main events** sit in their own gold section at the top: Satguru Ji Darshan, Hola Mohalla Mela, Basant Panchami Mela, Parkash Purab, Jyoti Jyot Diwas, Shaheedi Samagam, Main Samagam. The name is fixed (so HQ can group them) with an optional extra line, e.g. "Delhi visit". For a main seva you also pick what seva happens at it.
 - Meetings can be **Team leads only** or **Everyone**; members never see leads-only meetings. Events and meetings show in lead Upcoming and admin Upcoming.

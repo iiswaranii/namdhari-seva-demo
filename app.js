@@ -1338,6 +1338,8 @@ const MAIN = {
   darshan: { name: 'Satguru Ji Darshan', sub: 'Darshan Diwan · Satguru Ji visiting', cat: 'langar' },
   hola: { name: 'Hola Mohalla Mela', sub: 'Yearly mela at Sri Bhaini Sahib', cat: 'langar' },
   basant: { name: 'Basant Panchami Mela', sub: 'Yearly mela', cat: 'langar' },
+  parkash: { name: 'Parkash Purab', sub: 'Birth anniversary of a Satguru · add whose below', cat: 'langar' },
+  jyoti: { name: 'Jyoti Jyot Diwas', sub: 'Remembrance day of a Satguru · add whose below', cat: 'langar' },
   shaheedi: { name: 'Shaheedi Samagam', sub: 'Remembrance gathering', cat: 'langar' },
   samagam: { name: 'Main Samagam', sub: 'Any other big gathering', cat: 'langar' },
 };
