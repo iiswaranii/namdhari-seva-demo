@@ -791,3 +791,16 @@ html, body { overscroll-behavior-y: contain; }
 .urgtoggle { margin-top: 12px; padding: 10px 12px !important; border-radius: 16px; border: 1.5px solid var(--border); background: var(--surface); gap: 12px; }
 .urgtoggle.on { border-color: var(--live); background: var(--live-bg); }
 .dhero > .urgrib { position: absolute; top: -2px; right: 14px; left: auto; }
+/* v14: profile photos + peek */
+.av2, .fa, .meav, .bigav, .pkav { position: relative; }
+.avimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.bigav .avimg { border-radius: 50%; }
+.avcam { position: absolute; right: -4px; bottom: -2px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--p); color: #fff; border: 3px solid var(--surface); cursor: pointer; z-index: 2; padding: 0; }
+.avcam svg { width: 16px; height: 16px; }
+.peek { text-align: center; }
+.pkav { width: 96px; height: 96px; border-radius: 50%; margin: 4px auto 0; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 32px; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+.peek h2 { font-size: 22px; margin-top: 10px; }
+.pkrole { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; }
+.idchip { display: flex; width: fit-content; margin: 8px auto 0; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; cursor: pointer; }
+.peek .lrow { margin-top: 8px; border-radius: 14px; background: var(--surface2); padding: 8px 12px; }
+.bigav[data-act] { cursor: pointer; }

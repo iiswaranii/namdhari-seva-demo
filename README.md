@@ -121,3 +121,9 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - The fixed main-event list is gone. Each kind has **one highlighted special type** at the top of the type dropdown: *Special program* (seva), *Special event*, *Special meeting*. It glows everywhere; the **name is typed freely** by whoever creates it.
 - New **Urgent / important** toggle on seva, events and meetings: red frame + red URGENT tag on cards and detail pages, a red banner on Home and admin Stats, and red notifications.
 - Titles are always editable.
+
+## v14 — Profile photos + profile peek
+- Add/change your photo from Profile (camera button on your picture). The phone crops it square and shrinks it to 320×320 WebP before saving (~15–40 KB for a real photo).
+- Tapping any name or face opens a **profile peek** from the bottom: photo, role, group, **member ID**, seva done, Full profile, Message, **Share profile link** (`#user=Name~group`).
+- Same names: the peek warns when more than one person has the name and lists the other one(s) with group + ID. Admin member lists show the ID when names repeat. Clean data now has two *Harpreet Kaur* (Delhi and Ludhiana) to try it.
+- Production note: photos belong in object storage (Supabase Storage / Cloudflare R2) behind a CDN; the database keeps only the URL.

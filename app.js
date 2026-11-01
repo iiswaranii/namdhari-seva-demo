@@ -27,7 +27,9 @@ const relDay = (s) => {
   return fmtLong(s);
 };
 const ago = (s) => { const m = Math.round((now() - T(s)) / MIN); if (m < 1) return 'just now'; if (m < 60) return m + 'm'; if (m < 1440) return Math.round(m / 60) + 'h'; return Math.round(m / 1440) + 'd'; };
-const initials = (n) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+const letters = (n) => String(n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+const photoOf = (n) => (typeof S !== 'undefined' && S) ? (n === ME() ? S.myPhoto : (S.photos || {})[n]) : null;
+const initials = (n) => { const p = photoOf(n); return p ? `${letters(n)}<img class="avimg" src="${p}" alt="">` : letters(n); };
 const first = (n) => n.split(' ')[0];
 const uid = () => Math.random().toString(36).slice(2, 9);
 const num = (n) => n.toLocaleString();
@@ -208,7 +210,7 @@ function baseStories() {
 }
 // Clean start: no seva, posts or history — just a few real people to work with
 const CLEAN_USERS = [['Harpreet Kaur', 'delhi', 'f'], ['Gurpreet Singh', 'delhi', 'm'], ['Simran Kaur', 'delhi', 'f'], ['Jaspreet Singh', 'delhi', 'm'], ['Manjit Kaur', 'delhi', 'f'], ['Amrit Singh', 'delhi', 'm'],
-  ['Jagdeep Singh', 'ludhiana', 'm'], ['Navneet Kaur', 'ludhiana', 'f'], ['Kuldeep Singh', 'ludhiana', 'm'], ['Harbans Singh', 'bhaini', 'm'], ['Kamaljeet Kaur', 'bhaini', 'f'], ['Ranjit Singh', 'london', 'm'], ['Jasleen Kaur', 'london', 'f']];
+  ['Jagdeep Singh', 'ludhiana', 'm'], ['Harpreet Kaur', 'ludhiana', 'f'], ['Navneet Kaur', 'ludhiana', 'f'], ['Kuldeep Singh', 'ludhiana', 'm'], ['Harbans Singh', 'bhaini', 'm'], ['Kamaljeet Kaur', 'bhaini', 'f'], ['Ranjit Singh', 'london', 'm'], ['Jasleen Kaur', 'london', 'f']];
 function cleanScenario() {
   const d = { seenTasks: {}, seva: [], events: [], feed: [], assign: {}, rsvp: {}, history: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0, clean: true, liveDemo: false, otherSeva: [],
     groups: baseStories().filter((g) => ['g-delhi', 'g-ludhiana', 'g-bhaini', 'g-london'].includes(g.id)).map((g) => ({ ...g, stories: [] })),
@@ -1048,7 +1050,7 @@ function Profile() {
     ['settings', I.settings, 'App Settings', '', 'act'],
   ];
   return `<div class="phead" style="margin-top:calc(-8px - var(--safe-t))">${boardSVG(ensureLayout(), { night: S.gnight }).replace('class="scene board"', 'class="scene board" style="height:190px;width:100%;display:block;pointer-events:none"')}</div>
-    <div class="pcardp" style="margin:-44px -16px 0;padding-left:16px;padding-right:16px"><div class="bigav">${initials(ME())}</div>
+    <div class="pcardp" style="margin:-44px -16px 0;padding-left:16px;padding-right:16px"><div class="bigav" data-act="peek" data-n="${esc(ME())}">${initials(ME())}<button class="avcam" data-act="photo-pick" aria-label="${S.myPhoto ? 'Change photo' : 'Add photo'}">${I.image}</button></div>
       <h1>${esc(ME())}</h1><p class="sub">${isLead() ? I.shield : I.pin}${isLead() ? 'Team Lead' : 'Member'} · Delhi Central</p>
       <div class="pstats"><div class="pstat">${I.handshake.replace('<svg', '<svg style="color:var(--done)"')}<b>${nContrib()}</b><span>Contributions</span></div><div class="pstat">${I.leaf.replace('<svg', '<svg style="color:var(--c-tree)"')}<b>${unlockedCount()}</b><span>Unlocked</span></div><div class="pstat">${SEED}<b>${S.pts}</b><span>Points</span></div></div></div>
     ${roleSwitch()}
@@ -1065,7 +1067,7 @@ function TeamScreen() {
     <div class="section"><div class="section-h"><h2>Team leads</h2><span class="xs muted">${LEADS.length}</span></div><div class="card list">${LEADS.length ? '' : '<p class="small muted" style="padding:12px 0">No team lead yet.</p>'}${LEADS.map((n, i) => `<div class="lrow tap" data-open="user:${n}" style="cursor:pointer"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${n}</b><span class="leadtag">Lead</span><p class="xs muted">${S.clean ? 'Team lead' : ['Langar & kitchen', 'Clean-ups', 'Langar & kitchen', 'Tree planting', 'Education', 'Relief'][i]}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message ${n}" style="color:#25A35A">${I.wa}</button></div>`).join('')}</div></div>
     <div class="section"><div class="section-h"><h2>Members</h2><span class="xs muted">${gOf('delhi').members}</span></div>
       <label class="search">${I.search}<input id="team-q" placeholder="Search members" value="${esc(teamQ)}" autocomplete="off"></label>
-      <div class="card list" style="margin-top:10px" id="team-list">${all.map((m) => `<div class="lrow tap" data-open="user:${esc(m.n)}" style="cursor:pointer"><span class="av2" style="background:${m.me ? 'var(--p)' : avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}${m.me ? ' (you)' : ''}</b><p class="xs muted">${m.me ? `${nContrib()} contributions` : `${3 + (m.n.length % 9)} contributions`}</p></div></div>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
+      <div class="card list" style="margin-top:10px" id="team-list">${all.map((m) => `<div class="lrow tap" data-open="user:${esc(m.n)}" style="cursor:pointer"><span class="av2" style="background:${m.me ? 'var(--p)' : avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}${m.me ? ' (you)' : ''}</b><p class="xs muted">${m.me ? `${nContrib()} contributions` : `${S.clean ? ((S.team.find((x) => x.n === m.n) || {}).contrib || 0) : 3 + (m.n.length % 9)} contributions`}</p></div></div>`).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>
       <p class="xs faint" style="text-align:center;margin-top:10px">${S.clean ? `${all.length} members` : `Showing ${all.length} of 248 · the full list loads in the real app`}</p></div>`;
 }
 function JourneyScreen() {
@@ -1852,7 +1854,7 @@ function AdminPeople() {
   if (pSeg === 'groups') body = COUNTRIES.filter((c) => GROUPS.some((g) => g.country === c && inP(g))).map((c) => `<div class="section-h" style="margin:16px 0 8px"><h2 style="font-size:15px">${FLAG[c]} ${c}</h2><span class="xs muted">${num(GROUPS.filter((g) => g.country === c && inP(g)).reduce((a, g) => a + g.members, 0))} members</span></div><div class="card list">${groupStats().filter((x) => x.g.country === c && inP(x.g)).map((x) => `<button class="lrow" data-open="grp:${x.g.id}"><div class="grow"><b class="small">${esc(x.g.name)}</b><p class="xs muted ellipsis">${num(x.g.members)} members · ${(S.adm.leads[x.g.id] || []).map(first).join(', ') || 'No lead'}</p></div><span class="score" style="color:${x.m.held ? STL[scoreG(x.score)][1] : 'var(--muted)'};background:${x.m.held ? STL[scoreG(x.score)][2] : 'var(--surface2)'}">${x.m.held ? x.score : '—'}</span>${chev}</button>`).join('')}</div>`).join('');
   else if (pSeg === 'members') { const all = GROUPS.filter(inP).flatMap((g) => membersOf(g.id).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q)); const list = all.slice(0, 60);
     body = `<p class="xs muted" style="margin:10px 2px 0">${num(all.length)} shown · ${num(GROUPS.filter(inP).reduce((a, g) => a + g.members, 0))} members in ${whereLabel(sel).replace('🌍 ', '').toLowerCase()}</p>
-      <div class="card list" style="margin-top:8px">${list.map((m) => { const isL = (S.adm.leads[m.g.id] || []).includes(m.n); return `<button class="lrow" data-act="adm-member" data-n="${esc(m.n)}" data-g="${m.g.id}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${isL ? '<span class="leadtag">Lead</span>' : ''}<p class="xs muted">${m.g.flag} ${esc(m.g.name)}</p></div>${chev}</button>`; }).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>`; }
+      <div class="card list" style="margin-top:8px">${list.map((m) => { const isL = (S.adm.leads[m.g.id] || []).includes(m.n); return `<button class="lrow" data-act="adm-member" data-n="${esc(m.n)}" data-g="${m.g.id}"><span class="av2" style="background:${avColor(m.n)}">${initials(m.n)}</span><div class="grow"><b class="small">${esc(m.n)}</b>${isL ? '<span class="leadtag">Lead</span>' : ''}<p class="xs muted">${m.g.flag} ${esc(m.g.name)}${sameName(m.n) ? ` · ID ${memberId(m.n, m.g.id)}` : ''}</p></div>${chev}</button>`; }).join('') || '<p class="small muted" style="padding:14px 0">No one matches.</p>'}</div>`; }
   else { const L = GROUPS.filter(inP).flatMap((g) => (S.adm.leads[g.id] || []).map((n) => ({ n, g }))).filter((m) => !q || m.n.toLowerCase().includes(q));
     body = `<p class="xs muted" style="margin:10px 2px 0">${L.length} team lead${L.length === 1 ? '' : 's'}</p><div class="card list" style="margin-top:8px">${L.map(({ n, g }) => `<div class="lrow"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><div class="grow"><b class="small">${esc(n)}</b><p class="xs muted">${g.flag} ${esc(g.name)}</p></div><button class="iconbtn" data-act="wa-person" data-n="${esc(n)}" aria-label="Message" style="color:#25A35A">${I.wa}</button><button class="iconbtn" data-act="lead-remove" data-g="${g.id}" data-n="${esc(n)}" aria-label="Remove lead role" style="color:var(--live)">${I.trash}</button></div>`).join('') || '<p class="small muted" style="padding:14px 0">No team leads match.</p>'}</div>`; }
   return `<header class="apphdr"><h1 class="pagetitle" style="padding:6px 0 0">People</h1><span class="sp"></span>${bellBtn()}</header>
@@ -1861,12 +1863,46 @@ function AdminPeople() {
 }
 function admMemberSheet(n, gid) {
   const g = gOf(gid); const isL = (S.adm.leads[gid] || []).includes(n); const c = S.clean ? (n === ME() ? nContrib() : (S.team.find((m) => m.n === n) || {}).contrib || 0) : (n.length * 7) % 23;
-  openSheet(`<div style="text-align:center"><span class="av2" style="width:72px;height:72px;font-size:24px;margin:4px auto 0;background:${avColor(n)}">${initials(n)}</span><h2 style="font-size:21px;margin-top:10px">${esc(n)}${n === ME() ? ' (you)' : ''}</h2><p class="small muted">${isL ? 'Team Lead' : 'Member'} · ${g.flag} ${esc(g.name)}</p></div>
+  openSheet(`<div style="text-align:center"><span class="av2" style="width:72px;height:72px;font-size:24px;margin:4px auto 0;background:${avColor(n)}">${initials(n)}</span><h2 style="font-size:21px;margin-top:10px">${esc(n)}${n === ME() ? ' (you)' : ''}</h2><p class="small muted">${isL ? 'Team Lead' : 'Member'} · ${g.flag} ${esc(g.name)}</p><button class="idchip" data-act="copy-id" data-v="${memberId(n, gid)}">ID ${memberId(n, gid)}</button></div>
     <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--done)"><b>${c}</b><span>Contributions</span></div><div class="tstat"><b>${S.clean ? (c ? 'Yes' : '—') : (n.length * 3) % 40 + 'd'}</b><span>${S.clean ? 'Done seva' : 'Since last seva'}</span></div><div class="tstat" style="--tc:var(--gold)"><b>${c * 3}</b><span>Points</span></div></div>
     <div class="card list" style="margin-top:12px">${isL ? `<button class="lrow" data-act="lead-remove" data-g="${gid}" data-n="${esc(n)}" style="color:var(--live)">${I.shield}<b class="small grow">Remove team lead role</b></button>` : `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}" style="color:var(--p)">${I.shield}<b class="small grow">Make ${n === ME() ? 'yourself' : ''} team lead of ${esc(g.name)}</b>${chev}</button>`}
       <button class="lrow" data-open="user:${esc(n)}">${I.garden}<b class="small grow">View profile</b>${chev}</button><button class="lrow" data-act="wa-person" data-n="${esc(n)}">${I.wa.replace('<svg', '<svg style="width:22px;height:22px;color:#25A35A"')}<b class="small grow">Message on WhatsApp</b>${chev}</button></div>`);
 }
 function leadAssignSheet(gid) { const g = gOf(gid); const L = S.adm.leads[gid] || []; openSheet(`${sheetHead('Assign a team lead', `${g.flag} ${esc(g.name)}`)}<div class="card list" style="max-height:56vh;overflow:auto">${membersOf(gid).filter((n) => !L.includes(n)).map((n) => `<button class="lrow" data-act="lead-make" data-g="${gid}" data-n="${esc(n)}"><span class="av2" style="background:${avColor(n)}">${initials(n)}</span><b class="small grow">${esc(n)}</b><span class="link" style="min-height:0">Make lead</span></button>`).join('')}</div>`); }
+// ----- Profile peek (bottom sheet) -----
+const GCODE = { delhi: 'DC', ludhiana: 'LJ', bhaini: 'SB', mumbai: 'MU', jammu: 'JM', jaipur: 'JP', london: 'LS', birmingham: 'BH', nairobi: 'NB', toronto: 'TO', bangkok: 'BK' };
+const memberId = (n, gid) => `${GCODE[gid] || 'NS'}-${String(([...(n + gid)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % 9000) + 1000)}`;
+const groupsOf = (n) => { const gs = (S.users || []).filter((u) => u.n === n).map((u) => u.g); if (n === ME() && !gs.includes('delhi')) gs.unshift('delhi'); if (!gs.length) gs.push('delhi'); return gs; };
+const sameName = (n) => (S.users || []).filter((u) => u.n === n).length + (n === ME() && (S.users || []).some((u) => u.n === n) ? 1 : 0) > 1;
+function peekSheet(n, gid) {
+  const me = n === ME(); const gs = groupsOf(n); gid = gid && gs.includes(gid) ? gid : gs[0]; const g = gOf(gid) || gOf('delhi');
+  const lead = (S.adm?.leads?.[gid] || []).includes(n) || (!S.clean && LEADS.includes(n)) || (me && isLead()); const m = S.team.find((x) => x.n === n);
+  const contrib = me ? nContrib() : m ? m.contrib : S.clean ? 0 : genLayout(n).contrib; const dup = sameName(n);
+  openSheet(`<div class="peek"><div class="pkav" style="background:${me ? 'var(--p)' : avColor(n)}">${initials(n)}${me ? `<button class="avcam" data-act="photo-pick" aria-label="Change photo">${I.image}</button>` : ''}</div>
+    <h2>${esc(n)}${me ? ' <span class="muted" style="font-weight:600">(you)</span>' : ''}</h2>
+    <p class="small muted pkrole">${(lead ? I.shield : I.pin).replace('<svg', '<svg style="width:15px;height:15px"')}${lead ? 'Team Lead' : 'Member'} · ${g.flag} ${esc(g.name)}</p>
+    <button class="idchip" data-act="copy-id" data-v="${memberId(n, gid)}">ID ${memberId(n, gid)}</button>
+    ${dup ? `<div class="banner" style="margin-top:12px;text-align:left">${I.info}<span class="small">${gs.length > 1 || (S.users || []).filter((u) => u.n === n).length > 1 ? `More than one <b>${esc(n)}</b> in the sangat.` : `Same name as someone else.`} Check the photo, group and ID.</span></div>` : ''}
+    ${(S.users || []).filter((u) => u.n === n && u.g !== gid).map((u) => `<button class="lrow" data-act="peek" data-n="${esc(n)}" data-g="${u.g}" style="text-align:left"><span class="av2" style="background:${avColor(n + u.g)}">${letters(n)}</span><div class="grow"><b class="small">Other ${esc(n)}</b><p class="xs muted">${gOf(u.g).flag} ${esc(gOf(u.g).name)} · ID ${memberId(n, u.g)}</p></div>${chev}</button>`).join('')}
+    <div class="tstats" style="margin-top:14px"><div class="tstat" style="--tc:var(--done)"><b>${contrib}</b><span>Seva done</span></div><div class="tstat" style="--tc:var(--p)"><b>${m ? new Date(m.joined).getFullYear() : new Date().getFullYear()}</b><span>Member since</span></div><div class="tstat" style="--tc:var(--gold)"><b>${me ? S.pts : contrib * 3}</b><span>Points</span></div></div>
+    <div class="btn-row" style="margin-top:14px"><button class="btn" data-open="user:${esc(n)}" data-full="1">${I.garden}Full profile</button>${me ? `<button class="btn ghost" data-act="photo-pick">${I.image}${S.myPhoto ? 'Change photo' : 'Add photo'}</button>` : `<button class="btn ghost" data-act="wa-person" data-n="${esc(n)}">${I.wa}Message</button>`}</div>
+    <button class="btn soft block" style="margin-top:8px" data-act="share-user" data-n="${esc(n)}" data-g="${gid}">${I.share}Share profile link</button>
+    ${me && S.myPhoto ? '<button class="link" style="margin:8px auto 0;display:flex;color:var(--live)" data-act="photo-del">Remove photo</button>' : ''}</div>`);
+}
+// photos are cut to a square and shrunk on the phone before saving: ~20–40 KB, still sharp at every size we show
+const PHOTO_PX = 320;
+async function shrinkPhoto(file) {
+  const url = URL.createObjectURL(file); const img = new Image(); img.src = url; await img.decode(); URL.revokeObjectURL(url);
+  const side = Math.min(img.naturalWidth, img.naturalHeight); const c = document.createElement('canvas'); c.width = c.height = Math.min(PHOTO_PX, side);
+  const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, c.width, c.height);
+  let out = c.toDataURL('image/webp', .82); if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/jpeg', .84);
+  return { out, kb: Math.round(out.length * .75 / 1024), was: Math.round(file.size / 1024), px: c.width };
+}
+function pickPhoto() {
+  let inp = $('#photo-in'); if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = 'photo-in'; inp.hidden = true; document.body.appendChild(inp);
+    inp.addEventListener('change', async () => { const f = inp.files[0]; inp.value = ''; if (!f) return; try { const r = await shrinkPhoto(f); S.myPhoto = r.out; save(); closeSheet(); rerender(); toast(`Photo saved · ${r.kb} KB (was ${r.was >= 1024 ? (r.was / 1024).toFixed(1) + ' MB' : r.was + ' KB'})`); } catch (e) { toast('Could not read that photo — try another'); } }); }
+  inp.click();
+}
 // ----- Admin: all seva -----
 let aSeg = 'live';
 // where a seva belongs: its group, state and country
@@ -1925,7 +1961,7 @@ function Compose() {
 function cpSync() { if (!CP) return; if ($('#cp-special')) CP.special = $('#cp-special').checked; ['title', 'text', 'stat', 'link'].forEach((k) => { const el = $('#cp-' + k); if (el) CP[k] = el.value; }); }
 // ----- Admin profile -----
 function AdminProfile() {
-  return `<div class="card" style="text-align:center;margin-top:16px;padding-top:22px"><div class="bigav" style="position:static;transform:none;margin:0 auto">${initials(ME())}</div><h1 style="font-size:24px;margin-top:10px">${esc(ME())}</h1><p class="sub small muted" style="display:inline-flex;gap:6px;align-items:center">${I.shield.replace('<svg', '<svg style="width:15px;height:15px"')}Super Admin · Seva HQ</p></div>
+  return `<div class="card" style="text-align:center;margin-top:16px;padding-top:22px"><div class="bigav" style="position:static;transform:none;margin:0 auto">${initials(ME())}<button class="avcam" data-act="photo-pick" aria-label="${S.myPhoto ? 'Change photo' : 'Add photo'}">${I.image}</button></div><h1 style="font-size:24px;margin-top:10px">${esc(ME())}</h1><p class="sub small muted" style="display:inline-flex;gap:6px;align-items:center">${I.shield.replace('<svg', '<svg style="width:15px;height:15px"')}Super Admin · Seva HQ</p></div>
     ${roleSwitch()}
     <div class="menu">${[['inbox', I.bell, 'Notifications', unread() ? `${unread()} new` : '', 'open'], ['settings', I.settings, 'App Settings', '', 'act']].map(([k, ic, l, ct, how]) => `<button class="lrow" ${how === 'open' ? `data-open="${k}"` : `data-act="${k}"`}>${ic.replace('<svg', '<svg class="mi"')}<b class="grow">${l}</b><span class="ct">${ct}</span>${chev}</button>`).join('')}</div>`;
 }
@@ -2243,6 +2279,11 @@ function handle(el) {
     case 'all-alerts': allAlertsSheet(); break;
     case 'blk-done': { const b = S.adm.blockers.find((x) => x.id === id); b.st = 'resolved'; save(); rerender(); toast('Marked resolved — the lead is told'); break; }
     case 'lead-assign': leadAssignSheet(el.dataset.g); break;
+    case 'peek': peekSheet(el.dataset.n, el.dataset.g); break;
+    case 'photo-pick': pickPhoto(); break;
+    case 'photo-del': delete S.myPhoto; save(); closeSheet(); rerender(); toast('Photo removed'); break;
+    case 'copy-id': navigator.clipboard?.writeText(el.dataset.v).catch(() => {}); toast(`ID ${el.dataset.v} copied`); break;
+    case 'share-user': { const n = el.dataset.n, g = gOf(el.dataset.g); const url = `${location.origin}${location.pathname}#user=${encodeURIComponent(n)}~${g.id}`; const text = `🙏 ${n} · ${g.name} · ID ${memberId(n, g.id)}\n${url}`; if (navigator.share) navigator.share({ title: n, text, url }).catch(() => {}); else { navigator.clipboard?.writeText(text).catch(() => {}); toast('Profile link copied'); } break; }
     case 'lead-make': { const g = el.dataset.g, n = el.dataset.n; S.adm.leads[g] = S.adm.leads[g] || []; if (!S.adm.leads[g].includes(n)) S.adm.leads[g].push(n); syncPeople(); save(); closeSheet(); rerender(); toast(n === ME() ? `You are now a team lead of ${gOf(g).name} — switch to Team Lead in Profile` : `${first(n)} is now a team lead of ${gOf(g).name} — they've been notified`); break; }
     case 'lead-remove': { const g = el.dataset.g, n = el.dataset.n; if (!S.clean && (S.adm.leads[g] || []).length <= 1) { toast('Every group needs at least one team lead — assign another first'); return; } if (!confirm(`Remove ${n} as team lead of ${gOf(g).name}?`)) return; S.adm.leads[g] = S.adm.leads[g].filter((x) => x !== n); syncPeople(); save(); closeSheet(); rerender(); toast(`${first(n)} is now a member`); break; }
     case 'adm-member': admMemberSheet(el.dataset.n, el.dataset.g); break;
@@ -2381,6 +2422,7 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role],[data-insp],[data-tip],[data-uview],[data-pseg],[data-pg],[data-aseg],[data-cptype],[data-rft]');
   if (!t || t.disabled) return;
   if (t.dataset.act) return handle(t);
+  if (t.dataset.open && t.dataset.open.startsWith('user:') && !t.dataset.full && !t.closest('.sheet')) { buzz(); peekSheet(t.dataset.open.slice(5)); return; }
   if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open.includes(':') ? t.dataset.open : t.dataset.open + ':'); return; }
   if (t.dataset.tab) { buzz(); closeSheet(); go(t.dataset.tab); return; }
   if (t.dataset.story) { buzz(); openStory(t.dataset.story); return; }
@@ -2432,10 +2474,12 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (SV) 
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__dp = e; });
 window.addEventListener('online', rerender); window.addEventListener('offline', rerender);
 setInterval(() => { if (!$('#sheet-root').innerHTML && !SV && !SC && !['create', 'attend'].includes(stack[stack.length - 1]?.v) && S.onboarded && !document.hidden && !g3 && document.activeElement?.tagName !== 'INPUT') rerender(); }, 60000);
-function deepLink() { const m = location.hash.match(/^#(seva|event)=(\w+)/); if (m && S.onboarded) { history.replaceState(null, '', location.pathname); openRef(`${m[1]}:${m[2]}`); } }
+window.addEventListener('hashchange', () => deepLink());
+function deepLink() { const u = location.hash.match(/^#user=([^~]+)(?:~(\w+))?/); if (u && S.onboarded) { history.replaceState(null, '', location.pathname); peekSheet(decodeURIComponent(u[1]), u[2]); return; } const m = location.hash.match(/^#(seva|event)=(\w+)/); if (m && S.onboarded) { history.replaceState(null, '', location.pathname); openRef(`${m[1]}:${m[2]}`); } }
 applyTheme();
 $('#app').innerHTML = `<main class="screen"><div class="skel" style="height:34px;width:55%;margin-top:14px"></div><div class="row" style="margin-top:18px">${'<div class="skel" style="width:70px;height:70px;border-radius:50%"></div>'.repeat(4)}</div><div class="skel" style="height:90px;margin-top:18px"></div><div class="skel" style="height:340px;margin-top:18px"></div></main>`;
 try { const r = sessionStorage.getItem('seva-role'); if (r) S.role = r; } catch (e) {} // role is per tab, so two tabs can be lead + member
+if (S.clean && S.users && !S.users.some((u) => u.n === 'Harpreet Kaur' && u.g === 'ludhiana')) { S.users.splice(S.users.findIndex((u) => u.g === 'ludhiana') + 1, 0, { n: 'Harpreet Kaur', g: 'ludhiana', sex: 'f', joined: iso(now()) }); }
 syncPeople(); if (S.role === 'lead' && !meIsLead()) S.role = 'member';
 S.notifs.forEach((n) => seenIds.add(n.id));
 setTimeout(() => { render(); deepLink(); scheduleLive(15000); }, 200);
