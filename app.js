@@ -29,7 +29,10 @@ const relDay = (s) => {
 const ago = (s) => { const m = Math.round((now() - T(s)) / MIN); if (m < 1) return 'just now'; if (m < 60) return m + 'm'; if (m < 1440) return Math.round(m / 60) + 'h'; return Math.round(m / 1440) + 'd'; };
 const letters = (n) => String(n || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 const photoOf = (n) => (typeof S !== 'undefined' && S) ? (n === ME() ? S.myPhoto : (S.photos || {})[n]) : null;
-const initials = (n) => { const p = photoOf(n); return p ? `${letters(n)}<img class="avimg" src="${p}" alt="">` : letters(n); };
+const isPerson = (n) => !!n && !/^(Seva HQ|no lead yet|Team lead|Member|You)/i.test(n);
+const initials = (n) => { const p = photoOf(n); return `${p ? `${letters(n)}<img class="avimg" src="${p}" alt="">` : letters(n)}${isPerson(n) ? `<i class="pn" data-pn="${String(n).replace(/"/g, '&quot;')}" hidden></i>` : ''}`; };
+// a name in a sentence that opens the profile
+const nm = (n) => isPerson(n) ? `<span class="pnl" data-pn="${esc(n)}">${esc(n)}</span>` : esc(n);
 const first = (n) => n.split(' ')[0];
 const uid = () => Math.random().toString(36).slice(2, 9);
 const num = (n) => n.toLocaleString();
@@ -757,7 +760,7 @@ function SevaDetail({ id }) {
     <div class="row" style="gap:8px">${live ? '<span class="livepill big" style="background:#fff;color:#D81F3A"><i style="background:#D81F3A"></i>LIVE NOW</span>' : `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[s.cat].label}</span>`}${s.recur ? `<span class="chip" style="background:rgba(255,255,255,.18);color:#fff">${s.recur}</span>` : ''}</div>
     ${s.hq ? `<div class="hqband">${I.globe}<span><b>${esc(s.region)} seva</b> · organised by Seva HQ for the whole sangat — not in your area</span></div>` : ''}
     <h1>${ttl(s)}</h1>
-    <div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div><div>${I.user}Lead: ${esc(s.lead)}</div></div>
+    <div class="meta"><div>${I.cal}${relDay(s.start)}, ${fmtTime(s.start)} – ${fmtTime(s.end)}</div><div>${I.pin}${esc(s.place)}</div><div>${I.user}Lead: ${nm(s.lead)}</div></div>
     <div class="row" style="margin-top:14px">${faceRow(here.map((p) => p.n), here.length, 5)}<span class="small" style="opacity:.95">${here.length} ${live ? 'sevadars here' : 'going'}</span></div>
     ${live ? `<div class="tbar"><i style="width:${progress(s)}%"></i></div>` : ''}
     ${a === 'going' ? `<div class="partpill">${I.checkc}You're coming · ${winTxt(personWindow(s, { me: true }))}</div>` : a === 'invited' ? `<div class="partpill maybe">${I.flag}${first(s.lead)} invited you</div>` : a === 'cant' ? `<div class="partpill maybe">${I.xc}You said you can't come</div>` : ''}
@@ -826,7 +829,7 @@ function teamTab(s) {
 }
 function updatesTab(s) {
   const since = seenAt(s.id);
-  return s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd ${T(u.d) > since ? 'new' : ''}"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${T(u.d) > since ? ' · <b style="color:var(--live)">New</b>' : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', `${first(s.lead)} will post changes and notes here. You'll get an alert.`);
+  return s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd ${T(u.d) > since ? 'new' : ''}"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${nm(u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${T(u.d) > since ? ' · <b style="color:var(--live)">New</b>' : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', `${first(s.lead)} will post changes and notes here. You'll get an alert.`);
 }
 function EventDetail({ id }) {
   const e = ev(id); markSeen(e.id); const r = S.rsvp[e.id]; const k = r === 'no' ? 'cant' : r;
@@ -1295,7 +1298,7 @@ function LeadSevaDetail({ id }) {
   } else {
     const q = ['Running 15 minutes late', 'Tea break in the courtyard', 'Please bring gloves', 'Thank you all 🙏'];
     body = `${ended ? '' : `<div class="card"><label class="f" style="margin-top:0" for="up-text">Post an update · goes to ${r.length} people</label><textarea class="in" id="up-text" rows="2" placeholder="e.g. Meet at Gate 2 instead"></textarea><div class="chips" style="margin-top:8px">${q.map((t) => `<button class="chip2" data-act="up-quick" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div><button class="btn block" style="margin-top:10px" data-act="up-send" data-id="${s.id}">${I.megaphone}Send to everyone</button></div>`}
-      ${s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${esc(u.by === ME() ? 'You' : u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${u.sent ? ` · sent to ${u.sent}` : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', 'Anything you post here reaches everyone in this seva as a notification.')}`;
+      ${s.updates.length ? `<div class="card">${s.updates.map((u) => `<div class="upd"><span class="ic">${u.kind === 'new' ? I.plus : u.kind === 'edit' ? I.alert : I.megaphone}</span><div class="grow"><b class="small" style="display:block">${esc(u.t)}</b><span class="xs muted">${u.by === ME() ? 'You' : nm(u.by)} · ${ago(u.d)}${ago(u.d) === 'just now' ? '' : ' ago'}${u.sent ? ` · sent to ${u.sent}` : ''}</span></div></div>`).join('')}</div>` : emptyState('No updates yet', 'Anything you post here reaches everyone in this seva as a notification.')}`;
   }
   const act = needsAttend(s) ? `<button class="btn block" data-act="attend" data-id="${s.id}">${I.clip}Mark attendance</button>` : needsReport(s) ? `<button class="btn block" data-act="write-report" data-id="${s.id}">${I.edit}Write seva report</button>` : live ? `<div class="btn-row"><button class="btn ghost" data-dtab="updates">${I.megaphone}Post update</button><button class="btn" data-act="seva-end" data-id="${s.id}">${I.check}End seva</button></div>` : '';
   return `${dtop('Manage seva', `<button class="iconbtn" data-act="wa" data-id="${s.id}" aria-label="Share on WhatsApp">${I.share}</button>`)}${hero}
@@ -2071,9 +2074,9 @@ function pastItems() {
   return out.sort((a, b) => b.d - a.d);
 }
 function pastCard(x) {
-  if (x.s) { const s = x.s; const rep = s.report; return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${s.att ? `${s.att.present.length} came · ${hrsTxt(s.att.hours || 0)}` : 'Attendance not marked yet'} · lead ${esc(s.lead)}</p><div class="foot">${repDots(rep)}${!s.att ? '<span class="status st-plan">Attendance due</span>' : !rep ? '<span class="status st-plan">Report due</span>' : ''}</div></div></button>`, x.g); }
+  if (x.s) { const s = x.s; const rep = s.report; return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${s.att ? `${s.att.present.length} came · ${hrsTxt(s.att.hours || 0)}` : 'Attendance not marked yet'} · lead ${nm(s.lead)}</p><div class="foot">${repDots(rep)}${!s.att ? '<span class="status st-plan">Attendance due</span>' : !rep ? '<span class="status st-plan">Report due</span>' : ''}</div></div></button>`, x.g); }
   const r = x.r, d = recDetail(r);
-  return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(iso(r.d), r.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${r.cat}) 13%,transparent);color:var(--c-${r.cat})">${CAT[r.cat].label}</span><h3>${d.title}</h3><p class="m">${r.cancelled ? `Cancelled · ${esc(r.reason)}` : `${r.came} came · ${hrsTxt(d.hours)} · lead ${esc(d.lead)}`}</p><div class="foot">${r.cancelled ? '<span class="status" style="background:var(--live-bg);color:var(--live)">Cancelled</span>' : repDots(d.rep) || '<span class="status" style="background:var(--surface2);color:var(--muted)">No report</span>'}</div></div></button>`, x.g);
+  return withLoc(`<button class="scard tap" data-open="past:${x.id}">${dblock(iso(r.d), r.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${r.cat}) 13%,transparent);color:var(--c-${r.cat})">${CAT[r.cat].label}</span><h3>${d.title}</h3><p class="m">${r.cancelled ? `Cancelled · ${esc(r.reason)}` : `${r.came} came · ${hrsTxt(d.hours)} · lead ${nm(d.lead)}`}</p><div class="foot">${r.cancelled ? '<span class="status" style="background:var(--live-bg);color:var(--live)">Cancelled</span>' : repDots(d.rep) || '<span class="status" style="background:var(--surface2);color:var(--muted)">No report</span>'}</div></div></button>`, x.g);
 }
 const repDots = (rep) => rep ? ['good', 'feedback', 'challenge'].filter((k) => rep[k]?.length).map((k) => `<span class="rpill" style="color:${RT[k][1]};background:${RT[k][2]}">${RT[k][3]}${rep[k].length}</span>`).join('') : '';
 function PastView({ id }) {
@@ -2082,7 +2085,7 @@ function PastView({ id }) {
   else { const r = admData().recs[+id.slice(1)]; d = recDetail(r); g = d.g; cat = r.cat; title = d.title; start = d.start; end = d.end; lead = d.lead; tags = d.tags; rep = d.rep; signed = r.going; people = d.people; came = r.came; fill = Math.round(r.filled / r.need * 100); cancelled = r.cancelled; reason = r.reason; }
   const hours = Math.round(people.reduce((a, p) => a + p.h, 0) * 10) / 10;
   return `${dtop('Seva record')}<div class="dhero cc-${cat}"><span class="chip" style="background:rgba(255,255,255,.22);color:#fff">${CAT[cat].label}</span><h1>${esc(title)}</h1>
-      <div class="meta"><div>${I.cal}${fmtLong(start)}, ${fmtTime(start)} – ${fmtTime(end)}</div><div>${I.globe}${g.flag} ${g.country} · ${esc(g.state)} · ${esc(g.name)}</div><div>${I.shield}Team lead: ${esc(lead)}</div></div>${cancelled ? `<div class="partpill maybe">${I.xc}Cancelled · ${esc(reason)}</div>` : ''}</div>
+      <div class="meta"><div>${I.cal}${fmtLong(start)}, ${fmtTime(start)} – ${fmtTime(end)}</div><div>${I.globe}${g.flag} ${g.country} · ${esc(g.state)} · ${esc(g.name)}</div><div>${I.shield}Team lead: ${nm(lead)}</div></div>${cancelled ? `<div class="partpill maybe">${I.xc}Cancelled · ${esc(reason)}</div>` : ''}</div>
     <div class="tstats four" style="margin-top:12px"><div class="tstat"><b>${signed}</b><span>Said yes</span></div><div class="tstat" style="--tc:var(--done)"><b>${came}</b><span>Came</span></div><div class="tstat" style="--tc:var(--p)"><b>${Math.round(hours)}</b><span>Hours</span></div><div class="tstat" style="--tc:${STL[KPI.fill.g({ fill })][1]}"><b>${fill}%</b><span>Filled</span></div></div>
     <div class="section"><div class="section-h"><h2>Seva report</h2></div>${rep ? reportView(rep, tags) : `<div class="card"><p class="small muted">${cancelled ? 'No report — seva was cancelled.' : 'The team lead has not submitted a report yet.'}</p>${tagChips(tags)}</div>`}</div>
     <div class="section"><div class="section-h"><h2>Who came</h2><span class="xs muted">${people.length}</span></div><div class="card list">${people.length ? people.map((p) => `<div class="lrow tap" data-open="user:${esc(p.n)}" style="cursor:pointer"><span class="av2" style="background:${avColor(p.n)}">${initials(p.n)}</span><div class="grow"><b class="small">${esc(p.n)}</b><p class="xs muted">${fmtTime(p.in)} – ${fmtTime(p.out)}</p></div><b class="small">${hrsTxt(p.h)}</b></div>`).join('') : '<p class="small muted" style="padding:12px 0">No attendance recorded.</p>'}</div></div>`;
@@ -2419,6 +2422,12 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('.sv') && !e.target.closest('[data-act]')) return;
   const cell = e.target.closest('[data-cell]'); if (cell && GE) { arrangeTap(cell.dataset.cell); return; }
   const gi = e.target.closest('[data-gi]'); if (gi) { buzz(); if (stack[stack.length - 1]?.v === 'user') toast(GI[gi.dataset.gi].name); else if (!e.target.closest('.phead')) itemSheet(gi.dataset.gi); return; }
+  { const inPeek = e.target.closest('.peek'); const txt = e.target.closest('.pnl');
+    if (txt && !inPeek) { buzz(); peekSheet(txt.dataset.pn); return; }
+    const av = e.target.closest('.av2, .fa'); const pn = av?.querySelector('.pn');
+    if (pn && !inPeek && !av.closest('.sheet') && !av.closest('.scard') && !av.closest('[data-act="peek"]')) { buzz(); peekSheet(pn.dataset.pn); return; }
+    const row = e.target.closest('.lrow, .prow'); const own = e.target.closest('[data-act],[data-open],[data-tab]');
+    const pns = row ? row.querySelectorAll('.pn') : []; if (row && pns.length === 1 && !inPeek && !row.closest('.sheet') && (!own || (!row.contains(own) && !own.contains(row)))) { buzz(); peekSheet(pns[0].dataset.pn); return; } }
   const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role],[data-insp],[data-tip],[data-uview],[data-pseg],[data-pg],[data-aseg],[data-cptype],[data-rft]');
   if (!t || t.disabled) return;
   if (t.dataset.act) return handle(t);

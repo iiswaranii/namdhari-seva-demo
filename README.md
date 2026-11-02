@@ -127,3 +127,4 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - Tapping any name or face opens a **profile peek** from the bottom: photo, role, group, **member ID**, seva done, Full profile, Message, **Share profile link** (`#user=Name~group`).
 - Same names: the peek warns when more than one person has the name and lists the other one(s) with group + ID. Admin member lists show the ID when names repeat. Clean data now has two *Harpreet Kaur* (Delhi and Ludhiana) to try it.
 - Production note: photos belong in object storage (Supabase Storage / Cloudflare R2) behind a CDN; the database keeps only the URL.
+- v14.1: profiles open from **everywhere** — any face, any person row (team leads lists for member/lead/admin, members, who's coming, who came), and names inside text (seva "Lead:", "lead X" on cards, update "by X", seva record "Team lead"). Rows that have their own action keep it; tapping the face opens the profile.

@@ -804,3 +804,6 @@ html, body { overscroll-behavior-y: contain; }
 .idchip { display: flex; width: fit-content; margin: 8px auto 0; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; cursor: pointer; }
 .peek .lrow { margin-top: 8px; border-radius: 14px; background: var(--surface2); padding: 8px 12px; }
 .bigav[data-act] { cursor: pointer; }
+.pnl { font-weight: 700; color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
+.av2:has(.pn), .faces .fa:has(.pn) { cursor: pointer; }
+div.lrow:has(.pn) { cursor: pointer; }
