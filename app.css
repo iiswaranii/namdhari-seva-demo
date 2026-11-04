@@ -843,3 +843,20 @@ html.duo #toast { left: calc(var(--R0) + var(--RW) / 2); max-width: calc(var(--R
 @container (max-width: 360px) {
   .chips.fill .chip2 { padding: 0 4px; font-size: 12px; }
 }
+/* v15.1: one bottom bar for both halves (no duplicate tab bars) */
+html.duo .duobar { left: 0; right: 0; }
+html.duo .duobar nav { max-width: 620px; }
+html.duo .duobar button { gap: 2px; }
+html.duo .duobar button .ic { padding: 4px 18px; border-radius: 999px; transition: background .2s; }
+html.duo .duobar button[aria-current="page"] .ic { background: color-mix(in srgb, var(--p) 15%, transparent); }
+html.duo .duobar button[data-side="r"] { color: var(--ink); font-weight: 700; }
+html.duo .duobar button[data-side="r"] .ic { background: var(--surface2); box-shadow: inset 0 0 0 1px var(--border); }
+html.duo .duobar button[data-side="r"] svg:not(.side) { fill: currentColor; fill-opacity: .1; }
+html.duo .duobar .side { position: absolute; bottom: 12px; left: calc(50% + 26px); width: 15px; height: 11px; border: 1.6px solid currentColor; border-radius: 3px; opacity: .85; }
+html.duo .duobar .side::after { content: ''; position: absolute; top: 1.5px; bottom: 1.5px; width: 4.5px; border-radius: 1px; background: currentColor; }
+html.duo .duobar .side.l::after { left: 1.5px; } html.duo .duobar .side.r::after { right: 1.5px; }
+html.duo .rpw { bottom: calc(64px + var(--safe-b)); }
+html.duo .rp .screen { padding-bottom: 32px; }
+html.duo .rp .screen.detail { padding-bottom: 110px; }
+html.duo .rp .fab { bottom: 16px; }
+html.duo .rp .cartbar { bottom: 12px; }

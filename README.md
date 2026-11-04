@@ -130,7 +130,7 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - v14.1: profiles open from **everywhere** — any face, any person row (team leads lists for member/lead/admin, members, who's coming, who came), and names inside text (seva "Lead:", "lead X" on cards, update "by X", seva record "Team lead"). Rows that have their own action keep it; tapping the face opens the profile.
 
 ## v15 — Foldables & tablets
-- Unfolded foldables (book-style, square, wide) and tablets (≥ 600 px wide, ≥ 480 px tall) show **two tabs side by side**, one per half, each with its own tab bar. Picking the tab the other half shows swaps them.
+- Unfolded foldables (book-style, square, wide) and tablets (≥ 600 px wide, ≥ 480 px tall) show **two tabs side by side**, one per half, with **one bottom bar** for both halves; the two tabs on screen are marked with a small left/right icon. Tapping another tab opens it on the left and moves the left one to the right.
 - Tap anything (seva, event, profile, create…) and it opens on the **right half**; the left half keeps its list. Back returns the right half to its tab.
 - Sheets, stories and toasts open on the right half so nothing sits across the fold. On foldables that report the fold (`horizontal-viewport-segments`), the split follows the real hinge.
 - Folding the phone switches back to the one-screen phone layout instantly, keeping where you were. Cover screens down to ~340 px fit.

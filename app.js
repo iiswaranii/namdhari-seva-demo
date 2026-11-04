@@ -395,7 +395,7 @@ const key = () => tab + '/' + stack.map((v) => v.v + (v.id || '')).join('/');
 function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); history.pushState({ d: stack.length }, ''); if (view.v === 'seva') dtab = 'overview'; render(); window.scrollTo(0, 0); }
 function pop() { if (stack.length) history.back(); }
 window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; if (pendingRef) { const r = pendingRef; pendingRef = null; openRef(r); } return; } if ($('.sv')) { closeStory(true); return; } if ($('.sc')) { closeComposer(true); return; } if (stack.length) { leaveDetail(); stack.pop(); closeSheet(); render(); window.scrollTo(0, scrollMem[key()] || 0); } });
-function go(t) { closeSheet(); GE = null; if (document.documentElement.classList.contains('duo') && t === tab2) tab2 = tab; if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
+function go(t) { closeSheet(); GE = null; if (document.documentElement.classList.contains('duo') && t !== tab) tab2 = tab; if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
 function leaveDetail() {} // updates and new tasks stay flagged until their tab is opened
 
 // ---------- Render ----------
@@ -411,10 +411,10 @@ function fixTab(t) { if (t === 'team' && !isLead()) t = 'home'; if (isAdmin() &&
 function fixTab2() { const ok = allowedTabs(); if (!tab2 || !ok.includes(tab2) || tab2 === tab) tab2 = [isAdmin() ? 'seva' : tab === 'home' ? 'seva' : 'home', 'seva', 'stats', 'home', 'profile'].find((x) => ok.includes(x) && x !== tab); }
 const viewsMap = () => ({ past: PastView, repform: ReportForm, report: ReportView, grp: GroupView, compose: Compose, user: UserProfile, seva: (v) => (isAdmin() || (isLead() && !sv(v.id)?.hq)) && !v.asMember ? LeadSevaDetail(v) : SevaDetail(v), event: EventDetail, history: HistoryDetail, inbox: Inbox, team: TeamScreen, journey: JourneyScreen, attend: AttendScreen, create: CreateSeva });
 const screensMap = () => isAdmin() ? { stats: AdminStats, seva: AdminSeva, feed: Home, people: AdminPeople, profile: AdminProfile } : { home: Home, seva: SevaTab, garden: GardenTab, profile: Profile, team: LeadTeam };
-function tabScreen(t) {
+function tabScreen(t, bar = true) {
   const keep = tab; tab = t;
   try { const flush = t === 'garden'; const arr = t === 'garden' && GE;
-    return `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${arr ? ArrangeView() : screensMap()[t]()}</main>${t === 'garden' && cartQty() && !arr ? cartBar() : ''}${arr ? '' : tabbar()}`;
+    return `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${arr ? ArrangeView() : screensMap()[t]()}</main>${t === 'garden' && cartQty() && !arr ? cartBar() : ''}${arr || !bar ? '' : tabbar()}`;
   } finally { tab = keep; }
 }
 function render() {
@@ -426,8 +426,8 @@ function render() {
   tab = fixTab(tab);
   if (duo) {
     fixTab2(); const rk = top ? 'v:' + top.v + (top.id || top.n || '') : 't:' + tab2; const old = $('#rp'); const keepY = old && old.dataset.k === rk ? old.scrollTop : 0;
-    const right = top ? `<main class="screen detail">${offline()}${viewsMap()[top.v](top)}</main>` : tabScreen(tab2).replace(/data-tab="/g, 'data-tab2="');
-    $('#app').innerHTML = `<div class="lp">${tabScreen(tab)}</div><div class="rpw"><div class="rp" id="rp" data-k="${rk}">${right}</div></div>`;
+    const right = top ? `<main class="screen detail">${offline()}${viewsMap()[top.v](top)}</main>` : tabScreen(tab2, false).replace(/data-tab="/g, 'data-tab2="');
+    $('#app').innerHTML = `<div class="lp">${tabScreen(tab, false)}</div><div class="rpw"><div class="rp" id="rp" data-k="${rk}">${right}</div></div>${GE ? '' : duoBar(top)}`;
     $('#rp').scrollTop = keepY;
   } else if (top) {
     $('#app').innerHTML = `<main class="screen detail">${offline()}${viewsMap()[top.v](top)}</main>`;
@@ -439,6 +439,15 @@ function render() {
   if (shown.includes('garden') && S.gview === '3d' && !GE && !user3d) mount3D(ensureLayout(), itemSheet);
   if (user3d) mount3D(genLayout(top.n), (id) => toast(GI[id].name));
   if (shown.includes('home') || shown.includes('feed')) { setupFeed(); setupLiveCarousel(); }
+}
+// one bar for both halves: each tab appears once; the two on screen are marked with the half they're on.
+// Tapping another tab opens it on the left and moves the left one to the right — the last two tabs you used stay on screen.
+const SIDE_L = '<i class="side l" aria-hidden="true"></i>';
+const SIDE_R = '<i class="side r" aria-hidden="true"></i>';
+function duoBar(top) {
+  return tabbar().replace('class="tabbar"', 'class="tabbar duobar"')
+    .replace(new RegExp(`(<button data-tab="${tab}"[^>]*>)([\\s\\S]*?)(</button>)`), `$1$2${SIDE_L}$3`)
+    .replace(new RegExp(`<button data-tab="${tab2}"([^>]*)>([\\s\\S]*?)(</button>)`), top ? '<button data-tab="' + tab2 + '"$1>$2$3' : `<button data-tab="${tab2}" data-side="r"$1>$2${SIDE_R}$3`);
 }
 // the right half has its own tab bar; picking the tab the left half shows swaps the two
 function setTab2(t) {
