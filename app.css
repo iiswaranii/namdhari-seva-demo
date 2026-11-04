@@ -807,3 +807,39 @@ html, body { overscroll-behavior-y: contain; }
 .pnl { font-weight: 700; color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .av2:has(.pn), .faces .fa:has(.pn) { cursor: pointer; }
 div.lrow:has(.pn) { cursor: pointer; }
+/* v15: foldables & tablets — two tabs side by side, one per screen half.
+   On foldables that report two segments the split follows the real fold (env viewport-segment-*). */
+html.duo { --L: env(viewport-segment-width 0 0, 50vw); --R0: env(viewport-segment-left 1 0, 50vw); --RW: calc(100vw - var(--R0)); }
+html.duo body { overflow-x: hidden; }
+html.duo .lp { width: var(--L); min-height: 100dvh; }
+html.duo .rpw { position: fixed; top: 0; bottom: 0; left: var(--R0); right: 0; transform: translateZ(0); background: var(--canvas); border-left: 1px solid var(--border); box-shadow: -1px 0 0 color-mix(in srgb, var(--ink) 4%, transparent); z-index: 20; }
+html.duo .rp { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+/* left half: bars and buttons stay inside it */
+html.duo .lp .tabbar, html.duo .lp .stickyact, html.duo .lp .cartbar { right: calc(100vw - var(--L)); }
+html.duo .lp .fab { right: calc(100vw - var(--L) + 16px); }
+/* right half: things that used to cover the whole phone now cover only this half */
+html.duo .rp .tabbar { border-top-color: var(--border); }
+html.duo .sheet { left: var(--R0); right: 0; max-width: none; margin: 0; border-radius: 28px 0 0 0; }
+html.duo .scrim { left: 0; }
+html.duo .sv, html.duo .sc { left: var(--R0); }
+html.duo .sv .stage { max-width: none; }
+html.duo #toast { left: calc(var(--R0) + var(--RW) / 2); max-width: calc(var(--RW) - 32px); }
+/* a little more air on big tablets */
+@media (min-width: 1100px) { html.duo .screen { padding-left: 24px; padding-right: 24px; } }
+/* very narrow cover screens (≈ 340 px): keep everything on one line */
+@media (max-width: 360px) {
+  .screen { padding-left: 12px; padding-right: 12px; }
+  .tabbar button { font-size: 10.5px; min-height: 52px; }
+  .tabbar button svg { width: 23px; height: 23px; }
+  .apphdr h1 { font-size: 19px; }
+  .pagetitle { font-size: 26px; }
+}
+/* each half (or a narrow cover screen) sizes its own chips */
+.screen { container-type: inline-size; }
+@container (max-width: 400px) {
+  .chips.fill .chip2 { padding: 0 6px; font-size: 12.5px; gap: 4px; }
+  .chips.fill .chip2 .n { min-width: 16px; padding: 0 4px; }
+}
+@container (max-width: 360px) {
+  .chips.fill .chip2 { padding: 0 4px; font-size: 12px; }
+}

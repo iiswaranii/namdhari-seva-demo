@@ -395,31 +395,62 @@ const key = () => tab + '/' + stack.map((v) => v.v + (v.id || '')).join('/');
 function push(view) { scrollMem[key()] = window.scrollY; stack.push(view); history.pushState({ d: stack.length }, ''); if (view.v === 'seva') dtab = 'overview'; render(); window.scrollTo(0, 0); }
 function pop() { if (stack.length) history.back(); }
 window.addEventListener('popstate', () => { if (ignorePop) { ignorePop = false; if (pendingRef) { const r = pendingRef; pendingRef = null; openRef(r); } return; } if ($('.sv')) { closeStory(true); return; } if ($('.sc')) { closeComposer(true); return; } if (stack.length) { leaveDetail(); stack.pop(); closeSheet(); render(); window.scrollTo(0, scrollMem[key()] || 0); } });
-function go(t) { closeSheet(); GE = null; if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
+function go(t) { closeSheet(); GE = null; if (document.documentElement.classList.contains('duo') && t === tab2) tab2 = tab; if (stack.length) { leaveDetail(); const n = stack.length; stack = []; history.go(-n); } scrollMem[key()] = window.scrollY; if (t === 'seva' && tab !== 'seva') sevaChip = null; tab = t; render(); window.scrollTo(0, scrollMem[key()] || 0); }
 function leaveDetail() {} // updates and new tasks stay flagged until their tab is opened
 
 // ---------- Render ----------
+// ---------- Foldables & tablets: two screens side by side ----------
+// Unfolded (or any screen ≥ 600 px wide and ≥ 480 px tall) shows two tabs at once — one on each half.
+// Opening anything (a seva, a profile, create…) shows it on the right half; the left half keeps its list.
+const MQ_WIDE = matchMedia('(min-width: 600px) and (min-height: 480px)');
+const MQ_SPLIT = matchMedia('(horizontal-viewport-segments: 2)');
+let tab2 = null;
+const isDuo = () => S.onboarded && S.layout !== 'one' && (MQ_WIDE.matches || MQ_SPLIT.matches);
+const allowedTabs = () => isAdmin() ? ['stats', 'seva', 'feed', 'people', 'profile'] : ['home', 'seva', ...(isLead() ? ['team'] : []), 'garden', 'profile'];
+function fixTab(t) { if (t === 'team' && !isLead()) t = 'home'; if (isAdmin() && !allowedTabs().includes(t)) t = 'stats'; if (!isAdmin() && ['stats', 'feed', 'people'].includes(t)) t = 'home'; return t; }
+function fixTab2() { const ok = allowedTabs(); if (!tab2 || !ok.includes(tab2) || tab2 === tab) tab2 = [isAdmin() ? 'seva' : tab === 'home' ? 'seva' : 'home', 'seva', 'stats', 'home', 'profile'].find((x) => ok.includes(x) && x !== tab); }
+const viewsMap = () => ({ past: PastView, repform: ReportForm, report: ReportView, grp: GroupView, compose: Compose, user: UserProfile, seva: (v) => (isAdmin() || (isLead() && !sv(v.id)?.hq)) && !v.asMember ? LeadSevaDetail(v) : SevaDetail(v), event: EventDetail, history: HistoryDetail, inbox: Inbox, team: TeamScreen, journey: JourneyScreen, attend: AttendScreen, create: CreateSeva });
+const screensMap = () => isAdmin() ? { stats: AdminStats, seva: AdminSeva, feed: Home, people: AdminPeople, profile: AdminProfile } : { home: Home, seva: SevaTab, garden: GardenTab, profile: Profile, team: LeadTeam };
+function tabScreen(t) {
+  const keep = tab; tab = t;
+  try { const flush = t === 'garden'; const arr = t === 'garden' && GE;
+    return `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${arr ? ArrangeView() : screensMap()[t]()}</main>${t === 'garden' && cartQty() && !arr ? cartBar() : ''}${arr ? '' : tabbar()}`;
+  } finally { tab = keep; }
+}
 function render() {
   applyTheme(); unmount3D(); ensureHQGroup();
   S.groups.forEach((g) => { g.stories = g.stories.filter((x) => x.by !== '@me' || now() - T(x.d) < DAY); }); // own stories expire after 24 h
-  if (!S.onboarded) return renderOnboarding();
-  const top = stack[stack.length - 1];
-  if (top) {
-    const V = { past: PastView, repform: ReportForm, report: ReportView, grp: GroupView, compose: Compose, user: UserProfile, seva: (v) => (isAdmin() || (isLead() && !sv(v.id)?.hq)) && !v.asMember ? LeadSevaDetail(v) : SevaDetail(v), event: EventDetail, history: HistoryDetail, inbox: Inbox, team: TeamScreen, journey: JourneyScreen, attend: AttendScreen, create: CreateSeva };
-    $('#app').innerHTML = `<main class="screen detail">${offline()}${V[top.v](top)}</main>`;
+  if (!S.onboarded) { document.documentElement.classList.remove('duo'); return renderOnboarding(); }
+  const top = stack[stack.length - 1]; const duo = isDuo();
+  document.documentElement.classList.toggle('duo', duo);
+  tab = fixTab(tab);
+  if (duo) {
+    fixTab2(); const rk = top ? 'v:' + top.v + (top.id || top.n || '') : 't:' + tab2; const old = $('#rp'); const keepY = old && old.dataset.k === rk ? old.scrollTop : 0;
+    const right = top ? `<main class="screen detail">${offline()}${viewsMap()[top.v](top)}</main>` : tabScreen(tab2).replace(/data-tab="/g, 'data-tab2="');
+    $('#app').innerHTML = `<div class="lp">${tabScreen(tab)}</div><div class="rpw"><div class="rp" id="rp" data-k="${rk}">${right}</div></div>`;
+    $('#rp').scrollTop = keepY;
+  } else if (top) {
+    $('#app').innerHTML = `<main class="screen detail">${offline()}${viewsMap()[top.v](top)}</main>`;
   } else {
-    if (tab === 'team' && !isLead()) tab = 'home';
-    if (isAdmin() && !['stats', 'seva', 'feed', 'people', 'profile'].includes(tab)) tab = 'stats';
-    if (!isAdmin() && ['stats', 'feed', 'people'].includes(tab)) tab = 'home';
-    const screens = isAdmin() ? { stats: AdminStats, seva: AdminSeva, feed: Home, people: AdminPeople, profile: AdminProfile } : { home: Home, seva: SevaTab, garden: GardenTab, profile: Profile, team: LeadTeam };
-    const flush = tab === 'garden'; const arr = tab === 'garden' && GE;
-    $('#app').innerHTML = `<main class="screen ${flush ? 'flush' : ''}">${flush ? '' : offline()}${arr ? ArrangeView() : screens[tab]()}</main>${tab === 'garden' && cartQty() && !arr ? cartBar() : ''}${arr ? '' : tabbar()}`;
+    $('#app').innerHTML = tabScreen(tab);
   }
-  if (!stack.length && tab === 'garden' && S.gview === '3d' && !GE) mount3D(ensureLayout(), itemSheet);
-  if (top?.v === 'user' && uview === '3d') mount3D(genLayout(top.n), (id) => toast(GI[id].name));
-  if (!stack.length && (tab === 'home' || tab === 'feed')) { setupFeed(); setupLiveCarousel(); }
+  const shown = duo ? [tab, ...(top ? [] : [tab2])] : top ? [] : [tab];
+  const user3d = top?.v === 'user' && uview === '3d';
+  if (shown.includes('garden') && S.gview === '3d' && !GE && !user3d) mount3D(ensureLayout(), itemSheet);
+  if (user3d) mount3D(genLayout(top.n), (id) => toast(GI[id].name));
+  if (shown.includes('home') || shown.includes('feed')) { setupFeed(); setupLiveCarousel(); }
 }
-function rerender() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+// the right half has its own tab bar; picking the tab the left half shows swaps the two
+function setTab2(t) {
+  closeSheet(); GE = null; if (t === tab) tab = tab2; tab2 = t;
+  if (stack.length) { const n = stack.length; stack = []; ignorePop = true; history.go(-n); }
+  render(); const r = $('#rp'); if (r) r.scrollTop = 0;
+}
+// in two-screen mode "scroll to top" after opening something means the right half, not the list on the left
+{ const _st = window.scrollTo.bind(window); window.scrollTo = function (x, y) { const top = typeof x === 'object' && x ? x.top : y; if (document.documentElement.classList.contains('duo') && stack.length && !top) { const r = $('#rp'); if (r) r.scrollTop = 0; return; } return _st.apply(window, arguments); }; }
+const onLayoutChange = () => { if (!S.onboarded) return; closeSheet(); render(); };
+MQ_WIDE.addEventListener?.('change', onLayoutChange); MQ_SPLIT.addEventListener?.('change', onLayoutChange);
+function rerender() { const y = window.scrollY; render(); (y && window.scrollTo(0, y)); }
 function tabbar() {
   if (isAdmin()) { const al = alertsList().filter((a) => a[0] === 'bad').length; const items = [['stats', 'Stats', svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), al ? `<span class="nb" style="background:var(--live)">${al}</span>` : ''], ['seva', 'Seva', I.seva, !S.clean || S.seva.some(isLive) ? '<span class="livetag">LIVE</span>' : ''], ['feed', 'Feed', I.megaphone, ''], ['people', 'People', I.team, ''], ['profile', 'Profile', I.profile, '']];
     return `<div class="tabbar"><nav aria-label="Main">${items.map(([id, l, ic, b]) => `<button data-tab="${id}" ${tab === id ? 'aria-current="page"' : ''} aria-label="${l}"><span class="ic">${ic}${b}</span>${l}</button>`).join('')}</nav></div>`; }
@@ -1092,6 +1123,7 @@ function settingsSheet() {
     <label class="f">You are</label><div class="seg"><button data-act="set-gender" data-v="m" aria-pressed="${S.gender === 'm'}">Male</button><button data-act="set-gender" data-v="f" aria-pressed="${S.gender === 'f'}">Female</button></div>
     ${S.clean ? '' : `<button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
     <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>`}
+    <label class="f">Foldables & tablets</label><div class="seg"><button data-act="set-layout" data-v="two" aria-pressed="${S.layout !== 'one'}">Two screens</button><button data-act="set-layout" data-v="one" aria-pressed="${S.layout === 'one'}">One screen</button></div><p class="xs muted" style="margin-top:6px">When the phone is unfolded or on a tablet, show two tabs side by side.</p>
     <div class="demo"><p class="h">Prototype data · Clean = start from scratch</p><div class="seg">${[['clean', 'Clean'], ['new', 'Demo new'], ['active', 'Demo busy'], ['less', 'Demo quiet']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
     <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
     <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
@@ -1595,7 +1627,7 @@ function liveTick() {
 }
 // ----- Pull down to refresh -----
 let PR = null;
-function canPull(e) { return window.scrollY <= 0 && S.onboarded && !$('#sheet-root').innerHTML && !SV && !SC && !GE && !e.target.closest('.g3d,.lcar,.stories,.chips,.tray2,#cal,input,textarea'); }
+function canPull(e) { return window.scrollY <= 0 && !e.target.closest('#rp') && S.onboarded && !$('#sheet-root').innerHTML && !SV && !SC && !GE && !e.target.closest('.g3d,.lcar,.stories,.chips,.tray2,#cal,input,textarea'); }
 document.addEventListener('touchstart', (e) => { PR = e.touches.length === 1 && canPull(e) ? { y: e.touches[0].clientY, x: e.touches[0].clientX, d: 0 } : null; }, { passive: true });
 document.addEventListener('touchmove', (e) => {
   if (!PR) return; const dy = e.touches[0].clientY - PR.y, dx = e.touches[0].clientX - PR.x;
@@ -2283,6 +2315,7 @@ function handle(el) {
     case 'blk-done': { const b = S.adm.blockers.find((x) => x.id === id); b.st = 'resolved'; save(); rerender(); toast('Marked resolved — the lead is told'); break; }
     case 'lead-assign': leadAssignSheet(el.dataset.g); break;
     case 'peek': peekSheet(el.dataset.n, el.dataset.g); break;
+    case 'set-layout': S.layout = el.dataset.v; save(); $$('[data-act="set-layout"]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === el.dataset.v)); render(); toast(el.dataset.v === 'one' ? 'One screen layout' : isDuo() ? 'Two screens side by side' : 'Two screens — shows when unfolded'); break;
     case 'photo-pick': pickPhoto(); break;
     case 'photo-del': delete S.myPhoto; save(); closeSheet(); rerender(); toast('Photo removed'); break;
     case 'copy-id': navigator.clipboard?.writeText(el.dataset.v).catch(() => {}); toast(`ID ${el.dataset.v} copied`); break;
@@ -2428,11 +2461,12 @@ document.addEventListener('click', (e) => {
     if (pn && !inPeek && !av.closest('.sheet') && !av.closest('.scard') && !av.closest('[data-act="peek"]')) { buzz(); peekSheet(pn.dataset.pn); return; }
     const row = e.target.closest('.lrow, .prow'); const own = e.target.closest('[data-act],[data-open],[data-tab]');
     const pns = row ? row.querySelectorAll('.pn') : []; if (row && pns.length === 1 && !inPeek && !row.closest('.sheet') && (!own || (!row.contains(own) && !own.contains(row)))) { buzz(); peekSheet(pns[0].dataset.pn); return; } }
-  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role],[data-insp],[data-tip],[data-uview],[data-pseg],[data-pg],[data-aseg],[data-cptype],[data-rft]');
+  const t = e.target.closest('[data-act],[data-open],[data-tab],[data-tab2],[data-seg],[data-chip],[data-story],[data-react],[data-setmode],[data-scn],[data-day],[data-dtab],[data-tf],[data-kind],[data-lchip],[data-scbg],[data-dcat],[data-tseg],[data-tfil],[data-role],[data-insp],[data-tip],[data-uview],[data-pseg],[data-pg],[data-aseg],[data-cptype],[data-rft]');
   if (!t || t.disabled) return;
   if (t.dataset.act) return handle(t);
   if (t.dataset.open && t.dataset.open.startsWith('user:') && !t.dataset.full && !t.closest('.sheet')) { buzz(); peekSheet(t.dataset.open.slice(5)); return; }
   if (t.dataset.open) { buzz(); closeSheet(); openRef(t.dataset.open.includes(':') ? t.dataset.open : t.dataset.open + ':'); return; }
+  if (t.dataset.tab2) { buzz(); setTab2(t.dataset.tab2); return; }
   if (t.dataset.tab) { buzz(); closeSheet(); go(t.dataset.tab); return; }
   if (t.dataset.story) { buzz(); openStory(t.dataset.story); return; }
   if (t.dataset.react) { const [pid, k] = t.dataset.react.split(':'); buzz(); setReact(pid, k); return; }
@@ -2456,13 +2490,13 @@ document.addEventListener('click', (e) => {
   if (t.dataset.role) { if (t.dataset.role === 'lead' && !meIsLead()) { toast('You are not a team lead yet — switch to Super Admin › People and make yourself a team lead of Delhi Central'); return; } S.role = t.dataset.role; try { sessionStorage.setItem('seva-role', S.role); } catch (e) {} sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; save(); stack = []; tab = isAdmin() ? 'stats' : 'home'; render(); window.scrollTo(0, 0); toast(isAdmin() ? 'Viewing as Super Admin · Seva HQ' : isLead() ? 'Viewing as Team Lead · Delhi Central' : 'Viewing as Member'); setTimeout(announceNew, 900); return; }
   if (t.dataset.kind) { shopKind = t.dataset.kind; rerender(); return; }
   if (t.dataset.day) { calPop = calPop === t.dataset.day ? null : t.dataset.day; buzz(); rerender(); return; }
-  if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); applyTheme(); $$('[data-setmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.setmode === S.mode)); const y = window.scrollY; const sh = $('#sheet-root').innerHTML; render(); $('#sheet-root').innerHTML = sh; window.scrollTo(0, y); return; }
+  if (t.dataset.setmode) { S.mode = t.dataset.setmode; save(); applyTheme(); $$('[data-setmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.setmode === S.mode)); const y = window.scrollY; const sh = $('#sheet-root').innerHTML; render(); $('#sheet-root').innerHTML = sh; (y && window.scrollTo(0, y)); return; }
   if (t.dataset.scn) { if (t.dataset.scn !== S.scenario || S.clean) { if (t.dataset.scn === 'clean' && !confirm('Start from scratch? All seva, posts and history are cleared.')) return; try { localStorage.setItem('seva-next-scn', t.dataset.scn); } catch (e) {} location.reload(); return; } setScenario(t.dataset.scn); stack = []; tab = 'home'; sevaChip = null; closeSheet(); render(); window.scrollTo(0, 0); toast({ new: 'New member: first day', active: 'Active: 2 seva live now', less: 'Less active: last seva 2 months ago' }[t.dataset.scn]); }
 });
 document.addEventListener('change', (e) => { const ai = e.target.dataset?.attIn, ao = e.target.dataset?.attOut; if ((ai || ao) && attState) { attState.rows[+(ai || ao)][ai ? 'from' : 'to'] = e.target.value; rerender(); return; } if (e.target.id === 'cp-link' || e.target.id === 'cp-special') { cpSync(); const pv = $('#cp-prev'); if (pv) pv.innerHTML = postCard(cpPost()).replace(/data-react="[^"]*"/g, '').replace(/data-dbl="[^"]*"/g, ''); } });
 document.addEventListener('input', (e) => {
-  if (e.target.id === 'adm-q') { pQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); window.scrollTo(0, y); const i2 = $('#adm-q'); i2.focus(); i2.setSelectionRange(pos, pos); return; }
-  if (e.target.id && e.target.id.startsWith('cp-')) { cpSync(); const pv = $('#cp-prev'); if (pv) pv.innerHTML = postCard(cpPost()).replace(/data-react="[^"]*"/g, '').replace(/data-dbl="[^"]*"/g, ''); return; } if (e.target.id === 'team-q') { teamQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); window.scrollTo(0, y); const i = $('#team-q'); i.focus(); i.setSelectionRange(pos, pos); } });
+  if (e.target.id === 'adm-q') { pQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); (y && window.scrollTo(0, y)); const i2 = $('#adm-q'); i2.focus(); i2.setSelectionRange(pos, pos); return; }
+  if (e.target.id && e.target.id.startsWith('cp-')) { cpSync(); const pv = $('#cp-prev'); if (pv) pv.innerHTML = postCard(cpPost()).replace(/data-react="[^"]*"/g, '').replace(/data-dbl="[^"]*"/g, ''); return; } if (e.target.id === 'team-q') { teamQ = e.target.value; const y = window.scrollY; const pos = e.target.selectionStart; render(); (y && window.scrollTo(0, y)); const i = $('#team-q'); i.focus(); i.setSelectionRange(pos, pos); } });
 // swipe calendar
 let sw = null;
 document.addEventListener('touchstart', (e) => { const c = e.target.closest('#cal'); sw = c && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
