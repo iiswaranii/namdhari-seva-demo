@@ -135,3 +135,14 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - Sheets, stories and toasts open on the right half so nothing sits across the fold. On foldables that report the fold (`horizontal-viewport-segments`), the split follows the real hinge.
 - Folding the phone switches back to the one-screen phone layout instantly, keeping where you were. Cover screens down to ~340 px fit.
 - Settings › Foldables & tablets: *Two screens* (default) or *One screen*.
+
+## v16 — Polish pass: stats, filters, feed, compose, seva flow
+- **Stats**: one-tap period bar (7 days / 30 days / 3 months / 1 year), Where and Seva type chips with a clear-filters button. A health ring with a one-line summary, four headline numbers, alerts, six key-number tiles with progress bars and target marks, and one trend chart you switch between metrics. The rest moved into tabs: Groups · Seva types · People · Issues.
+- **Details**: switch between key numbers with chips, plain-words explanation, gauge with target, by country, by group, what we see.
+- **Seva type filter**: icon, colour and how many seva of each type were held.
+- **Feed**: filter chips (All · Seva & events · Hukam · Thoughts · Thanks · News), pinned posts, admin can edit / pin / delete a post.
+- **New post**: type picker as a swipe row, live preview, optional extras as chips (Big number, Button, Special glow, Pin). The big number is no longer forced or pre-filled.
+- **Create seva**: essentials first with quick picks (Today / Tomorrow / This Sunday, Morning / Afternoon / Evening); meeting point, note, repeat, tags and urgent sit under "More options". A seva with a past time is saved as finished so it can be logged.
+- **Member home**: "Can you come?" cards with Yes / No for seva not answered yet.
+- **Lead home**: step cards for seva that ended (mark who came → short report). Publishing asks the whole team, so "No reply" and "Remind" are real.
+- Fixes: live button said "All your tasks are done" before any task was picked; "1 sevadars"; lead Seva tab forgot Manage after reload; missing delete icon in the post menu; attendance times when check-in was after the end; member time window after the lead moves a seva; ended seva now show "Waiting for attendance" under Completed.
