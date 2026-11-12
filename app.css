@@ -946,3 +946,18 @@ html.duo .rp .cartbar { bottom: 12px; }
 .closecard .ci { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--action); color: #fff; flex: none; } .closecard .ci svg { width: 22px; height: 22px; }
 .closecard .cstep { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--action); }
 .closecard b { display: block; font-size: 16px; } .closecard .m { display: block; font-size: 12.5px; color: var(--muted); }
+/* v17b: check-in approval */
+.waitbox { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--action-bg); border: 1px solid color-mix(in srgb, var(--action) 40%, transparent); }
+.waitbox b { color: var(--action); }
+.wspin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--action) 25%, transparent); border-top-color: var(--action); flex: none; animation: wspin 1s linear infinite; }
+@keyframes wspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .wspin { animation: none; } }
+.forgot { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--surface2); }
+.reqcard.has { border: 1.5px solid var(--action); }
+.nbadge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--action); color: #fff; font-size: 12px; font-weight: 800; display: inline-grid; place-items: center; }
+.apbtns { display: flex; gap: 6px; margin-left: auto; }
+.apbtns .btn.sm { min-height: 36px; padding: 0 12px; }
+.apbtns .btn.ok { background: var(--done); color: var(--p-ink); }
+.apbtns .btn svg { width: 16px; height: 16px; }
+.closecard.appr { border-color: var(--p); background: var(--p-soft); } .closecard.appr .ci { background: var(--p); } .closecard.appr .cstep { color: var(--p); }
+.reqcard .apbtns { flex-basis: 100%; padding-left: 52px; margin-top: 6px; } .reqcard .apbtns .btn.ok { flex: 1; justify-content: center; }

@@ -146,3 +146,10 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - **Member home**: "Can you come?" cards with Yes / No for seva not answered yet.
 - **Lead home**: step cards for seva that ended (mark who came → short report). Publishing asks the whole team, so "No reply" and "Remind" are real.
 - Fixes: live button said "All your tasks are done" before any task was picked; "1 sevadars"; lead Seva tab forgot Manage after reload; missing delete icon in the post menu; attendance times when check-in was after the end; member time window after the lead moves a seva; ended seva now show "Waiting for attendance" under Completed.
+
+## v17 — Check-in approval
+- **Member** taps "I've arrived — check in" → it becomes a request. The card shows *Waiting for approval* (with Cancel) and the team lead gets a notification.
+- **Team lead** sees "Check-ins to approve" at the top of the seva (and a card on Home) with Approve / Decline for each person. Approving marks them *Here* from the time they arrived; declining tells the member to speak to the lead.
+- **Check someone in**: during a live seva the lead can check in anyone who is coming, directly.
+- **Forgot to check in**: after the seva ends, the member can send "Ask lead to mark me present" with arrival and leaving times. The lead approves it (it pre-fills attendance), or adds them to attendance directly. If attendance was already saved, approving adds them with points and hours.
+- Saving attendance clears any open requests.

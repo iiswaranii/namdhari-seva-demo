@@ -319,7 +319,8 @@ const progress = (s) => { if (!s.points.length) return 0; return Math.round(s.po
 const filled = (s) => { const need = s.points.reduce((a, p) => a + p.need, 0); const got = s.points.reduce((a, p) => a + Math.min(p.need, p.takers.length), 0); return need ? Math.round(got / need * 100) : 0; };
 function peopleOf(s) {
   const list = s.people.map((p) => ({ ...p })); const a = st(s);
-  if (a && ['going', 'maybe', 'cant'].includes(a)) list.unshift({ n: ME(), me: true, st: a === 'going' ? (isLive(s) ? 'here' : 'going') : a });
+  const A = S.assign[s.id] || {};
+  if (a && ['going', 'maybe', 'cant'].includes(a)) list.unshift({ n: ME(), me: true, st: a === 'going' ? (A.in ? 'here' : 'going') : a, req: a === 'going' && !A.in ? (A.inReq || A.lateReq?.at || null) : null, late: !!A.lateReq && !A.in });
   return list;
 }
 const goingCount = (s) => peopleOf(s).filter((p) => p.st === 'going' || p.st === 'here').length;
@@ -506,7 +507,7 @@ function Home() {
     ${urgentBanner()}${specialBanner()}
     ${live.length > 1 ? `<div class="lhead"><span class="livepill"><i></i>${live.length} LIVE NOW</span><span class="xs muted">Swipe to see all ${I.arrow.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')}</span></div><div class="lcar" id="lcar">${live.map(liveBanner).join('')}</div><div class="ldots" id="ldots">${live.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : live.map(liveBanner).join('')}
     ${next ? `<button class="livebanner tap" style="background:var(--surface);border-color:var(--border)" data-open="seva:${next.id}"><span class="art cc-${next.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[next.cat].ic}</span><div class="grow"><span class="status st-up">${I.clock}Your next seva</span><h3 class="ellipsis">${esc(next.title)}</h3><p class="m ellipsis">${relDay(next.start)} · ${fmtTime(next.start)}</p></div>${chev}</button>` : ''}
-    ${!isAdmin() ? askCards() : ''}${isLead() ? closeCards() : ''}
+    ${isLead() ? closeCards() : ''}${!isAdmin() ? askCards() : ''}
     ${isAdmin() ? `<button class="fab" data-act="compose" aria-label="New post">${I.plus}<span>New post</span></button>` : ''}
     ${S.feed.length ? `<div class="feedhead"><h2>${isAdmin() ? 'All posts' : 'From Seva HQ'}</h2><span class="xs muted">${feedList().length} post${feedList().length === 1 ? '' : 's'}</span></div>` : ''}${feedChips()}
     <div style="margin-top:10px" id="feed">${feedList().slice(0, feedShown).map(postCard).join('')}</div>
@@ -521,6 +522,11 @@ function askCards() {
 }
 // lead: seva that ended and still need attendance or the report — the next step is one tap
 function closeCards() {
+  const rq = localSeva().filter((s) => (isLive(s) || T(s.end) < now()) && checkReqs(s).length);
+  const rqHtml = rq.slice(0, 2).map((s) => { const n = checkReqs(s).length; return `<button class="closecard tap appr" data-open="seva:${s.id}"><span class="ci">${I.pin}</span><span class="grow" style="min-width:0"><span class="cstep">${n} check-in${n === 1 ? '' : 's'} to approve</span><b class="ellipsis">${esc(s.title)}</b><span class="m ellipsis">${checkReqs(s).map((p) => first(p.n)).slice(0, 3).join(', ')}${n > 3 ? ` +${n - 3}` : ''} ${n === 1 ? 'is' : 'are'} waiting</span></span>${chev}</button>`; }).join('');
+  return rqHtml + closeCards2();
+}
+function closeCards2() {
   const l = localSeva().filter((s) => needsAttend(s) || needsReport(s)).sort((a, b) => T(b.end) - T(a.end));
   return l.slice(0, 2).map((s) => { const att = needsAttend(s); return `<button class="closecard tap" data-act="${att ? 'attend' : 'report-now'}" data-id="${s.id}"><span class="ci">${att ? I.clip : I.edit}</span><span class="grow" style="min-width:0"><span class="cstep">${att ? 'Step 1 of 2 · Mark who came' : 'Step 2 of 2 · Write the short report'}</span><b class="ellipsis">${esc(s.title)}</b><span class="m ellipsis">Ended ${ago(s.end)}${ago(s.end) === 'just now' ? '' : ' ago'} · ${att ? `${recipients(s).length} said Yes — they are waiting for points` : 'Takes 30 seconds'}</span></span>${chev}</button>`; }).join('');
 }
@@ -1207,6 +1213,7 @@ function leadSeed(d, kind) {
   // a seva that ended yesterday and still needs attendance
   d.seva.push({ id: 's11', title: 'Langar Seva — Sunday', cat: 'langar', start: at(-1, 9), end: at(-1, 13), place: 'Namdhari Gurdwara, Karol Bagh', meet: 'Langar hall', lead: 'Gurpreet Singh', purpose: 'Weekly langar for about 300 sangat.', instructions: 'Arrive 15 minutes early.', created: at(-9, 9), people: crowd(14, 12, 2, 1), points: pts(14, [['Cook dal and sabzi', 3, 3, kind === 'active'], ['Make rotis', 4, 4, false], ['Serve langar', 5, 4, false]]), updates: [] });
   if (kind === 'active') d.assign.s11 = { state: 'going' };
+  d.seva.find((x) => x.id === 's0').people.filter((p) => p.st === 'going').slice(0, 2).forEach((p, i) => { p.req = rel(-6 - i * 9); });
   d.seva.find((s) => s.id === 's6').people.push(...['Amrit Singh', 'Noor Kaur', 'Ekam Kaur', 'Arjan Singh'].map((n) => ({ n, st: 'invited' })));
   d.team = NAMES.filter((n) => !LEADS.includes(n)).map((n, i) => ({ n, joined: at(-(40 + i * 37), 10), contrib: (n.length * 7 + i * 3) % 23, last: [2, 5, 9, 15, 75, 3, 120, 20, 8, 1, 66, 30][i % 12], ph: `98${String(10000000 + i * 7919).slice(0, 8)}` }));
   d.requests = [{ n: 'Amanpreet Kaur', d: rel(-50), note: 'Moved to Karol Bagh from Ludhiana' }, { n: 'Jaskaran Singh', d: rel(-200), note: 'Invited by Simran Kaur' }, { n: 'Rupinder Kaur', d: at(-1, 18), note: '' }];
@@ -1340,7 +1347,7 @@ function LeadSevaDetail({ id }) {
     ${!ended ? `<button class="partpill" style="background:rgba(255,255,255,.95);color:#16151A" data-act="seva-edit" data-id="${s.id}">${I.edit}Edit details</button><p class="xs" style="opacity:.85;margin-top:6px;text-align:center">Only the creator, ${s.hq ? 'Seva HQ' : 'Delhi Central team leads'} and the Main Admin can edit</p>` : ''}</div>`;
   let body = '';
   if (dtab === 'overview') {
-    body = `${needsAttend(s) ? `<button class="banner tap" data-act="attend" data-id="${s.id}" style="font-size:14px">${I.clip}<span class="grow"><b>Seva ended — mark attendance</b><br><span class="xs">Sevadars get their garden points once you save it.</span></span>${chev}</button>` : ''}
+    body = `${checkInCard(s)}${needsAttend(s) ? `<button class="banner tap" data-act="attend" data-id="${s.id}" style="font-size:14px">${I.clip}<span class="grow"><b>Seva ended — mark attendance</b><br><span class="xs">Sevadars get their garden points once you save it.</span></span>${chev}</button>` : ''}
       ${s.att ? `<div class="card" style="background:linear-gradient(135deg,var(--done-bg),var(--surface) 70%)"><div class="row"><span class="av2" style="background:var(--done-c)">${I.check.replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b>Attendance saved</b><p class="xs muted">${s.att.present.length} present · ${s.att.pts} points each · ${s.att.present.length * s.att.pts} points given</p></div></div></div>` : ''}
       ${needsReport(s) ? `<button class="banner tap" data-act="write-report" data-id="${s.id}" style="font-size:14px">${I.edit}<span class="grow"><b>Write the seva report</b><br><span class="xs">Good things, feedback and challenges — it goes to Seva HQ.</span></span>${chev}</button>` : ''}
       ${s.report ? `<div class="section-h" style="margin:4px 2px -4px"><h2 style="font-size:16px">Seva report</h2>${canEdit(s) ? `<button class="link" data-act="write-report" data-id="${s.id}">Edit</button>` : ''}</div>${reportView(s.report, s.report.tags)}` : ''}
@@ -1481,12 +1488,12 @@ const dTags = () => draft.tags || [CAT[draft.cat].label, ...(draft.main ? ['Spec
 let attState = null;
 function AttendScreen({ id }) {
   const s = sv(id);
-  if (!attState || attState.id !== id) { const list = peopleOf(s).filter((p) => ['going', 'here'].includes(p.st)); attState = { id, pts: 3, rows: list.map((p, i) => { const w = personWindow(s, p, i); return { n: p.n, me: !!p.me, was: p.st, on: true, from: hm(w.in && T(w.in) < T(s.end) ? w.in : w.from), to: hm(w.out && T(w.out) > T(w.in && T(w.in) < T(s.end) ? w.in : w.from) ? w.out : w.to), task: s.points.filter((x) => x.takers.map(nameOf).includes(p.n)).map((x) => x.text).join(', ') }; }) }; }
+  if (!attState || attState.id !== id) { const list = peopleOf(s).filter((p) => ['going', 'here'].includes(p.st)); attState = { id, pts: 3, rows: list.map((p, i) => { const w = personWindow(s, p, i); const L = p.me ? S.assign[s.id]?.lateReq : null; if (L) { w.in = L.from; w.out = L.to; } return { n: p.n, me: !!p.me, was: p.req ? 'asked' : p.st, on: true, from: hm(w.in && T(w.in) < T(s.end) ? w.in : w.from), to: hm(w.out && T(w.out) > T(w.in && T(w.in) < T(s.end) ? w.in : w.from) ? w.out : w.to), task: s.points.filter((x) => x.takers.map(nameOf).includes(p.n)).map((x) => x.text).join(', ') }; }) }; }
   const A = attState; const on = A.rows.filter((r) => r.on).length;
   return `${dtop('Attendance')}<div class="card"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h2 style="font-size:20px;margin-top:6px">${esc(s.title)}</h2><p class="small muted">${fmtLong(s.start)} · ${fmtTime(s.start)} – ${fmtTime(s.end)}</p></div>
     <div class="card row" style="margin-top:12px"><div class="grow"><b class="small">Points for each sevadar</b><p class="xs muted">Added to their garden</p></div><div class="qty"><button data-act="att-pts" data-d="-1" aria-label="Fewer points">−</button><span>${seed(A.pts)}</span><button data-act="att-pts" data-d="1" aria-label="More points">+</button></div></div>
     <div class="section-h" style="margin-top:18px"><h2 style="font-size:17px">Who came?</h2><button class="link" data-act="att-all">Mark all present</button></div>
-    <div class="card list">${A.rows.map((r, i) => `<div class="lrow"><span class="av2" style="background:${r.me ? 'var(--p)' : avColor(r.n)}">${initials(r.n)}</span><div class="grow"><b class="small">${esc(r.n)}${r.me ? ' (you)' : ''}</b><p class="xs muted ellipsis">${r.was === 'walkin' ? 'Walk-in' : 'Said yes'}${r.task ? ' · ' + esc(r.task) : ''}</p></div><div class="pa"><button data-act="att-set" data-i="${i}" data-v="1" aria-pressed="${r.on}">Present</button><button data-act="att-set" data-i="${i}" data-v="0" aria-pressed="${!r.on}">Absent</button></div>${r.on ? `<div class="attime"><label>In<input type="time" data-att-in="${i}" value="${r.from || hm(s.start)}"></label><label>Out<input type="time" data-att-out="${i}" value="${r.to || hm(s.end)}"></label><b>${hrsTxt(hrs(atHM(s.start, r.from || hm(s.start)), atHM(s.start, r.to || hm(s.end))))}</b></div>` : ''}</div>`).join('')}</div>
+    <div class="card list">${A.rows.map((r, i) => `<div class="lrow"><span class="av2" style="background:${r.me ? 'var(--p)' : avColor(r.n)}">${initials(r.n)}</span><div class="grow"><b class="small">${esc(r.n)}${r.me ? ' (you)' : ''}</b><p class="xs muted ellipsis">${r.was === 'walkin' ? 'Walk-in' : r.was === 'asked' ? 'Asked to be marked present' : r.was === 'here' ? 'Checked in' : 'Said yes'}${r.task ? ' · ' + esc(r.task) : ''}</p></div><div class="pa"><button data-act="att-set" data-i="${i}" data-v="1" aria-pressed="${r.on}">Present</button><button data-act="att-set" data-i="${i}" data-v="0" aria-pressed="${!r.on}">Absent</button></div>${r.on ? `<div class="attime"><label>In<input type="time" data-att-in="${i}" value="${r.from || hm(s.start)}"></label><label>Out<input type="time" data-att-out="${i}" value="${r.to || hm(s.end)}"></label><b>${hrsTxt(hrs(atHM(s.start, r.from || hm(s.start)), atHM(s.start, r.to || hm(s.end))))}</b></div>` : ''}</div>`).join('')}</div>
     <button class="btn ghost block" style="margin-top:10px" data-act="att-walkin">${I.userplus}Add someone who came</button>
     <div class="stickyact"><div><button class="btn block" data-act="att-save" data-id="${id}">${I.check}Save · ${on} present · ${hrsTxt(Math.round(A.rows.filter((r) => r.on).reduce((a, r) => a + hrs(atHM(s.start, r.from || hm(s.start)), atHM(s.start, r.to || hm(s.end))), 0) * 10) / 10)}</button></div></div>`;
 }
@@ -2111,7 +2118,7 @@ function personWindow(s, p, i = 0) {
   if (p.me) { const a = S.assign[s.id] || {}; const ok = a.from && a.to && T(a.from) < T(s.end) && T(a.to) > T(s.start); // if the lead moved the seva, the old times no longer fit
     return { from: ok ? iso(Math.max(T(a.from), T(s.start))) : s.start, to: ok ? iso(Math.min(T(a.to), T(s.end))) : s.end, in: a.in, out: a.out }; }
   const k = (p.n.length + i) % 4; const from = iso(Math.min(T(s.start) + k * 15 * MIN, T(s.end) - HOUR)); const to = iso(Math.max(T(from) + HOUR, T(s.end) - ((p.n.length * 3 + i) % 3) * 30 * MIN));
-  const here = p.st === 'here'; return { from, to, in: here ? iso(T(from) + ((i * 7) % 20) * MIN) : null, out: null };
+  const here = p.st === 'here'; return { from, to, in: p.in || (here ? iso(T(from) + ((i * 7) % 20) * MIN) : null), out: null };
 }
 const winTxt = (w) => `${fmtTime(w.from)} – ${fmtTime(w.to)}`;
 const canEdit = (s) => isAdmin() || (isLead() && !s.hq);
@@ -2127,16 +2134,61 @@ function timeSheet(sid, liveNow) {
 }
 function myTimeCard(s) {
   const a = S.assign[s.id] || {}; if (!going(s)) return ''; const live = isLive(s), ended = T(s.end) < now(); const w = personWindow(s, { me: true });
+  const marked = s.att?.present?.includes(ME());
   let action = '';
-  if (live && !a.in) action = `<button class="btn block" style="margin-top:10px" data-act="check-in" data-id="${s.id}">${I.pin}I've arrived — check in</button>`;
-  else if (live && a.in && !a.out) action = `<div class="row" style="margin-top:10px"><span class="status st-done">${I.check}Checked in ${fmtTime(a.in)}</span><span class="sp" style="flex:1"></span><button class="btn ghost sm" data-act="check-out" data-id="${s.id}">I'm leaving — check out</button></div>`;
+  if (live && !a.in && !a.inReq) action = `<button class="btn block" style="margin-top:10px" data-act="check-in" data-id="${s.id}">${I.pin}I've arrived — check in</button><p class="xs muted" style="margin-top:6px;text-align:center">Your team lead approves it.</p>`;
+  else if (!a.in && a.inReq) action = `<div class="waitbox"><span class="wspin"></span><div class="grow"><b class="small">Waiting for approval</b><p class="xs muted">Asked at ${fmtTime(a.inReq)}. Your team lead will approve your check-in.</p></div><button class="link" data-act="check-cancel" data-id="${s.id}" style="min-height:0;padding:0">Cancel</button></div>`;
+  else if (live && a.in && !a.out) action = `<div class="row" style="margin-top:10px"><span class="status st-done">${I.check}Checked in ${fmtTime(a.in)}${a.ok ? ' · approved' : ''}</span><span class="sp" style="flex:1"></span><button class="btn ghost sm" data-act="check-out" data-id="${s.id}">I'm leaving — check out</button></div>`;
   else if (a.in && a.out) action = `<p class="small" style="margin-top:8px"><b>${fmtTime(a.in)} – ${fmtTime(a.out)}</b> · ${hrsTxt(hrs(a.in, a.out))} recorded</p>`;
-  return `<div class="card"><div class="row"><span class="av2" style="background:var(--p-soft);color:var(--p)">${I.clock.replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small">Your time</b><p class="xs muted">${winTxt(w)} · ${hrsTxt(hrs(w.from, w.to))} planned</p></div>${!ended && !a.out ? `<button class="link" data-act="tm-edit" data-id="${s.id}">Change</button>` : ''}</div>${action}${ended && !a.out ? '<p class="xs muted" style="margin-top:8px">Your lead records your hours with attendance.</p>' : ''}</div>`;
+  else if (ended && marked) action = `<p class="small" style="margin-top:8px"><span class="status st-done">${I.check}Marked present by your lead</span></p>`;
+  else if (ended && a.lateReq) action = `<div class="waitbox"><span class="wspin"></span><div class="grow"><b class="small">Asked your lead to mark you present</b><p class="xs muted">${fmtTime(a.lateReq.from)} – ${fmtTime(a.lateReq.to)} · waiting for approval</p></div></div>`;
+  else if (ended && !a.in && !s.att) action = `<div class="forgot"><b class="small">Forgot to check in?</b><p class="xs muted">Tell your lead when you were there. They will mark you present.</p><button class="btn soft block" style="margin-top:8px" data-act="late-req" data-id="${s.id}">${I.clock}Ask lead to mark me present</button></div>`;
+  else if (ended && !a.in && s.att && !marked) action = `<div class="forgot"><b class="small">Not on the attendance list</b><p class="xs muted">If you were there, ask your lead to add you.</p><button class="btn soft block" style="margin-top:8px" data-act="late-req" data-id="${s.id}">${I.clock}Ask lead to add me</button></div>`;
+  return `<div class="card"><div class="row"><span class="av2" style="background:var(--p-soft);color:var(--p)">${I.clock.replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small">Your time</b><p class="xs muted">${winTxt(w)} · ${hrsTxt(hrs(w.from, w.to))} planned</p></div>${!ended && !a.out && !a.in ? `<button class="link" data-act="tm-edit" data-id="${s.id}">Change</button>` : ''}</div>${action}</div>`;
+}
+function lateSheet(sid) {
+  const s = sv(sid); const w = personWindow(s, { me: true });
+  openSheet(`${sheetHead('When were you there?', `${esc(s.title)} · ${fmtLong(s.start)}`)}
+    <div class="btn-row"><div style="flex:1"><label class="f" for="lt-from">I arrived</label><input class="in" type="time" id="lt-from" value="${hm(w.from)}"></div><div style="flex:1"><label class="f" for="lt-to">I left</label><input class="in" type="time" id="lt-to" value="${hm(w.to)}"></div></div>
+    <p class="xs muted" style="margin-top:10px">Your team lead gets this and marks you present. Your points and hours come after they approve.</p>
+    <button class="btn block" style="margin-top:14px" data-act="late-send" data-id="${sid}">${I.check}Send to my team lead</button>`);
+}
+// ----- lead: check-ins waiting for approval, and checking someone in directly -----
+function checkReqs(s) { return peopleOf(s).filter((p) => p.req); }
+function checkInCard(s) {
+  if (s.hq) return ''; const live = isLive(s), ended = T(s.end) < now(); if (!live && !ended) return '';
+  const reqs = checkReqs(s); const canDirect = live && peopleOf(s).some((p) => p.st === 'going' && !p.req);
+  if (!reqs.length && !canDirect) return '';
+  const A = (p) => p.me ? (S.assign[s.id] || {}) : null;
+  return `<div class="card reqcard ${reqs.length ? 'has' : ''}"><div class="section-h" style="margin-bottom:4px"><h2 style="font-size:16px">${reqs.length ? `Check-ins to approve` : 'Check-ins'}</h2>${reqs.length ? `<span class="nbadge">${reqs.length}</span>` : ''}</div>
+    ${reqs.map((p) => { const a = A(p); const late = p.me ? !!a.lateReq : false; const when = late ? `${fmtTime(a.lateReq.from)} – ${fmtTime(a.lateReq.to)} · forgot to check in` : `Arrived ${fmtTime(p.req)} · ${ago(p.req)}${ago(p.req) === 'just now' ? '' : ' ago'}`;
+      return `<div class="lrow" style="flex-wrap:wrap"><span class="av2" style="background:${p.me ? 'var(--p)' : avColor(p.n)}">${initials(p.n)}</span><div class="grow" style="min-width:0"><b class="small">${esc(p.n)}${p.me ? ' (you)' : ''}</b><p class="xs muted">${when}</p></div><div class="apbtns"><button class="btn sm ok" data-act="ci-ok" data-id="${s.id}" data-n="${esc(p.n)}">${I.check}Approve</button><button class="btn sm ghost" data-act="ci-no" data-id="${s.id}" data-n="${esc(p.n)}" aria-label="Decline ${esc(p.n)}">${I.close}</button></div></div>`; }).join('')}
+    ${!reqs.length ? '<p class="xs muted" style="padding:4px 0 2px">No one is waiting. You can also check someone in yourself.</p>' : ''}
+    ${canDirect ? `<button class="btn soft block" style="margin-top:8px" data-act="ci-direct" data-id="${s.id}">${I.userplus || I.plus}Check someone in</button>` : ''}
+    ${ended && !s.att ? '<p class="xs muted" style="margin-top:8px">Anyone else who came can be marked present in attendance.</p>' : ''}</div>`;
+}
+function directSheet(sid) {
+  const s = sv(sid); const list = peopleOf(s).filter((p) => p.st === 'going' && !p.req);
+  openSheet(`${sheetHead('Check someone in', 'They are here but have not checked in')}<div class="card list" style="max-height:56vh;overflow:auto">${list.map((p) => `<button class="lrow" data-act="ci-set" data-id="${sid}" data-n="${esc(p.n)}"><span class="av2" style="background:${p.me ? 'var(--p)' : avColor(p.n)}">${initials(p.n)}</span><b class="small grow">${esc(p.n)}${p.me ? ' (you)' : ''}</b><span class="link" style="min-height:0">Check in</span></button>`).join('') || '<p class="small muted" style="padding:12px 0">Everyone coming is already checked in.</p>'}</div>`);
+}
+function approveCheckIn(sid, n, direct) {
+  const s = sv(sid); const isMe = n === ME() && going(s);
+  if (isMe) {
+    const a = S.assign[sid]; const late = a.lateReq;
+    if (late && !direct) { a.in = late.from; a.out = late.to; } else a.in = direct ? iso(now()) : a.inReq; a.ok = true; delete a.inReq; delete a.lateReq;
+    if (s.att && !s.att.present.includes(n)) addToAttendance(s, n, a.in, a.out || s.end);
+    S.notifs.unshift({ id: 'n' + uid(), level: 'done', t: `${direct ? 'Your lead checked you in' : 'Check-in approved'} · ${s.title}`, d: iso(now()), ref: 'seva:' + sid });
+  } else { const p = s.people.find((x) => x.n === n); if (!p) return; p.in = direct ? iso(now()) : p.req; p.st = 'here'; delete p.req; }
+  S.notifs = S.notifs.filter((x) => !(x.role === 'lead' && x.ckey === sid + '|' + n));
+}
+function addToAttendance(s, n, from, to) {
+  s.att.present.push(n); s.att.times = s.att.times || {}; s.att.times[n] = [from, to]; s.att.hours = Math.round(Object.values(s.att.times).reduce((x, [f, t]) => x + hrs(f, t), 0) * 10) / 10;
+  if (n === ME()) { const h = { id: 'h' + uid(), title: s.title, cat: s.cat, date: s.start, role: myPoints(s).map((p) => p.text).join(', ') || 'Sevadar' }; S.history.push(h); S.pts += s.att.pts || 3; S.earned += s.att.pts || 3; }
 }
 // live seva: who is here and who is still coming, with times
 function whoCard(s, max = 6) {
   const ppl = peopleOf(s); const here = ppl.filter((p) => p.st === 'here'), coming = ppl.filter((p) => p.st === 'going');
-  const row = (p, i) => { const w = personWindow(s, p, i); return `<div class="lrow tap" data-open="user:${esc(p.n)}" style="cursor:pointer"><span class="av2 ${p.st === 'here' ? 'here' : ''}" style="background:${p.me ? 'var(--p)' : avColor(p.n)}">${initials(p.n)}</span><div class="grow"><b class="small">${esc(p.n)}${p.me ? ' (you)' : ''}</b><p class="xs muted">${p.st === 'here' ? `Here since ${fmtTime(w.in || w.from)} · until ${fmtTime(w.to)}` : `Coming ${winTxt(w)}`}</p></div>${p.st === 'here' ? '<span class="status st-done">Here</span>' : '<span class="status st-up">Coming</span>'}</div>`; };
+  const row = (p, i) => { const w = personWindow(s, p, i); return `<div class="lrow tap" data-open="user:${esc(p.n)}" style="cursor:pointer"><span class="av2 ${p.st === 'here' ? 'here' : ''}" style="background:${p.me ? 'var(--p)' : avColor(p.n)}">${initials(p.n)}</span><div class="grow"><b class="small">${esc(p.n)}${p.me ? ' (you)' : ''}</b><p class="xs muted">${p.st === 'here' ? `Here since ${fmtTime(w.in || w.from)} · until ${fmtTime(w.to)}` : p.req ? `Arrived ${fmtTime(p.req)} · waiting for approval` : `Coming ${winTxt(w)}`}</p></div>${p.st === 'here' ? '<span class="status st-done">Here</span>' : p.req ? '<span class="status st-plan">Waiting</span>' : '<span class="status st-up">Coming</span>'}</div>`; };
   return `<div class="card"><div class="section-h" style="margin-bottom:4px"><h2 style="font-size:16px">Who's here</h2><span class="xs muted"><b style="color:var(--done)">${here.length} here</b> · ${coming.length} coming</span></div>${[...here, ...coming].slice(0, max).map(row).join('')}${here.length + coming.length > max ? `<button class="link" data-dtab="${isLead() || isAdmin() ? 'people' : 'team'}">See all ${here.length + coming.length}${I.chev}</button>` : ''}</div>`;
 }
 // ----- lead: post-seva report (good / feedback / challenges) -----
@@ -2381,6 +2433,7 @@ function handle(el) {
       const s = sv(id); const A = attState; const present = A.rows.filter((r) => r.on); if (!confirm(`Save attendance? ${present.length} sevadars get ${A.pts} points each.`)) return;
       const times = Object.fromEntries(present.map((r) => [r.n, [atHM(s.start, r.from || hm(s.start)), atHM(s.start, r.to || hm(s.end))]]));
       s.att = { at: iso(now()), present: present.map((r) => r.n), pts: A.pts, times, hours: Math.round(Object.values(times).reduce((a, [x, y]) => a + hrs(x, y), 0) * 10) / 10 };
+      { const a = S.assign[s.id]; if (a) { if (s.att.present.includes(ME())) { a.ok = true; if (!a.in) { a.in = times[ME()]?.[0]; a.out = times[ME()]?.[1]; } } delete a.inReq; delete a.lateReq; } s.people.forEach((p) => { delete p.req; }); S.notifs = S.notifs.filter((x) => !(x.role === 'lead' && (x.ckey || '').startsWith(s.id + '|'))); }
       S.team.forEach((m) => { if (s.att.present.includes(m.n)) { m.contrib = (m.contrib || 0) + 1; m.last = 0; } });
       if (present.some((r) => r.me)) { const h = { id: 'h' + uid(), title: s.title, cat: s.cat, date: s.start, role: myPoints(s).map((p) => p.text).join(', ') || 'Sevadar' }; S.history.push(h); S.pts += A.pts; S.earned += A.pts; S.notifs.unshift({ id: 'n' + uid(), level: 'done', t: `Attendance marked for ${s.title} — +${A.pts} garden points`, d: iso(now()), ref: 'history:' + h.id }); }
       S.notifs = S.notifs.filter((n) => n.ref !== 'attend:' + s.id); attState = null; repDraft = null; save(); dtab = 'overview'; stack[stack.length - 1] = { v: 'repform', id: s.id }; render(); window.scrollTo(0, 0); toast(`Attendance saved — ${present.length} sevadars, ${hrsTxt(s.att.hours)}. Now a quick report.`); break;
@@ -2456,7 +2509,14 @@ function handle(el) {
     case 'tm-edit': timeSheet(id); break;
     case 'tm-quick': { const s = sv($('[data-act=tm-save]').dataset.id); const mid = iso((T(s.start) + T(s.end)) / 2); const v = el.dataset.v; $('#tm-from').value = hm(v === 'second' ? mid : s.start); $('#tm-to').value = hm(v === 'first' ? mid : s.end); break; }
     case 'tm-save': { const s = sv(id); const f = $('#tm-from').value, t2 = $('#tm-to').value; if (!f || !t2) { toast('Please choose both times'); return; } const from = atHM(s.start, f), to = atHM(s.start, t2); if (T(to) <= T(from)) { toast('Leaving time must be after arrival'); return; } if (T(from) < T(s.start) - HOUR || T(to) > T(s.end) + HOUR) { toast(`The seva runs ${fmtTime(s.start)} – ${fmtTime(s.end)}`); return; } const was = going(s); S.assign[id] = { ...(S.assign[id] || {}), from, to }; if (!was) setSevaResponse(id, 'going'); else { save(); toast(`Time updated · ${fmtTime(from)} – ${fmtTime(to)}`); } closeSheet(); if (afterYes === id && !stack.length) { afterYes = null; push({ v: 'seva', id }); dtab = 'tasks'; } afterYes = null; rerender(); break; }
-    case 'check-in': { const a = S.assign[id]; a.in = iso(now()); save(); rerender(); toast(`Checked in at ${fmtTime(a.in)} 🙏`); break; }
+    case 'check-in': { const s = sv(id); const a = S.assign[id]; a.inReq = iso(now()); S.notifs.unshift({ id: 'n' + uid(), role: 'lead', ckey: id + '|' + ME(), level: 'action', t: `${ME()} has arrived at ${s.title} — approve the check-in`, d: iso(now()), ref: 'seva:' + id }); save(); rerender(); toast('Sent to your team lead for approval'); break; }
+    case 'check-cancel': { const a = S.assign[id]; delete a.inReq; S.notifs = S.notifs.filter((x) => x.ckey !== id + '|' + ME()); save(); rerender(); toast('Check-in request cancelled'); break; }
+    case 'late-req': lateSheet(id); break;
+    case 'late-send': { const s = sv(id); const f = $('#lt-from').value, t2 = $('#lt-to').value; if (!f || !t2) { toast('Please choose both times'); return; } const from = atHM(s.start, f), to = atHM(s.start, t2); if (T(to) <= T(from)) { toast('Leaving time must be after arrival'); return; } S.assign[id].lateReq = { from, to, at: iso(now()) }; S.notifs.unshift({ id: 'n' + uid(), role: 'lead', ckey: id + '|' + ME(), level: 'action', t: `${ME()} forgot to check in at ${s.title} (${fmtTime(from)} – ${fmtTime(to)}) — mark present?`, d: iso(now()), ref: 'seva:' + id }); save(); closeSheet(); rerender(); toast('Sent to your team lead'); break; }
+    case 'ci-ok': approveCheckIn(id, el.dataset.n); save(); rerender(); toast(`${first(el.dataset.n)} is checked in`); break;
+    case 'ci-no': { const s = sv(id); const n = el.dataset.n; if (n === ME() && going(s)) { const a = S.assign[id]; delete a.inReq; delete a.lateReq; S.notifs.unshift({ id: 'n' + uid(), level: 'action', t: `Your lead could not confirm your check-in at ${s.title}. Please speak to them.`, d: iso(now()), ref: 'seva:' + id }); } else { const p = s.people.find((x) => x.n === n); if (p) delete p.req; } S.notifs = S.notifs.filter((x) => x.ckey !== id + '|' + n); save(); rerender(); toast(`Declined · ${first(n)} is told`); break; }
+    case 'ci-direct': directSheet(id); break;
+    case 'ci-set': approveCheckIn(id, el.dataset.n, true); save(); closeSheet(); rerender(); toast(`${first(el.dataset.n)} checked in`); break;
     case 'check-out': { const a = S.assign[id]; a.out = iso(now()); save(); rerender(); toast(`Checked out · ${hrsTxt(hrs(a.in, a.out))} recorded. Thank you!`); break; }
     case 'write-report': repDraft = null; push({ v: 'repform', id }); break;
     case 'rep-add': { const k = el.dataset.k; const inp = $('#rep-' + k); const v = inp.value.trim(); if (!v) { inp.focus(); return; } repDraft[k].push(v); rerender(); setTimeout(() => $('#rep-' + k)?.focus(), 30); break; }
