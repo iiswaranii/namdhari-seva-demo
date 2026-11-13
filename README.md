@@ -153,3 +153,11 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - **Check someone in**: during a live seva the lead can check in anyone who is coming, directly.
 - **Forgot to check in**: after the seva ends, the member can send "Ask lead to mark me present" with arrival and leaving times. The lead approves it (it pre-fills attendance), or adds them to attendance directly. If attendance was already saved, approving adds them with points and hours.
 - Saving attendance clears any open requests.
+
+## v18 — Demo data (default)
+- The app now opens with a small **Demo** sangat: 5 groups in 3 countries (Delhi Central, Ludhiana Jatha, Sri Bhaini Sahib, London Southall, Toronto), ~27 people, 2 team leads in Delhi and one in each other group.
+- **Full-day LIVE seva every day**: Langar Seva — Full Day and Gurdwara Hall Cleaning (Delhi), Gau Seva at Sri Bhaini Sahib (HQ, special), Langar at Southall (London). They move to *today* each time the app opens, so they are live on any demo day (about 5–6 AM to 11:59 PM). Each new day check-ins start fresh.
+- Two check-ins waiting for approval, one seva to close (Shoe Seva — Sunday Diwan), one Toronto seva with attendance pending.
+- Upcoming seva (Blanket Distribution · urgent, Reading Circle, Tree Planting, Parkash Purab Langar · HQ special), events (Monthly Satsang, Parkash Purab Diwan) and meetings (Seva Planning — leads only).
+- Past: 5 Delhi seva and 6 from other groups with attendance and reports (good / feedback / challenges), a past Kirtan Darbar and a leads' call. Feed posts and stories.
+- In Demo you are a member of Delhi Central and also one of its team leads, so all three roles can be shown. Profile › Settings › Prototype data switches to Clean (start from scratch).

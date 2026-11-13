@@ -226,8 +226,140 @@ function cleanScenario() {
     { id: 'nc2', role: 'admin', level: 'action', t: 'Fresh start: open People and make someone a team lead (you can make yourself one too).', d: iso(now()), ref: 'tab:people' }];
   return d;
 }
+// ---------- Demo data: real-looking, small, across 5 groups in 3 countries ----------
+// Full-day seva are marked `daily` and move to today every time the app opens, so they are always LIVE in a demo.
+const DEMO_USERS = [['Gurpreet Singh', 'delhi', 'm'], ['Simran Kaur', 'delhi', 'f'], ['Harpreet Kaur', 'delhi', 'f'], ['Jaspreet Singh', 'delhi', 'm'], ['Manjit Kaur', 'delhi', 'f'], ['Amrit Singh', 'delhi', 'm'], ['Navneet Kaur', 'delhi', 'f'], ['Kuldeep Singh', 'delhi', 'm'], ['Jasleen Kaur', 'delhi', 'f'], ['Arjan Singh', 'delhi', 'm'],
+  ['Jagdeep Singh', 'ludhiana', 'm'], ['Harpreet Kaur', 'ludhiana', 'f'], ['Rupinder Kaur', 'ludhiana', 'f'], ['Baljit Singh', 'ludhiana', 'm'], ['Mandeep Singh', 'ludhiana', 'm'],
+  ['Harbans Singh', 'bhaini', 'm'], ['Kamaljeet Kaur', 'bhaini', 'f'], ['Tejinder Singh', 'bhaini', 'm'], ['Gurleen Kaur', 'bhaini', 'f'],
+  ['Ranjit Singh', 'london', 'm'], ['Amarjit Kaur', 'london', 'f'], ['Daljit Singh', 'london', 'm'], ['Prabhjot Kaur', 'london', 'f'],
+  ['Navdeep Kaur', 'toronto', 'f'], ['Harman Singh', 'toronto', 'm'], ['Ishmeet Singh', 'toronto', 'm'], ['Mehar Kaur', 'toronto', 'f']];
+const DEMO_GROUPS = ['delhi', 'ludhiana', 'bhaini', 'london', 'toronto'];
+function demoScenario() {
+  const users = DEMO_USERS.map(([n, g, sex], i) => ({ n, g, sex, joined: at(-(60 + i * 23), 10) }));
+  const inG = (g) => users.filter((u) => u.g === g).map((u) => u.n);
+  const D = inG('delhi');
+  const tasks = (list) => list.map(([text, need, takers]) => ({ id: 't' + uid(), text, need, takers: takers || [], prog: 0, at: at(-3, 9) }));
+  const dayAt = (d, h, m = 0) => at(d, h, m);
+  // people with states: here (approved), waiting for approval, going, can't, invited
+  const ppl = (names, st) => names.map((n) => ({ n, st }));
+  const att = (s, present, rep) => { const times = {}; present.forEach((n, i) => { times[n] = [iso(T(s.start) + (i % 3) * 15 * MIN), iso(T(s.end) - (i % 2) * 30 * MIN)]; }); s.att = { at: iso(T(s.end) + 2 * HOUR), present, pts: 3, times, hours: Math.round(Object.values(times).reduce((a, [x, y]) => a + (T(y) - T(x)) / HOUR, 0) * 10) / 10 }; if (rep) s.report = { ...rep, by: s.lead, at: iso(T(s.end) + 3 * HOUR) }; return s; };
+  const seva = [], other = [];
+  const base = (o) => ({ meet: 'Main entrance', instructions: 'Head covered. Your lead will brief you on the day.', created: at(-6, 10), updates: [], people: [], points: [], recur: '', ...o, createdBy: o.lead, tags: o.tags || [CAT[o.cat].label] });
+
+  // ===== Delhi Central (your group) =====
+  // LIVE all day, every day of the demo
+  seva.push(base({ id: 'dl1', daily: true, title: 'Langar Seva — Full Day', cat: 'langar', start: dayAt(0, 5, 0), end: dayAt(0, 23, 59), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Langar hall, main door', lead: 'Gurpreet Singh', purpose: 'Langar for the sangat all day — about 600 people expected.', instructions: 'Aprons and gloves are in the store room. Come for any part of the day.',
+    people: [...ppl(D.slice(0, 5), 'here'), ...ppl(D.slice(5, 7), 'going'), ...ppl(D.slice(7, 8), 'cant'), ...ppl(D.slice(8), 'invited')],
+    points: tasks([['Cook dal and sabzi', 4, [D[0], D[2]]], ['Make rotis', 6, [D[1], D[3], D[4]]], ['Serve in the pangat', 6, [D[5]]], ['Wash utensils', 3, []]]),
+    updates: [{ id: 'ud1', t: 'Langar has started. Rotis team please come to the side kitchen.', d: dayAt(0, 5, 10), by: 'Gurpreet Singh', kind: 'info' }, { id: 'ud2', t: 'New task added: Water for sangat at the gate', d: dayAt(0, 9, 30), by: 'Gurpreet Singh', kind: 'new' }] }));
+  seva[0].people[5].req = dayAt(0, 9, 40); seva[0].people[6].req = dayAt(0, 10, 5);
+  seva.push(base({ id: 'dl2', daily: true, title: 'Gurdwara Hall Cleaning', cat: 'cleanup', start: dayAt(0, 6, 0), end: dayAt(0, 23, 59), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Shoe room', lead: 'Simran Kaur', purpose: 'Get the main hall ready for the evening diwan.', urgent: true,
+    people: [...ppl(D.slice(1, 4), 'here'), ...ppl(D.slice(6, 8), 'going'), ...ppl(D.slice(8), 'invited')],
+    points: tasks([['Lay carpets', 4, [D[1], D[2]]], ['Sweep and mop', 3, [D[3]]], ['Windows and fans', 2, []], ['Shoe racks', 2, []]]) }));
+  // upcoming
+  seva.push(base({ id: 'dl3', title: 'Blanket Distribution', cat: 'blanket', start: dayAt(3, 18), end: dayAt(3, 21), place: 'Night shelters, Old Delhi', meet: 'Chandni Chowk metro, gate 5', lead: 'Gurpreet Singh', purpose: '200 blankets for people sleeping in the cold.', urgent: true,
+    people: [...ppl(D.slice(0, 4), 'going'), ...ppl(D.slice(4, 5), 'cant'), ...ppl(D.slice(5), 'invited')], points: tasks([['Load the vans', 4, [D[0]]], ['Hand out blankets', 8, [D[1], D[2]]], ['Drive a van', 2, [D[3]]]]) }));
+  seva.push(base({ id: 'dl4', title: 'Punjabi Reading Circle', cat: 'education', start: dayAt(5, 17), end: dayAt(5, 18, 30), place: 'Community Hall, Karol Bagh', meet: 'Room 2', lead: 'Simran Kaur', purpose: 'Help children practise Gurmukhi reading.', recur: 'Every Saturday',
+    people: [...ppl(D.slice(2, 5), 'going'), ...ppl(D.slice(5), 'invited')], points: tasks([['Read with a small group', 4, [D[2], D[3]]], ['Set up the room', 1, [D[4]]]]) }));
+  seva.push(base({ id: 'dl5', title: 'Tree Planting Drive', cat: 'tree', start: dayAt(9, 8), end: dayAt(9, 11), place: 'Sanjay Van, South Delhi', meet: 'Main gate parking', lead: 'Gurpreet Singh', purpose: 'Plant 120 native saplings with the forest department.',
+    people: ppl(D, 'invited'), points: tasks([['Dig pits', 6, []], ['Plant saplings', 6, []], ['Carry water', 4, []]]) }));
+  // ended yesterday — still to close
+  seva.push(base({ id: 'dl6', title: 'Shoe Seva — Sunday Diwan', cat: 'cleanup', start: dayAt(-1, 9), end: dayAt(-1, 13), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Joda ghar', lead: 'Gurpreet Singh', purpose: 'Look after the sangat’s shoes during the diwan.',
+    people: [...ppl(D.slice(0, 6), 'going'), ...ppl(D.slice(6, 7), 'cant')], points: tasks([['Take and tag shoes', 3, [D[0], D[1]]], ['Return shoes', 3, [D[2], D[3]]]]) }));
+  // past, closed with attendance and a report
+  const G = ['Everyone came on time', 'New sevadars felt welcome', 'All sangat served without a wait', 'Finished early'], F = ['Share the meeting point the evening before', 'Need more gloves and bags', 'Start 30 min earlier', 'Better signboards for first-timers'], C = ['Short of sevadars', 'Started late — transport', 'Ran out of supplies', 'Venue problem', 'Weather'];
+  const past = [
+    ['dp1', 'Langar Seva — Sunday', 'langar', -7, 9, 13, 'Gurpreet Singh', D.slice(0, 8), { good: [G[2], G[0]], feedback: [F[2]], challenge: [] }, true],
+    ['dp2', 'Karol Bagh Street Clean-up', 'cleanup', -11, 7, 10, 'Simran Kaur', D.slice(1, 6), { good: [G[3]], feedback: [F[1]], challenge: [C[2]] }, true],
+    ['dp3', 'Nasha Mukti Awareness Camp', 'nasha', -15, 10, 14, 'Gurpreet Singh', D.slice(2, 6), { good: [G[1]], feedback: [F[3]], challenge: [C[0]] }, false],
+    ['dp4', 'Free Medical Camp', 'medical', -22, 9, 15, 'Simran Kaur', D.slice(0, 7), { good: [G[2], G[1]], feedback: [], challenge: [C[1]] }, true],
+    ['dp5', 'Clothes for the Needy', 'clothes', -29, 16, 19, 'Gurpreet Singh', D.slice(3, 9), { good: [G[0]], feedback: [F[0]], challenge: [] }, false],
+  ];
+  past.forEach(([id, title, cat, d, h1, h2, lead, present, rep, me]) => { const s = base({ id, title, cat, start: dayAt(d, h1), end: dayAt(d, h2), place: 'Karol Bagh, Delhi', lead, purpose: 'Weekly seva of Delhi Central.', people: [...ppl(present, 'going'), ...ppl(D.filter((n) => !present.includes(n)).slice(0, 2), 'cant')], points: tasks([['Main seva', present.length, present.slice(0, 4)], ['Set up and clean up', 2, present.slice(4, 6)]]) }); s._me = me; att(s, present, { ...rep, tags: [CAT[cat].label] }); seva.push(s); });
+
+  // ===== HQ seva (all sangat) =====
+  seva.push(base({ id: 'hq1', daily: true, hq: true, special: true, region: 'Sri Bhaini Sahib', title: 'Gau Seva at Sri Bhaini Sahib', cat: 'gau', start: dayAt(0, 5, 30), end: dayAt(0, 23, 59), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Gaushala gate', lead: 'Seva HQ team', purpose: 'All-day gau seva. Sangat from every city is welcome.', tags: ['Gau seva', 'Special', 'HQ'],
+    people: [...ppl(inG('bhaini'), 'here'), ...ppl(inG('ludhiana').slice(0, 3), 'going')], points: tasks([['Clean the gaushala', 10, inG('bhaini').slice(0, 2)], ['Feed and water', 6, inG('bhaini').slice(2)], ['Bring fodder', 6, []]]) }));
+  seva.push(base({ id: 'hq2', hq: true, special: true, region: 'Sri Bhaini Sahib', title: 'Parkash Purab Langar', cat: 'langar', start: dayAt(12, 6), end: dayAt(12, 15), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Langar hall, gate 3', lead: 'Seva HQ team', purpose: 'Langar for thousands of sangat on Parkash Purab.', tags: ['Langar', 'Special', 'HQ'],
+    people: [...ppl(inG('bhaini'), 'going'), ...ppl(inG('ludhiana'), 'going'), ...ppl(D.slice(0, 3), 'going')], points: tasks([['Cook dal and sabzi', 30, []], ['Make rotis', 40, []], ['Serve in the pangat', 30, []], ['Clean utensils', 20, []]]) }));
+
+  // ===== other groups (seen by Seva HQ) =====
+  const og = (gid, id, title, cat, d, h1, h2, lead, place, extra = {}) => base({ id, gid, title, cat, start: dayAt(d, h1), end: dayAt(d, h2), place, lead, purpose: `Seva of ${(GROUPS.find((g) => g.id === gid) || {}).name || gid}.`, people: ppl(inG(gid), d < 0 ? 'going' : 'invited'), points: tasks([['Main seva', inG(gid).length + 2, d < 0 ? inG(gid).slice(0, 3) : []], ['Set up', 2, []]]), ...extra });
+  other.push(og('london', 'lo1', 'Langar at Southall — Full Day', 'langar', 0, 6, 23, 'Ranjit Singh', 'Southall, London', { daily: true, end: at(0, 23, 59), people: [...ppl(inG('london').slice(0, 3), 'here'), ...ppl(inG('london').slice(3), 'going')] }));
+  other.push(og('toronto', 'to1', 'Food Bank Drive', 'donation', 2, 10, 14, 'Navdeep Kaur', 'Brampton, Toronto'));
+  other.push(og('ludhiana', 'lu1', 'Roadside Langar Stall', 'stall', 4, 11, 16, 'Jagdeep Singh', 'Ferozepur Road, Ludhiana'));
+  [['ludhiana', 'lp1', 'Langar Seva', 'langar', -4, 'Jagdeep Singh', 'Ludhiana', { good: [G[2]], feedback: [F[1]], challenge: [] }],
+   ['ludhiana', 'lp2', 'Tree Planting Drive', 'tree', -18, 'Jagdeep Singh', 'Ludhiana', { good: [G[0], G[3]], feedback: [], challenge: [C[4]] }],
+   ['bhaini', 'bp1', 'Annual Cleaning Seva', 'cleanup', -9, 'Harbans Singh', 'Sri Bhaini Sahib', { good: [G[1]], feedback: [F[2]], challenge: [C[0]] }],
+   ['london', 'np1', 'Langar for 450', 'langar', -6, 'Ranjit Singh', 'Southall, London', { good: [G[2], G[0]], feedback: [], challenge: [] }],
+   ['london', 'np2', 'Winter Clothes Collection', 'clothes', -20, 'Ranjit Singh', 'Southall, London', { good: [], feedback: [F[0]], challenge: [C[2]] }],
+   ['toronto', 'tp1', 'Food Bank Drive', 'donation', -12, 'Navdeep Kaur', 'Brampton, Toronto', { good: [G[3]], feedback: [F[3]], challenge: [C[1]] }],
+  ].forEach(([gid, id, title, cat, d, lead, place, rep]) => { const s = og(gid, id, title, cat, d, 10, 14, lead, place); att(s, inG(gid).slice(0, Math.max(2, inG(gid).length - (id.length % 2))), { ...rep, tags: [CAT[cat].label] }); other.push(s); });
+  // one in Toronto that still needs attendance
+  other.push(og('toronto', 'tp2', 'Social Service Day', 'social', -2, 11, 15, 'Navdeep Kaur', 'Mississauga, Toronto'));
+
+  // ===== events and meetings =====
+  const events = [
+    { id: 'ev1', title: 'Monthly Satsang', kind: 'Satsang', ek: 'satsang', start: dayAt(6, 18), end: dayAt(6, 20), place: 'Namdhari Gurdwara, Karol Bagh', organizer: 'Delhi Central', agenda: ['Kirtan', 'Katha', 'Ardas', 'Langar'], going: 42, maybe: 0, cant: 3, created: at(-4, 10), gid: 'delhi', aud: 'all' },
+    { id: 'ev2', title: 'Parkash Purab Diwan', kind: 'Special event', start: dayAt(12, 10), end: dayAt(12, 14), place: 'Sri Bhaini Sahib, Punjab', organizer: 'Seva HQ', agenda: ['Asa di Var', 'Kirtan', 'Ardas', 'Langar'], going: 1240, maybe: 0, cant: 20, created: at(-3, 9), special: true, hq: true, aud: 'all', main: true },
+    { id: 'ev3', meeting: true, title: 'Seva Planning — December', kind: 'Seva planning', ek: 'planning', start: dayAt(2, 19), end: dayAt(2, 20), place: 'Community Hall, Karol Bagh', organizer: 'Delhi Central', about: 'Plan the winter seva and who leads what.', agenda: ['Blanket drive', 'Langar rota', 'Questions'], going: 6, maybe: 0, cant: 0, created: at(-2, 9), gid: 'delhi', aud: 'leads' },
+    { id: 'ev4', title: 'Kirtan Darbar', kind: 'Kirtan Darbar', ek: 'kirtan', start: dayAt(-9, 18), end: dayAt(-9, 20), place: 'Namdhari Gurdwara, Karol Bagh', organizer: 'Delhi Central', agenda: ['Kirtan', 'Ardas'], going: 64, maybe: 0, cant: 5, created: at(-20, 9), gid: 'delhi', aud: 'all' },
+    { id: 'ev5', meeting: true, title: 'Team Leads Monthly Call', kind: 'Team leads meeting', ek: 'leads', start: dayAt(-14, 20), end: dayAt(-14, 21), place: 'Online — video call', organizer: 'Seva HQ', agenda: ['Numbers for the month', 'Blockers', 'Next month'], going: 6, maybe: 0, cant: 0, created: at(-25, 9), hq: true, aud: 'leads' },
+  ];
+
+  // ===== feed and stories =====
+  const feed = [
+    { id: 'fd1', type: 'event', special: true, d: rel(-40), title: 'Parkash Purab Diwan', text: 'Sangat from every city is welcome at Sri Bhaini Sahib. Tell your team lead if you are coming.', link: 'event:ev2', ev: 'ev2', cta: 'RSVP', pin: true, r: { g: 412, s: 160 } },
+    { id: 'fd2', type: 'seva', d: rel(-90), sid: 'hq1', title: 'Gau Seva at Sri Bhaini Sahib', text: 'All-day gau seva today. Come for any part of the day.', r: { g: 210, s: 95 } },
+    { id: 'fd3', type: 'thought', d: at(-1, 7), title: 'Thought of the Day', text: 'Seva done with a quiet heart is never small. Every roti rolled and every step swept is an offering.', r: { g: 530, s: 122 } },
+    { id: 'fd4', type: 'appreciation', d: at(-6, 19), title: 'Thank you, London Southall', stat: '450 served', text: '16 sevadars served langar to 450 sangat at Southall in under 2 hours.', r: { g: 318, s: 74 } },
+    { id: 'fd5', type: 'hukam', d: at(-8, 9), title: 'Satguru Ji’s Hukam', text: 'This winter, every jatha is asked to hold one blanket seva for those sleeping in the cold.', link: 'seva:dl3', cta: 'See the plan', r: { g: 880, s: 410 } },
+    { id: 'fd6', type: 'info', d: at(-10, 11), title: 'Check-in needs approval', text: 'When you arrive at a seva, tap check in. Your team lead approves it and your hours start counting.', r: { g: 96, s: 40 } },
+  ];
+  const groups = baseStories().filter((g) => ['g-delhi', 'g-ludhiana', 'g-bhaini', 'g-london'].includes(g.id)).map((g) => ({ ...g, stories: [] }));
+  const gS = (id) => groups.find((g) => g.id === id);
+  gS('g-delhi').stories = [{ id: 'ds1', d: rel(-35), kind: 'Live now', title: 'Langar has started', msg: 'Rotis team please come to the side kitchen. Come for any part of the day.', theme: 'langar', link: 'seva:dl1', cta: 'Open live seva', poster: 'Gurpreet Singh' }, { id: 'ds2', d: rel(-120), kind: 'Urgent', title: 'Hall cleaning needs 2 more', msg: 'Windows and fans still have no one.', theme: 'live', link: 'seva:dl2', cta: 'View seva', poster: 'Simran Kaur' }];
+  gS('g-bhaini').stories = [{ id: 'bs1', d: rel(-80), kind: 'Gau seva', title: 'Gaushala seva all day', msg: 'Sangat from every city is welcome.', theme: 'gold', link: 'seva:hq1', cta: 'View seva', poster: 'Harbans Singh' }];
+  gS('g-london').stories = [{ id: 'ls1', d: rel(-200), kind: 'Southall', title: 'Langar running all day', msg: 'Come after work — dinner service from 6 PM.', theme: 'night', poster: 'Ranjit Singh' }];
+
+  const d = { seenTasks: {}, seva, otherSeva: other, events, feed, groups, assign: {}, rsvp: { ev1: 'going' }, history: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0, clean: true, demo: true, liveDemo: false, users, requests: [{ n: 'Amanpreet Kaur', d: rel(-50), note: 'Moved to Karol Bagh from Ludhiana' }, { n: 'Jaskaran Singh', d: rel(-300), note: 'Invited by Simran Kaur' }] };
+  // you: going to today's langar (check in during the demo), Blanket Distribution, Reading Circle; past seva you came to
+  d.assign = { dl1: { state: 'going', from: dayAt(0, 9), to: dayAt(0, 18) }, dl3: { state: 'going', from: dayAt(3, 18), to: dayAt(3, 21) }, dl4: { state: 'going', from: dayAt(5, 17), to: dayAt(5, 18, 30) }, dl6: { state: 'going', from: dayAt(-1, 9), to: dayAt(-1, 13) } };
+  seva.filter((s) => s._me).forEach((s) => { d.assign[s.id] = { state: 'going', from: s.start, to: s.end, in: s.start, out: s.end, ok: true }; s.att.present.push('@ME'); d.history.push({ id: 'h' + s.id, title: s.title, cat: s.cat, date: s.start, role: s.points[0].text }); d.pts += 3; d.earned += 3; });
+  d.team = users.filter((u) => u.g === 'delhi').map((u, i) => ({ n: u.n, joined: u.joined, contrib: seva.filter((s) => s.att?.present.includes(u.n)).length, last: [1, 4, 7, 2, 11, 3, 15, 9, 70, 6][i] || 5 }));
+  d.adm = { leads: { delhi: ['Gurpreet Singh', 'Simran Kaur'], ludhiana: ['Jagdeep Singh'], bhaini: ['Harbans Singh'], london: ['Ranjit Singh'], toronto: ['Navdeep Kaur'] }, blockers: [{ id: 'b1', g: 'toronto', t: 'Attendance not marked for Social Service Day', d: rel(-60 * 20), st: 'open', sev: 'warn' }, { id: 'b2', g: 'ludhiana', t: 'Need a van for the roadside langar', d: rel(-60 * 40), st: 'open', sev: 'bad' }, { id: 'b3', g: 'delhi', t: 'Short of gloves and bags', d: at(-6, 10), st: 'resolved', sev: 'warn' }] };
+  d.notifs = [
+    { id: 'dn1', level: 'live', t: 'Langar Seva — Full Day has started. Check in when you arrive.', d: rel(-30), ref: 'seva:dl1' },
+    { id: 'dn2', level: 'live', t: 'URGENT · Gurdwara Hall Cleaning needs 2 more people', d: rel(-110), ref: 'seva:dl2' },
+    { id: 'dn3', level: 'p', t: 'New seva: Blanket Distribution · in 3 days', d: at(-1, 18), ref: 'seva:dl3' },
+    { id: 'dn4', level: 'done', t: 'Attendance marked for Langar Seva — Sunday — +3 points', d: at(-7, 16), ref: 'tab:seva', read: true },
+    { id: 'dl1n', role: 'lead', level: 'action', t: '2 check-ins to approve at Langar Seva — Full Day', d: rel(-20), ref: 'seva:dl1' },
+    { id: 'dl2n', role: 'lead', level: 'action', t: 'Shoe Seva — Sunday Diwan ended. Mark who came.', d: at(-1, 14), ref: 'seva:dl6' },
+    { id: 'da1', role: 'admin', level: 'action', t: 'Toronto: attendance not marked for Social Service Day', d: rel(-60 * 20), ref: 'grp:toronto' },
+    { id: 'da2', role: 'admin', level: 'live', t: '4 seva live now in 3 countries', d: rel(-15), ref: 'tab:seva' },
+  ];
+  return d;
+}
+// move full-day seva (and today's stories) to today, so a demo on any day shows them LIVE
+function rollDemo() {
+  if (!S.demo) return; const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  if (S.name) [...S.seva, ...(S.otherSeva || [])].forEach((x) => { const i = x.att?.present.indexOf('@ME'); if (i >= 0) { x.att.present[i] = S.name; x.att.times[S.name] = [x.start, x.end]; } });
+  const shift = (o, k, ms) => { if (o && o[k]) o[k] = iso(T(o[k]) + ms); };
+  [...S.seva, ...(S.otherSeva || [])].filter((s) => s.daily).forEach((s) => {
+    const sd = new Date(s.start); sd.setHours(0, 0, 0, 0); const ms = d0.getTime() - sd.getTime(); if (!ms) return;
+    ['start', 'end', 'created'].forEach((k) => shift(s, k, ms)); s.people.forEach((p) => { shift(p, 'req', ms); shift(p, 'in', ms); });
+    s.updates.forEach((u) => shift(u, 'd', ms)); s.points.forEach((p) => shift(p, 'at', ms));
+    // a new day of a full-day seva: check-ins start again
+    const A = S.assign[s.id]; if (A) { ['from', 'to'].forEach((k) => shift(A, k, ms)); delete A.in; delete A.out; delete A.inReq; delete A.ok; }
+    s.people.forEach((p, i) => { if (p.st === 'here' && !p.in) p.in = iso(T(s.start) + (30 + i * 25) * MIN); });
+    S.notifs.forEach((n) => { if (n.ref === 'seva:' + s.id && T(n.d) < d0.getTime()) n.d = iso(Math.max(T(s.start), now() - 30 * MIN)); });
+  });
+  S.groups.forEach((g) => g.stories.forEach((x) => { if (x.by !== '@me' && now() - T(x.d) > 20 * HOUR) x.d = iso(now() - (20 + (x.id.length * 37) % 180) * MIN); }));
+  try { if (S.onboarded) localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
 function scenario(kind) {
   if (kind === 'clean') return cleanScenario();
+  if (kind === 'demo') return demoScenario();
   const d = { seenTasks: {}, seva: baseSeva(kind), events: baseEvents(), feed: baseFeed(), groups: baseStories(), assign: {}, rsvp: {}, history: [], notifs: [], mydone: {}, seenUpd: {}, react: {}, saved: {}, storySeen: {}, owned: {}, cart: {}, pts: 0, earned: 0 };
   if (kind === 'active') {
     d.assign = { s0: { state: 'going' }, s5: { state: 'going' }, s1: { state: 'going' }, s2: { state: 'going' }, s3: { state: 'invited' } };
@@ -263,22 +395,23 @@ function scenario(kind) {
   return d;
 }
 
-const KEY = 'namdhari-seva-v11';
+const KEY = 'namdhari-seva-v12';
 let S;
-function fresh(kind = 'clean') { return { v: 11, role: 'member', onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
+function fresh(kind = 'demo') { return { v: 12, role: 'member', onboarded: false, name: '', scenario: kind, mode: 'auto', gview: '2d', seen: {}, ...scenario(kind) }; }
 try {
   S = JSON.parse(localStorage.getItem(KEY));
-  if (!S || S.v !== 11) S = fresh('clean');
+  if (!S || S.v !== 12) S = fresh('demo');
   // switching prototype data happens on a fresh page load, so every list starts from its original values
   const nx = localStorage.getItem('seva-next-scn');
   if (nx) { localStorage.removeItem('seva-next-scn'); S = { ...fresh(nx), onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview, gender: S.gender, scenario: nx }; localStorage.setItem(KEY, JSON.stringify(S)); }
 } catch (e) { S = fresh(); }
+try { rollDemo(); } catch (e) {}
 // notifications created by your own actions in this role count as already seen
 const seenIds = new Set();
 const save = () => { (S.notifs || []).forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); }); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 // clean mode: only the groups that have people, with real member counts and the leads the admin assigned
 if (S.clean) {
-  const keep = ['delhi', 'ludhiana', 'bhaini', 'london'];
+  const keep = S.demo ? DEMO_GROUPS : ['delhi', 'ludhiana', 'bhaini', 'london'];
   for (let i = GROUPS.length - 1; i >= 0; i--) if (!keep.includes(GROUPS[i].id)) GROUPS.splice(i, 1);
   GROUPS.forEach((g) => { g.q = { fill: .85, turn: .9, delay: 0, lag: 0, freq: 0, trend: 0 }; Object.defineProperty(g, 'members', { get: () => S.users.filter((u) => u.g === g.id).length + (g.id === 'delhi' ? 1 : 0), configurable: true }); Object.defineProperty(g, 'lead', { get: () => (S.adm.leads[g.id] || [])[0] || 'no lead yet', configurable: true }); });
 }
@@ -289,12 +422,13 @@ function syncPeople() {
   LEADS.splice(0, LEADS.length, ...(S.adm.leads.delhi || []).filter((n) => n !== ME()));
 }
 const sexOf = (n) => n === ME() ? (S.gender || 'm') : (S.users || []).find((u) => u.n === n)?.sex;
-const meIsLead = () => !S.clean || (S.adm.leads.delhi || []).includes(ME());
+const meIsLead = () => !S.clean || S.demo || (S.adm.leads.delhi || []).includes(ME());
 function setScenario(kind) { const keep = { onboarded: S.onboarded, name: S.name, mode: S.mode, gview: S.gview, role: S.role }; S = { ...fresh(kind), ...keep, scenario: kind }; save(); }
 
 // ---------- Derived model ----------
 const ME = () => S.name || 'Member';
-const sv = (id) => S.seva.find((x) => x.id === id);
+const sv = (id) => S.seva.find((x) => x.id === id) || (S.otherSeva || []).find((x) => x.id === id);
+const allSv = () => [...S.seva, ...(S.otherSeva || [])];
 const ev = (id) => S.events.find((x) => x.id === id);
 const st = (s) => S.assign[s.id]?.state;
 const going = (s) => st(s) === 'going';
@@ -1163,7 +1297,7 @@ function settingsSheet() {
     ${S.clean ? '' : `<button class="btn soft block" style="margin-top:14px" data-act="live-demo">${I.bell}Prototype: live updates from your lead · ${S.liveDemo === false ? 'off' : 'on'}</button>
     <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>`}
     <label class="f">Foldables & tablets</label><div class="seg"><button data-act="set-layout" data-v="two" aria-pressed="${S.layout !== 'one'}">Two screens</button><button data-act="set-layout" data-v="one" aria-pressed="${S.layout === 'one'}">One screen</button></div><p class="xs muted" style="margin-top:6px">When the phone is unfolded or on a tablet, show two tabs side by side.</p>
-    <div class="demo"><p class="h">Prototype data · Clean = start from scratch</p><div class="seg">${[['clean', 'Clean'], ['new', 'Demo new'], ['active', 'Demo busy'], ['less', 'Demo quiet']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
+    <div class="demo"><p class="h">Prototype data · Demo = sample sangat · Clean = start from scratch</p><div class="seg">${[['demo', 'Demo'], ['clean', 'Clean'], ['active', 'Busy'], ['new', 'New']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
     <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
     <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
 }
@@ -1713,7 +1847,7 @@ const GFEM = { delhi: .02, ludhiana: -.04, bhaini: 0, mumbai: .06, jammu: -.05, 
 GROUPS.forEach((g) => { g.fem = GFEM[g.id] || 0; });
 let ADM = null;
 function admData() {
-  if (S.clean) return { recs: S.seva.filter((s) => !s.hq && s.att).map((s) => { const p = s.att.present; const g = sevaGroup(s); const need = s.points.reduce((a, x) => a + x.need, 0) || p.length;
+  if (S.clean) return { recs: allSv().filter((s) => !s.hq && s.att).map((s) => { const p = s.att.present; const g = sevaGroup(s); const need = s.points.reduce((a, x) => a + x.need, 0) || p.length;
     return { sid: s.id, d: T(s.start), g: g.id, cat: s.cat, need, filled: Math.min(need, recipients(s).length), going: Math.max(p.length, recipients(s).length), came: p.length, fem: p.filter((n) => sexOf(n) === 'f').length, cancelled: false, reason: '', delay: 0, lag: Math.round((T(s.att.at) - T(s.end)) / HOUR), newm: 0 }; }) };
   if (ADM) return ADM; let h = 20261028; const r = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
   const recs = []; const t0 = new Date(); t0.setHours(9, 0, 0, 0);
@@ -2050,9 +2184,9 @@ function AdminSevaCore() {
   const syn = (k) => S.clean ? [] : others.filter((g, i) => k === 'live' ? (g.q.freq > 2 && i % 2 === 0) : g.id !== 'jaipur').map((g, i) => ({ g, title: `${CAT[CATW[i % 10][0]].label} Seva`, cat: CATW[i % 10][0], when: k === 'live' ? `Live now · ends ${fmtTime(at(0, 13))}` : `${relDay(at(1 + (i % 6), 9))} · 9:00 AM`, fill: Math.round(g.q.fill * 100), going: Math.round(g.members * .12), d: k === 'live' ? now() : T(at(1 + (i % 6), 9)) }));
   const items = [];
   if (aSeg !== 'attention') {
-    S.seva.filter((s) => inScope(sevaGroup(s)) && (aSeg === 'live' ? isLive(s) : isFuture(s))).forEach((s) => items.push({ g: sevaGroup(s), d: T(s.start), html: withLoc(s.hq ? sevaCard(s) : leadCard(s), sevaGroup(s), s.hq) }));
+    allSv().filter((s) => inScope(sevaGroup(s)) && (aSeg === 'live' ? isLive(s) : isFuture(s))).forEach((s) => items.push({ g: sevaGroup(s), d: T(s.start), html: withLoc(s.hq ? sevaCard(s) : leadCard(s), sevaGroup(s), s.hq) }));
     if (aSeg === 'upcoming') S.events.filter((e) => isFuture(e) && inScope(gOf(e.gid || (e.hq ? 'bhaini' : 'delhi')))).forEach((e) => { const g = gOf(e.gid || (e.hq ? 'bhaini' : 'delhi')); items.push({ g, d: T(e.start), html: withLoc(eventCard(e), g, !!e.hq) }); });
-    if (aSeg === 'upcoming') (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).forEach((s) => items.push({ g: gOf(s.gid), d: T(s.start), html: withLoc(`<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`, gOf(s.gid)) }));
+    if (false) (S.otherSeva || []).filter((s) => inScope(gOf(s.gid))).forEach((s) => items.push({ g: gOf(s.gid), d: T(s.start), html: withLoc(`<div class="scard">${dblock(s.start, s.cat)}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${s.cat}) 13%,transparent);color:var(--c-${s.cat})">${CAT[s.cat].label}</span><h3>${ttl(s)}</h3><p class="m">${relDay(s.start)} · ${fmtTime(s.start)} · created by you</p></div></div>`, gOf(s.gid)) }));
     syn(aSeg).forEach((x) => items.push({ g: x.g, d: x.d, html: withLoc(`<button class="scard tap ${aSeg === 'live' ? 'live' : ''}" data-open="grp:${x.g.id}">${dblock(at(1 + (x.g.id.length % 6), 9), x.cat, aSeg === 'live', at(0, 13))}<div class="grow"><span class="chip" style="background:color-mix(in srgb,var(--c-${x.cat}) 13%,transparent);color:var(--c-${x.cat})">${CAT[x.cat].label}</span><h3>${x.title}</h3><p class="m">${x.when} · lead ${esc((S.adm.leads[x.g.id] || [x.g.lead])[0])}</p><div class="mini"><i style="width:${x.fill}%;background:${STL[KPI.fill.g({ fill: x.fill })][1]}"></i></div><p class="xs muted" style="margin-top:4px">${x.fill}% places filled · ${x.going} going</p></div></button>`, x.g) }));
   }
   // grouped by country so the admin always knows where each seva is
@@ -2249,7 +2383,7 @@ function recDetail(r) {
 let pastN = 25;
 function pastItems() {
   const F = af(); const out = admData().recs.filter((r) => !r.sid && r.d >= now() - F.p * DAY && inScope(gOf(r.g)) && (F.t === 'all' || r.cat === F.t)).map((r) => ({ id: recId(r), d: r.d, g: gOf(r.g), r }));
-  S.seva.filter((s) => T(s.end) < now() && inScope(sevaGroup(s))).forEach((s) => out.push({ id: 's:' + s.id, d: T(s.start), g: sevaGroup(s), s }));
+  allSv().filter((s) => T(s.end) < now() && inScope(sevaGroup(s))).forEach((s) => out.push({ id: 's:' + s.id, d: T(s.start), g: sevaGroup(s), s }));
   return out.sort((a, b) => b.d - a.d);
 }
 function pastCard(x) {
@@ -2274,7 +2408,7 @@ const rf = () => (S.rf = S.rf || { states: [], tags: [], type: 'all' });
 function reportEntries() {
   const F = af(), R = rf(); const out = [];
   admData().recs.filter((r) => !r.sid && r.d >= now() - F.p * DAY && !r.cancelled).forEach((r) => { const d = recDetail(r); if (!d.rep) return; ['good', 'feedback', 'challenge'].forEach((k) => d.rep[k].forEach((t) => out.push({ k, t, tags: d.tags, g: d.g, d: r.d, ref: 'past:' + recId(r), title: d.title, lead: d.lead }))); });
-  S.seva.filter((s) => s.report).forEach((s) => ['good', 'feedback', 'challenge'].forEach((k) => s.report[k].forEach((t) => out.push({ k, t, tags: s.report.tags || sevaTags(s), g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id, title: s.title, lead: s.lead }))));
+  allSv().filter((s) => s.report).forEach((s) => ['good', 'feedback', 'challenge'].forEach((k) => s.report[k].forEach((t) => out.push({ k, t, tags: s.report.tags || sevaTags(s), g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id, title: s.title, lead: s.lead }))));
   return out.filter((e) => (!R.states.length || R.states.includes(e.g.state)) && (!R.tags.length || e.tags.some((t) => R.tags.includes(t)))).sort((a, b) => b.d - a.d);
 }
 function ReportsPanel() {
@@ -2301,13 +2435,13 @@ function pendingItems() {
   recent.filter((r) => r.lag > 48).forEach((r) => out.push({ k: 'att', t: `Attendance not marked · ${CAT[r.cat].label} seva`, g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
   recent.filter((r) => !recDetail(r).rep && now() - r.d > DAY).slice(0, 6).forEach((r) => out.push({ k: 'rep', t: `Report not submitted · ${CAT[r.cat].label} seva`, g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
   recent.filter((r) => recDetail(r).rep?.challenge.length).forEach((r) => out.push({ k: 'chal', t: recDetail(r).rep.challenge[0], g: gOf(r.g), d: r.d, ref: 'past:' + recId(r) }));
-  S.seva.filter((s) => s.report?.challenge?.length && T(s.start) > now() - 10 * DAY && inScope(sevaGroup(s))).forEach((s) => out.push({ k: 'chal', t: s.report.challenge[0], g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
-  S.seva.filter((s) => !s.hq && T(s.end) < now() && (!s.att || !s.report)).forEach((s) => out.push({ k: s.att ? 'rep' : 'att', t: `${s.att ? 'Report' : 'Attendance'} pending · ${s.title}`, g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
+  allSv().filter((s) => s.report?.challenge?.length && T(s.start) > now() - 10 * DAY && inScope(sevaGroup(s))).forEach((s) => out.push({ k: 'chal', t: s.report.challenge[0], g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
+  allSv().filter((s) => !s.hq && T(s.end) < now() && (!s.att || !s.report)).forEach((s) => out.push({ k: s.att ? 'rep' : 'att', t: `${s.att ? 'Report' : 'Attendance'} pending · ${s.title}`, g: sevaGroup(s), d: T(s.start), ref: 'past:s:' + s.id }));
   return out.sort((a, b) => b.d - a.d);
 }
 const PK2 = { att: ['Attendance due', 'var(--action)', 'var(--action-bg)', I.clip], rep: ['Report due', 'var(--action)', 'var(--action-bg)', I.edit], chal: ['Challenge reported', 'var(--live)', 'var(--live-bg)', I.alert] };
 function nowStrip() {
-  const liveG = S.clean ? [...new Set(S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).map((s) => sevaGroup(s)))] : scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = S.clean ? S.seva.filter((s) => isLive(s) && inScope(sevaGroup(s))).length : liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0);
+  const liveG = S.clean ? [...new Set(allSv().filter((s) => isLive(s) && inScope(sevaGroup(s))).map((s) => sevaGroup(s)))] : scopeGroups().filter((g, i) => (g.q.freq > 2 && i % 2 === 0) || g.id === 'delhi'); const live = S.clean ? allSv().filter((s) => isLive(s) && inScope(sevaGroup(s))).length : liveG.length + (liveG.some((g) => g.id === 'delhi') ? 2 : 0);
   const pend = pendingItems().length; const next = (S.clean ? (S.otherSeva || []).filter((s) => isFuture(s) && inScope(gOf(s.gid)) && T(s.start) < now() + 7 * DAY).length : scopeGroups().filter((g) => g.id !== 'jaipur').length) + S.seva.filter((s) => isFuture(s) && inScope(sevaGroup(s)) && T(s.start) < now() + 7 * DAY).length;
   return `<div class="nowrow"><button class="nowt live tap" data-act="now-live"><span class="livepill"><i></i>LIVE</span><b>${live}</b><span>happening now</span></button><button class="nowt pend tap" data-act="now-pend"><span class="ntag">${I.alert}PENDING</span><b>${pend}</b><span>need action</span></button><button class="nowt next tap" data-act="now-next"><span class="ntag">${I.cal}NEXT 7 DAYS</span><b>${next}</b><span>planned</span></button></div>`;
 }
@@ -2535,7 +2669,7 @@ function handle(el) {
     case 'rf-apply': rf()[el.dataset.k === 'state' ? 'states' : 'tags'] = [...rDraft]; rDraft = null; save(); closeSheet(); rerender(); break;
     case 'rf-reset': S.rf = { states: [], tags: [], type: rf().type }; save(); rerender(); break;
     case 'rf-tag1': rf().tags = [el.dataset.t]; save(); rerender(); break;
-    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } if (!S.gender) { toast('Please choose Male or Female'); return; } S.name = n; S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
+    case 'onb-finish': { const n = ($('#onb-name')?.value || '').trim(); if (!n) { toast('Please add your name'); return; } if (!S.gender) { toast('Please choose Male or Female'); return; } S.name = n; allSv().forEach((x) => { if (x.att) { const i = x.att.present.indexOf('@ME'); if (i >= 0) { x.att.present[i] = n; const tm = x.att.times; tm[n] = [x.start, x.end]; } } }); syncPeople(); S.onboarded = true; save(); tab = 'home'; render(); toast('Welcome to Delhi Central 🙏'); break; }
     case 'back': pop(); break;
     case 'close-sheet': closeSheet(); if (S.justPlanted) { rerender(); S.justPlanted = null; } break;
     case 'inbox': push({ v: 'inbox' }); break;
