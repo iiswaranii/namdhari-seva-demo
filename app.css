@@ -469,7 +469,7 @@ input.in, select.in, textarea.in { width: 100%; min-height: 48px; border-radius:
 .lcar .livebanner { flex: 0 0 calc(100% - 26px); scroll-snap-align: center; margin-top: 0; }
 .ldots { display: flex; justify-content: center; gap: 5px; margin-top: 8px; }
 .ldots i { width: 6px; height: 6px; border-radius: 3px; background: var(--border); transition: width .2s, background .2s; }
-.ldots i.on { width: 18px; background: var(--live); }
+.ldots i.on { width: 18px; background: var(--dc, var(--live)); }
 .livebanner .pend { color: var(--action); font-weight: 750; }
 .dtabs .n.warn { background: var(--action-c); color: #2A1A00; }
 .scard.hq { flex-wrap: wrap; border: 2px solid #F0B43C; background: linear-gradient(135deg, #FFF8E6, var(--surface) 60%); padding-top: 0; overflow: hidden; }
@@ -961,3 +961,9 @@ html.duo .rp .cartbar { bottom: 12px; }
 .apbtns .btn svg { width: 16px; height: 16px; }
 .closecard.appr { border-color: var(--p); background: var(--p-soft); } .closecard.appr .ci { background: var(--p); } .closecard.appr .cstep { color: var(--p); }
 .reqcard .apbtns { flex-basis: 100%; padding-left: 52px; margin-top: 6px; } .reqcard .apbtns .btn.ok { flex: 1; justify-content: center; }
+/* v18b: urgent, special and can-you-come as swipe rows */
+.lcar > .urgbanner, .lcar > .spbanner, .lcar > .askcard { flex: 0 0 calc(100% - 26px); scroll-snap-align: center; margin-top: 0; min-width: 0; }
+.lcar > .urgbanner .grow, .lcar > .spbanner .grow { min-width: 0; }
+.lcar > .spbanner { margin: 4px 0; }
+#urgcar, #spcar { margin-top: 12px; }
+#askcar { margin-top: 10px; padding-bottom: 8px; }

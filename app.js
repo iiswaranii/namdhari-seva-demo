@@ -576,7 +576,8 @@ function render() {
   const user3d = top?.v === 'user' && uview === '3d';
   if (shown.includes('garden') && S.gview === '3d' && !GE && !user3d) mount3D(ensureLayout(), itemSheet);
   if (user3d) mount3D(genLayout(top.n), (id) => toast(GI[id].name));
-  if (shown.includes('home') || shown.includes('feed')) { setupFeed(); setupLiveCarousel(); }
+  if (shown.includes('home') || shown.includes('feed')) setupFeed();
+  setupLiveCarousel();
 }
 // one bar for both halves: each tab appears once; the two on screen are marked with the half they're on.
 // Tapping another tab opens it on the left and moves the left one to the right — the last two tabs you used stay on screen.
@@ -651,8 +652,8 @@ function Home() {
 function askCards() {
   const open = S.seva.filter((s) => isFuture(s) && !s.cancelled && !['going', 'cant'].includes(st(s))).sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || T(a.start) - T(b.start));
   if (!open.length) return '';
-  return `<div class="feedhead" style="margin-top:16px"><h2>Can you come?</h2>${open.length > 2 ? `<button class="link" style="min-height:28px;padding:0" data-act="see-open">See all ${open.length}${I.chev}</button>` : `<span class="xs muted">${open.length} waiting for your answer</span>`}</div>
-    ${open.slice(0, 2).map((s) => { const left = openPtsN(s); return `<div class="askcard ${s.urgent ? 'urgent' : ''}"><button class="askmain" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[s.cat].ic}</span><span class="grow" style="min-width:0"><b class="ellipsis">${esc(s.title)}</b><span class="m ellipsis">${relDay(s.start)} · ${fmtTime(s.start)} · ${esc(s.place.split(',')[0])}</span><span class="m2">${s.urgent ? '<i class="urgdot"></i>Urgent · ' : ''}${left ? `${left} task${left === 1 ? ' needs' : 's need'} people` : 'All tasks covered'}</span></span></button><div class="askbtns"><button class="yes" data-act="ask-yes" data-id="${s.id}">${I.checkc}Yes</button><button class="no" data-act="ask-no" data-id="${s.id}">${I.xc}No</button></div></div>`; }).join('')}`;
+  return `<div class="feedhead" style="margin-top:16px"><h2>Can you come?</h2>${open.length > 1 ? `<span class="xs muted">${open.length} waiting · swipe ${I.arrow.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')}</span>` : '<span class="xs muted">1 waiting for your answer</span>'}</div>
+    ${swipeRow('askcar', open.map((s) => { const left = openPtsN(s); return `<div class="askcard ${s.urgent ? 'urgent' : ''}"><button class="askmain" data-open="seva:${s.id}"><span class="art cc-${s.cat}" style="color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,transparent)">${CAT[s.cat].ic}</span><span class="grow" style="min-width:0"><b class="ellipsis">${esc(s.title)}</b><span class="m ellipsis">${relDay(s.start)} · ${fmtTime(s.start)} · ${esc(s.place.split(',')[0])}</span><span class="m2">${s.urgent ? '<i class="urgdot"></i>Urgent · ' : ''}${left ? `${left} task${left === 1 ? ' needs' : 's need'} people` : 'All tasks covered'}</span></span></button><div class="askbtns"><button class="yes" data-act="ask-yes" data-id="${s.id}">${I.checkc}Yes</button><button class="no" data-act="ask-no" data-id="${s.id}">${I.xc}No</button></div></div>`; }), 'var(--p)')}`;
 }
 // lead: seva that ended and still need attendance or the report — the next step is one tap
 function closeCards() {
@@ -687,10 +688,16 @@ function loadMoreFeed() {
     if (feedShown >= feedList().length) { feedIO && feedIO.disconnect(); $('#feed-more')?.insertAdjacentHTML('afterend', caughtUp()); $('#feed-more')?.remove(); }
   }, 650);
 }
+// one row you swipe sideways, with dots; a single item is shown as is
+const swipeRow = (id, html, dot = 'var(--p)') => html.length < 2 ? html.join('') : `<div class="lcar" id="${id}">${html.join('')}</div><div class="ldots" data-for="${id}" style="--dc:${dot}">${html.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>`;
+const carPos = {};
 function setupLiveCarousel() {
-  const c = $('#lcar'); if (!c) return; if (setupLiveCarousel.x) c.scrollLeft = setupLiveCarousel.x;
-  const upd = () => { setupLiveCarousel.x = c.scrollLeft; const kids = [...c.children]; const mid = c.scrollLeft + c.clientWidth / 2; let best = 0, bd = 1e9; kids.forEach((k, i) => { const d = Math.abs(k.offsetLeft + k.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }); $$('#ldots i').forEach((d, i) => d.classList.toggle('on', i === best)); };
-  c.addEventListener('scroll', upd, { passive: true }); upd();
+  $$('.lcar').forEach((c) => {
+    if (carPos[c.id]) c.scrollLeft = carPos[c.id];
+    const dots = $$(`.ldots[data-for="${c.id}"] i, #${c.id === 'lcar' ? 'ldots' : 'x-none'} i`);
+    const upd = () => { carPos[c.id] = c.scrollLeft; const mid = c.scrollLeft + c.clientWidth / 2; let best = 0, bd = 1e9; [...c.children].forEach((k, i) => { const d = Math.abs(k.offsetLeft + k.offsetWidth / 2 - mid); if (d < bd) { bd = d; best = i; } }); dots.forEach((d, i) => d.classList.toggle('on', i === best)); };
+    c.addEventListener('scroll', upd, { passive: true }); upd();
+  });
 }
 const PK = {
   thought: { label: 'Thought of the Day', ic: I.sun, cls: '', grad: ['#FFE9C9', '#FFC9A6', '#F9A9BC'] },
@@ -2353,13 +2360,13 @@ const urgRib = `<span class="urgrib">${I.alert}URGENT</span>`;
 const urgMark = (html, x) => !x?.urgent ? html : html.replace(/^(\s*<(?:button|div) class="scard)/, '$1 urgent').replace(/^(\s*<(?:button|div)[^>]*>)/, (m) => html.includes('class="urgrib"') ? m : m + urgRib);
 function urgentBanner() {
   const items = [...S.seva.filter((s) => s.urgent && T(s.end) > now()).map((s) => ({ k: 'seva', x: s })), ...visEvents().filter((e) => e.urgent && T(e.end) > now()).map((e) => ({ k: 'event', x: e }))].sort((a, b) => T(a.x.start) - T(b.x.start));
-  if (!items.length) return ''; const { k, x } = items[0];
-  return `<button class="urgbanner tap" data-open="${k}:${x.id}"><span class="ub-ic">${I.alert}</span><div class="grow"><span class="ub-tag">URGENT${items.length > 1 ? ` · +${items.length - 1} more` : ''}</span><b>${esc(x.title)}</b><span class="xs">${relDay(x.start)} · ${fmtTime(x.start)} · ${esc(x.place.split(',')[0])}</span></div>${chev}</button>`;
+  if (!items.length) return '';
+  return swipeRow('urgcar', items.map(({ k, x }, i) => `<button class="urgbanner tap" data-open="${k}:${x.id}"><span class="ub-ic">${I.alert}</span><div class="grow"><span class="ub-tag">URGENT${items.length > 1 ? ` · ${i + 1} of ${items.length}` : ''}</span><b class="ellipsis">${esc(x.title)}</b><span class="xs ellipsis">${relDay(x.start)} · ${fmtTime(x.start)} · ${esc(x.place.split(',')[0])}</span></div>${chev}</button>`), 'var(--live)');
 }
 function specialBanner() {
   const items = [...S.seva.filter((s) => s.special && T(s.end) > now()).map((s) => ({ k: 'seva', x: s })), ...visEvents().filter((e) => e.special && T(e.end) > now()).map((e) => ({ k: 'event', x: e }))].sort((a, b) => T(a.x.start) - T(b.x.start));
-  if (!items.length) return ''; const { k, x } = items[0]; const days = Math.max(0, Math.round((T(x.start) - now()) / DAY));
-  return `<button class="spbanner special tap" data-open="${k}:${x.id}"><span class="sparkles">✨</span><div class="grow"><span class="sptag">SPECIAL${items.length > 1 ? ` · +${items.length - 1} more` : ''}</span><b>${esc(x.title)}</b><span class="xs">${days ? `in ${days} day${days > 1 ? 's' : ''}` : 'today'} · ${esc(x.place.split(',')[0])}</span></div><span class="spcta">${(k === 'seva' ? going(x) : S.rsvp[x.id] === 'going') ? `${I.check}You're in` : 'Join'}</span></button>`;
+  if (!items.length) return '';
+  return swipeRow('spcar', items.map(({ k, x }, i) => { const days = Math.max(0, Math.round((T(x.start) - now()) / DAY)); return `<button class="spbanner special tap" data-open="${k}:${x.id}"><span class="sparkles">✨</span><div class="grow"><span class="sptag">SPECIAL${items.length > 1 ? ` · ${i + 1} of ${items.length}` : ''}</span><b class="ellipsis">${esc(x.title)}</b><span class="xs ellipsis">${isLive(x) ? 'Live now' : days ? `in ${days} day${days > 1 ? 's' : ''}` : 'today'} · ${esc(x.place.split(',')[0])}</span></div><span class="spcta">${(k === 'seva' ? going(x) : S.rsvp[x.id] === 'going') ? `${I.check}You're in` : 'Join'}</span></button>`; }), 'var(--gold)');
 }
 // cards: urgent ones get a red frame wherever they are listed
 const specMark = (html, x) => !x?.special || html.includes('class="sprib"') ? html : html.replace(/^(\s*<(?:button|div) class="scard)/, '$1 special').replace(/^(\s*<(?:button|div)[^>]*>)/, (m) => m + specialRib);

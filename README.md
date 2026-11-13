@@ -161,3 +161,4 @@ Switch in Profile → "Viewing as" → **Admin**. Tabs: Stats · Seva · Feed ·
 - Upcoming seva (Blanket Distribution · urgent, Reading Circle, Tree Planting, Parkash Purab Langar · HQ special), events (Monthly Satsang, Parkash Purab Diwan) and meetings (Seva Planning — leads only).
 - Past: 5 Delhi seva and 6 from other groups with attendance and reports (good / feedback / challenges), a past Kirtan Darbar and a leads' call. Feed posts and stories.
 - In Demo you are a member of Delhi Central and also one of its team leads, so all three roles can be shown. Profile › Settings › Prototype data switches to Clean (start from scratch).
+- v18.1: Urgent, Special and "Can you come?" on Home/Feed are now swipe rows (like Live now), with dots and "1 of N".
