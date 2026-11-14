@@ -1,5 +1,5 @@
 // Namdhari Seva demo — offline shell service worker
-const CACHE = 'seva-v18b';
+const CACHE = 'seva-v19';
 const SHELL = [
   './', 'index.html', 'app.css', 'app.js', 'garden3d.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
@@ -32,9 +32,9 @@ self.addEventListener('fetch', (e) => {
 });
 
 self.addEventListener('notificationclick', (e) => {
-  e.notification.close();
+  e.notification.close(); const id = e.notification.data && e.notification.data.id;
   e.waitUntil(self.clients.matchAll({ type: 'window' }).then((list) => {
-    if (list.length) return list[0].focus();
+    if (list.length) { if (id) list[0].postMessage({ open: id }); return list[0].focus(); }
     return self.clients.openWindow('./');
   }));
 });

@@ -248,12 +248,12 @@ function demoScenario() {
 
   // ===== Delhi Central (your group) =====
   // LIVE all day, every day of the demo
-  seva.push(base({ id: 'dl1', daily: true, title: 'Langar Seva — Full Day', cat: 'langar', start: dayAt(0, 5, 0), end: dayAt(0, 23, 59), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Langar hall, main door', lead: 'Gurpreet Singh', purpose: 'Langar for the sangat all day — about 600 people expected.', instructions: 'Aprons and gloves are in the store room. Come for any part of the day.',
+  seva.push(base({ id: 'dl1', daily: true, title: 'Langar Seva — Full Day', cat: 'langar', start: dayAt(0, 5, 0), end: dayAt(0, 22, 0), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Langar hall, main door', lead: 'Gurpreet Singh', purpose: 'Langar for the sangat all day — about 600 people expected.', instructions: 'Aprons and gloves are in the store room. Come for any part of the day.',
     people: [...ppl(D.slice(0, 5), 'here'), ...ppl(D.slice(5, 7), 'going'), ...ppl(D.slice(7, 8), 'cant'), ...ppl(D.slice(8), 'invited')],
     points: tasks([['Cook dal and sabzi', 4, [D[0], D[2]]], ['Make rotis', 6, [D[1], D[3], D[4]]], ['Serve in the pangat', 6, [D[5]]], ['Wash utensils', 3, []]]),
     updates: [{ id: 'ud1', t: 'Langar has started. Rotis team please come to the side kitchen.', d: dayAt(0, 5, 10), by: 'Gurpreet Singh', kind: 'info' }, { id: 'ud2', t: 'New task added: Water for sangat at the gate', d: dayAt(0, 9, 30), by: 'Gurpreet Singh', kind: 'new' }] }));
   seva[0].people[5].req = dayAt(0, 9, 40); seva[0].people[6].req = dayAt(0, 10, 5);
-  seva.push(base({ id: 'dl2', daily: true, title: 'Gurdwara Hall Cleaning', cat: 'cleanup', start: dayAt(0, 6, 0), end: dayAt(0, 23, 59), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Shoe room', lead: 'Simran Kaur', purpose: 'Get the main hall ready for the evening diwan.', urgent: true,
+  seva.push(base({ id: 'dl2', daily: true, title: 'Gurdwara Hall Cleaning', cat: 'cleanup', start: dayAt(0, 6, 0), end: dayAt(0, 22, 0), place: 'Namdhari Gurdwara, Karol Bagh, Delhi', meet: 'Shoe room', lead: 'Simran Kaur', purpose: 'Get the main hall ready for the evening diwan.', urgent: true,
     people: [...ppl(D.slice(1, 4), 'here'), ...ppl(D.slice(6, 8), 'going'), ...ppl(D.slice(8), 'invited')],
     points: tasks([['Lay carpets', 4, [D[1], D[2]]], ['Sweep and mop', 3, [D[3]]], ['Windows and fans', 2, []], ['Shoe racks', 2, []]]) }));
   // upcoming
@@ -278,14 +278,14 @@ function demoScenario() {
   past.forEach(([id, title, cat, d, h1, h2, lead, present, rep, me]) => { const s = base({ id, title, cat, start: dayAt(d, h1), end: dayAt(d, h2), place: 'Karol Bagh, Delhi', lead, purpose: 'Weekly seva of Delhi Central.', people: [...ppl(present, 'going'), ...ppl(D.filter((n) => !present.includes(n)).slice(0, 2), 'cant')], points: tasks([['Main seva', present.length, present.slice(0, 4)], ['Set up and clean up', 2, present.slice(4, 6)]]) }); s._me = me; att(s, present, { ...rep, tags: [CAT[cat].label] }); seva.push(s); });
 
   // ===== HQ seva (all sangat) =====
-  seva.push(base({ id: 'hq1', daily: true, hq: true, special: true, region: 'Sri Bhaini Sahib', title: 'Gau Seva at Sri Bhaini Sahib', cat: 'gau', start: dayAt(0, 5, 30), end: dayAt(0, 23, 59), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Gaushala gate', lead: 'Seva HQ team', purpose: 'All-day gau seva. Sangat from every city is welcome.', tags: ['Gau seva', 'Special', 'HQ'],
+  seva.push(base({ id: 'hq1', daily: true, hq: true, special: true, region: 'Sri Bhaini Sahib', title: 'Gau Seva at Sri Bhaini Sahib', cat: 'gau', start: dayAt(0, 5, 30), end: dayAt(0, 22, 0), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Gaushala gate', lead: 'Seva HQ team', purpose: 'All-day gau seva. Sangat from every city is welcome.', tags: ['Gau seva', 'Special', 'HQ'],
     people: [...ppl(inG('bhaini'), 'here'), ...ppl(inG('ludhiana').slice(0, 3), 'going')], points: tasks([['Clean the gaushala', 10, inG('bhaini').slice(0, 2)], ['Feed and water', 6, inG('bhaini').slice(2)], ['Bring fodder', 6, []]]) }));
   seva.push(base({ id: 'hq2', hq: true, special: true, region: 'Sri Bhaini Sahib', title: 'Parkash Purab Langar', cat: 'langar', start: dayAt(12, 6), end: dayAt(12, 15), place: 'Sri Bhaini Sahib, Ludhiana, Punjab', meet: 'Langar hall, gate 3', lead: 'Seva HQ team', purpose: 'Langar for thousands of sangat on Parkash Purab.', tags: ['Langar', 'Special', 'HQ'],
     people: [...ppl(inG('bhaini'), 'going'), ...ppl(inG('ludhiana'), 'going'), ...ppl(D.slice(0, 3), 'going')], points: tasks([['Cook dal and sabzi', 30, []], ['Make rotis', 40, []], ['Serve in the pangat', 30, []], ['Clean utensils', 20, []]]) }));
 
   // ===== other groups (seen by Seva HQ) =====
   const og = (gid, id, title, cat, d, h1, h2, lead, place, extra = {}) => base({ id, gid, title, cat, start: dayAt(d, h1), end: dayAt(d, h2), place, lead, purpose: `Seva of ${(GROUPS.find((g) => g.id === gid) || {}).name || gid}.`, people: ppl(inG(gid), d < 0 ? 'going' : 'invited'), points: tasks([['Main seva', inG(gid).length + 2, d < 0 ? inG(gid).slice(0, 3) : []], ['Set up', 2, []]]), ...extra });
-  other.push(og('london', 'lo1', 'Langar at Southall — Full Day', 'langar', 0, 6, 23, 'Ranjit Singh', 'Southall, London', { daily: true, end: at(0, 23, 59), people: [...ppl(inG('london').slice(0, 3), 'here'), ...ppl(inG('london').slice(3), 'going')] }));
+  other.push(og('london', 'lo1', 'Langar at Southall — Full Day', 'langar', 0, 6, 23, 'Ranjit Singh', 'Southall, London', { daily: true, end: at(0, 22, 0), people: [...ppl(inG('london').slice(0, 3), 'here'), ...ppl(inG('london').slice(3), 'going')] }));
   other.push(og('toronto', 'to1', 'Food Bank Drive', 'donation', 2, 10, 14, 'Navdeep Kaur', 'Brampton, Toronto'));
   other.push(og('ludhiana', 'lu1', 'Roadside Langar Stall', 'stall', 4, 11, 16, 'Jagdeep Singh', 'Ferozepur Road, Ludhiana'));
   [['ludhiana', 'lp1', 'Langar Seva', 'langar', -4, 'Jagdeep Singh', 'Ludhiana', { good: [G[2]], feedback: [F[1]], challenge: [] }],
@@ -346,6 +346,7 @@ function rollDemo() {
   if (S.name) [...S.seva, ...(S.otherSeva || [])].forEach((x) => { const i = x.att?.present.indexOf('@ME'); if (i >= 0) { x.att.present[i] = S.name; x.att.times[S.name] = [x.start, x.end]; } });
   const shift = (o, k, ms) => { if (o && o[k]) o[k] = iso(T(o[k]) + ms); };
   [...S.seva, ...(S.otherSeva || [])].filter((s) => s.daily).forEach((s) => {
+    const e0 = new Date(s.end); if (e0.getHours() * 60 + e0.getMinutes() > 22 * 60) { e0.setHours(22, 0, 0, 0); s.end = iso(e0); }
     const sd = new Date(s.start); sd.setHours(0, 0, 0, 0); const ms = d0.getTime() - sd.getTime(); if (!ms) return;
     ['start', 'end', 'created'].forEach((k) => shift(s, k, ms)); s.people.forEach((p) => { shift(p, 'req', ms); shift(p, 'in', ms); });
     s.updates.forEach((u) => shift(u, 'd', ms)); s.points.forEach((p) => shift(p, 'at', ms));
@@ -407,8 +408,9 @@ try {
 } catch (e) { S = fresh(); }
 try { rollDemo(); } catch (e) {}
 // notifications created by your own actions in this role count as already seen
-const seenIds = new Set();
-const save = () => { (S.notifs || []).forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); }); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const seenIds = new Set(); const alerted = new Set();
+const trialOn = () => S.trialAlerts !== false;
+const save = () => { trialCheck(); (S.notifs || []).forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); }); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 // clean mode: only the groups that have people, with real member counts and the leads the admin assigned
 if (S.clean) {
   const keep = S.demo ? DEMO_GROUPS : ['delhi', 'ludhiana', 'bhaini', 'london'];
@@ -637,7 +639,7 @@ function Home() {
   const live = isAdmin() ? [] : liveHome();
   const next = !isAdmin() && !liveMine().length ? S.seva.filter((s) => isFuture(s) && going(s)).sort((a, b) => T(a.start) - T(b.start))[0] : null;
   return `<header class="apphdr">${LOGO}<h1>${isAdmin() ? 'Feed' : 'Namdhari Seva'}</h1><span class="sp"></span>${bellBtn()}</header>
-    ${storiesRow()}
+    ${storiesRow()}${alertsCard()}
     ${isLead() ? leadGlance() : ''}
     ${urgentBanner()}${specialBanner()}
     ${live.length > 1 ? `<div class="lhead"><span class="livepill"><i></i>${live.length} LIVE NOW</span><span class="xs muted">Swipe to see all ${I.arrow.replace('<svg', '<svg style="width:13px;height:13px;vertical-align:-2px"')}</span></div><div class="lcar" id="lcar">${live.map(liveBanner).join('')}</div><div class="ldots" id="ldots">${live.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : live.map(liveBanner).join('')}
@@ -1292,7 +1294,7 @@ function JourneyScreen() {
 function Inbox() {
   const ic = { live: I.bell, action: I.clock, p: I.sparkle, done: I.checkc };
   const col = { live: 'var(--live)', action: 'var(--action)', p: 'var(--p)', done: 'var(--done)' };
-  return `${dtop('Notifications', notifsFor().some((n) => !n.read) ? `<button class="link" data-act="read-all">Mark all read</button>` : '')}
+  return `${dtop('Notifications', notifsFor().some((n) => !n.read) ? `<button class="link" data-act="read-all">Mark all read</button>` : '')}${alertsCard()}
     ${notifsFor().length ? `<div class="card list">${notifsFor().map((n) => `<button class="lrow" data-act="notif" data-id="${n.id}"><span class="av2" style="background:color-mix(in srgb,${col[n.level]} 14%,transparent);color:${col[n.level]}">${ic[n.level].replace('<svg', '<svg style="width:20px;height:20px"')}</span><div class="grow"><b class="small" style="font-weight:${n.read ? 500 : 700}">${esc(n.t)}</b><p class="xs muted">${ago(n.d)}${ago(n.d) === 'just now' ? '' : ' ago'}</p></div>${n.read ? '' : '<span style="width:9px;height:9px;border-radius:50%;background:var(--p)"></span>'}</button>`).join('')}</div>` : emptyState('All quiet', 'Seva alerts and reminders appear here.')}
     <button class="btn ghost block" style="margin-top:14px" data-act="push">${I.bell}Test a phone notification</button>`;
 }
@@ -1305,7 +1307,7 @@ function settingsSheet() {
     <button class="btn soft block" style="margin-top:8px" data-act="sim-story">${I.sparkle}Prototype: a lead posts a new story</button>`}
     <label class="f">Foldables & tablets</label><div class="seg"><button data-act="set-layout" data-v="two" aria-pressed="${S.layout !== 'one'}">Two screens</button><button data-act="set-layout" data-v="one" aria-pressed="${S.layout === 'one'}">One screen</button></div><p class="xs muted" style="margin-top:6px">When the phone is unfolded or on a tablet, show two tabs side by side.</p>
     <div class="demo"><p class="h">Prototype data · Demo = sample sangat · Clean = start from scratch</p><div class="seg">${[['demo', 'Demo'], ['clean', 'Clean'], ['active', 'Busy'], ['new', 'New']].map(([k, l]) => `<button data-scn="${k}" aria-pressed="${S.scenario === k}">${l}</button>`).join('')}</div></div>
-    <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
+    <div class="card list" style="margin-top:14px"><button class="lrow" data-act="install">${I.download}<b class="grow small">Add to Home Screen</b>${chev}</button><button class="lrow" data-act="trial-alerts">${I.bell}<span class="grow small"><b>Trial: alerts for every role</b><br><span class="xs muted">Lead and admin alerts pop up even while you view as a member</span></span><span class="tg ${trialOn() ? 'on' : ''}"></span></button>${alertPerm() === 'granted' ? '' : `<button class="lrow" data-act="alerts-on">${I.bell}<b class="grow small">Turn on phone alerts</b>${chev}</button>`}<button class="lrow" data-act="push">${I.bell}<b class="grow small">Test a notification</b>${chev}</button><button class="lrow" data-act="reset" style="color:var(--live)">${I.reset}<b class="grow small">Reset prototype</b></button></div>
     <button class="btn block" style="margin-top:14px" data-act="save-settings">Done</button>`);
 }
 function howSheet() {
@@ -1768,6 +1770,34 @@ function Insights() {
 // In-app banner + bell badge update the moment something arrives. Across tabs on this device it is
 // truly live (storage events). Across phones the real app needs a push service (see README).
 const LV = { live: ['var(--live)', I.bell], action: ['var(--action)', I.clock], p: ['var(--p)', I.sparkle], done: ['var(--done)', I.checkc] };
+const alertPerm = () => ('Notification' in window ? Notification.permission : 'none');
+const alertsCard = () => trialOn() && alertPerm() === 'default' && !S.alertsHide ? `<div class="card alcard"><span class="ddic" style="--dc:var(--p)">${I.bell}</span><div class="grow"><b class="small">See alerts on your phone</b><p class="xs muted">Trial: member, lead and admin alerts all pop up here.</p></div><button class="btn sm" data-act="alerts-on">Turn on</button><button class="x" data-act="alerts-hide" aria-label="Hide">×</button></div>` : '';
+const ROLE_LBL = { member: 'Member', lead: 'Team lead', admin: 'Super Admin' };
+// Prototype trial: every new notification (member, lead or admin) pops as an alert on this phone,
+// even when you are viewing as another role — so you can see how each one looks.
+function trialCheck() {
+  const fresh = (S.notifs || []).filter((n) => !alerted.has(n.id)); fresh.forEach((n) => alerted.add(n.id));
+  if (!fresh.length || fresh.length > 3 || !trialOn()) return; // a big batch = new data loaded, not news
+  fresh.forEach((n) => seenIds.add(n.id));
+  setTimeout(() => { showBanner(fresh[0], fresh.length); osAlert(fresh[0]); }, 350);
+}
+function osAlert(n) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const r = n.role || 'member'; const title = r === 'member' ? 'Namdhari Seva' : `Namdhari Seva · For ${ROLE_LBL[r]}`;
+  const opt = { body: n.t, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: n.id, data: { id: n.id } };
+  (navigator.serviceWorker ? navigator.serviceWorker.getRegistration() : Promise.resolve(null)).then((reg) => { if (reg) reg.showNotification(title, opt); else try { new Notification(title, opt); } catch (e) {} });
+}
+async function askAlerts() {
+  if (!('Notification' in window)) { toast(/iphone|ipad/i.test(navigator.userAgent) ? 'On iPhone, add to Home Screen first, then open it from there' : 'Phone alerts aren\'t supported here'); return; }
+  const p = await Notification.requestPermission(); render();
+  toast(p === 'granted' ? 'Phone alerts on — every role will pop up here' : 'Alerts are blocked — allow them in the browser settings');
+}
+// open a notification — if it belongs to another role, switch to that role first
+function openNotif(n) {
+  const r = n.role || 'member';
+  if (r !== S.role && !(r === 'lead' && !meIsLead())) { S.role = r; try { sessionStorage.setItem('seva-role', r); } catch (e) {} sevaSeg = isLead() ? 'manage' : 'mine'; leadChip = null; sevaChip = null; stack = []; tab = isAdmin() ? 'stats' : 'home'; toast(`Viewing as ${ROLE_LBL[r]}`); }
+  n.read = true; save(); render(); if (n.ref) openRef(n.ref);
+}
 function announceNew() {
   const fresh = notifsFor().filter((n) => !seenIds.has(n.id) && !n.read);
   S.notifs.forEach((n) => { if ((n.role || 'member') === S.role) seenIds.add(n.id); });
@@ -1779,11 +1809,12 @@ let bnT;
 function showBanner(n, count) {
   let el = $('#nb-root'); if (!el) { el = document.createElement('div'); el.id = 'nb-root'; document.body.appendChild(el); }
   const [c, ic] = LV[n.level] || LV.p; buzz(); try { navigator.vibrate && navigator.vibrate([12, 60, 12]); } catch (e) {}
-  el.innerHTML = `<button class="nbanner" data-act="nb-open" data-id="${n.id}"><span class="nbic" style="color:${c};background:color-mix(in srgb,${c} 14%,var(--surface))">${ic}</span><span class="grow"><b>${count > 1 ? `${count} new notifications` : 'Namdhari Seva'}<i>now</i></b><span>${esc(n.t)}</span></span></button>`;
-  requestAnimationFrame(() => el.firstChild.classList.add('in'));
+  const nr = n.role || 'member'; const forTag = trialOn() && nr !== S.role ? `<em class="nbfor">For ${ROLE_LBL[nr]}</em>` : '';
+  el.innerHTML = `<button class="nbanner" data-act="nb-open" data-id="${n.id}"><span class="nbic" style="color:${c};background:color-mix(in srgb,${c} 14%,var(--surface))">${ic}</span><span class="grow"><b>${count > 1 ? `${count} new notifications` : 'Namdhari Seva'}<i>now</i></b>${forTag}<span>${esc(n.t)}</span></span></button>`;
+  requestAnimationFrame(() => { el.firstChild.classList.add('in'); document.documentElement.classList.add('nbup'); });
   updateBadges(); clearTimeout(bnT); bnT = setTimeout(hideBanner, 5000);
 }
-function hideBanner() { const b = $('#nb-root .nbanner'); if (b) { b.classList.remove('in'); setTimeout(() => { const r = $('#nb-root'); if (r) r.innerHTML = ''; }, 300); } }
+function hideBanner() { document.documentElement.classList.remove('nbup'); const b = $('#nb-root .nbanner'); if (b) { b.classList.remove('in'); setTimeout(() => { const r = $('#nb-root'); if (r) r.innerHTML = ''; }, 300); } }
 // refresh only the little numbers, so nothing jumps while you read
 function updateBadges() {
   $$('[data-act=inbox]').forEach((b) => { const u = unread(); b.querySelector('.nb')?.remove(); if (u) b.insertAdjacentHTML('beforeend', `<span class="nb">${u}</span>`); });
@@ -2589,7 +2620,10 @@ function handle(el) {
     case 'ins-invite': { const s = localSeva().filter((x) => isFuture(x) && x.cat === 'cleanup')[0] || localSeva().filter(isFuture)[0]; if (s) { push({ v: 'seva', id: s.id }); dtab = 'people'; teamFilter = 'going'; rerender(); inviteSheet(s.id); } break; }
     case 'copy-link': try { navigator.clipboard.writeText(el.dataset.l); toast('Link copied'); } catch (e) { toast('Copy not available here'); } break;
     case 'wa-invite': window.open(`https://wa.me/?text=${encodeURIComponent('Join Delhi Central on Namdhari Seva 🙏 ' + el.dataset.l)}`, '_blank', 'noopener'); break;
-    case 'nb-open': { const n = S.notifs.find((x) => x.id === id); hideBanner(); if (n) { n.read = true; save(); openRef(n.ref); } break; }
+    case 'nb-open': { const n = S.notifs.find((x) => x.id === id); hideBanner(); if (n) openNotif(n); break; }
+    case 'alerts-on': askAlerts(); break;
+    case 'alerts-hide': S.alertsHide = true; save(); render(); break;
+    case 'trial-alerts': S.trialAlerts = !trialOn(); save(); closeSheet(); settingsSheet(); toast(trialOn() ? 'Trial alerts on for every role' : 'Alerts only for the role you are viewing'); break;
     case 'live-demo': S.liveDemo = S.liveDemo === false; save(); if (S.liveDemo !== false) { liveIdx = 0; scheduleLive(4000); } toast(S.liveDemo === false ? 'Live demo updates off' : 'Live demo updates on — watch for a banner'); closeSheet(); break;
     case 'af-open': afSheet(el.dataset.k); break;
     case 'af-set': { const F = af(); const k = el.dataset.k; if (k === 'c') F.gs = GROUPS.filter((g) => g.country === el.dataset.v).map((g) => g.id); else F[k] = k === 'p' ? +el.dataset.v : el.dataset.v; save(); closeSheet(); rerender(); break; }
@@ -2838,7 +2872,8 @@ try { const r = sessionStorage.getItem('seva-role'); if (r) S.role = r; } catch 
 if (S.clean && S.users && !S.users.some((u) => u.n === 'Harpreet Kaur' && u.g === 'ludhiana')) { S.users.splice(S.users.findIndex((u) => u.g === 'ludhiana') + 1, 0, { n: 'Harpreet Kaur', g: 'ludhiana', sex: 'f', joined: iso(now()) }); }
 syncPeople(); if (S.role === 'lead' && !meIsLead()) S.role = 'member';
 if (S.role === 'lead') sevaSeg = 'manage';
-S.notifs.forEach((n) => seenIds.add(n.id));
+S.notifs.forEach((n) => { seenIds.add(n.id); alerted.add(n.id); });
+navigator.serviceWorker?.addEventListener('message', (e) => { const n = e.data?.open && S.notifs.find((x) => x.id === e.data.open); if (n) openNotif(n); });
 setTimeout(() => { render(); deepLink(); scheduleLive(15000); }, 200);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 })();
