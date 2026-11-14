@@ -1771,7 +1771,7 @@ function Insights() {
 // truly live (storage events). Across phones the real app needs a push service (see README).
 const LV = { live: ['var(--live)', I.bell], action: ['var(--action)', I.clock], p: ['var(--p)', I.sparkle], done: ['var(--done)', I.checkc] };
 const alertPerm = () => ('Notification' in window ? Notification.permission : 'none');
-const alertsCard = () => trialOn() && alertPerm() === 'default' && !S.alertsHide ? `<div class="card alcard"><span class="ddic" style="--dc:var(--p)">${I.bell}</span><div class="grow"><b class="small">See alerts on your phone</b><p class="xs muted">Trial: member, lead and admin alerts all pop up here.</p></div><button class="btn sm" data-act="alerts-on">Turn on</button><button class="x" data-act="alerts-hide" aria-label="Hide">×</button></div>` : '';
+const alertsCard = () => trialOn() && alertPerm() === 'default' && !S.alertsHide ? `<div class="card alcard"><span class="ddic" style="--dc:var(--p)">${I.bell}</span><div class="grow"><b class="small">Phone alerts</b><p class="xs muted">Trial: member, lead &amp; admin alerts all pop up here</p></div><button class="btn sm" data-act="alerts-on">Turn on</button><button class="x" data-act="alerts-hide" aria-label="Hide">×</button></div>` : '';
 const ROLE_LBL = { member: 'Member', lead: 'Team lead', admin: 'Super Admin' };
 // Prototype trial: every new notification (member, lead or admin) pops as an alert on this phone,
 // even when you are viewing as another role — so you can see how each one looks.
